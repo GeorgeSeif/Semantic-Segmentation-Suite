@@ -16,6 +16,14 @@ def LOG(X, f=None):
 	else:
 		f.write(time_stamp + " " + X)
 
+def memory():
+    import os
+    import psutil
+    pid = os.getpid()
+    py = psutil.Process(pid)
+    memoryUse = py.memory_info()[0]/2.**30  # memory use in GB...I think
+    print('memory use:', memoryUse)
+
 def prepare_data(dataset_dir="CamVid"):
     train_input_names=[]
     train_output_names=[]
@@ -60,7 +68,10 @@ opt=tf.train.RMSPropOptimizer(learning_rate=0.001, decay=0.995).minimize(loss, v
 is_training=True
 batch_size=4
 num_epochs=10
-sess=tf.Session()
+
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+sess=tf.Session(config=config)
 
 saver=tf.train.Saver(max_to_keep=1000)
 sess.run(tf.global_variables_initializer())
@@ -70,22 +81,36 @@ print("***** Begin training *****")
 if is_training:
 
     for epoch in range(1,num_epochs):
-        if epoch==1:
-            input_images=[None]*len(train_input_names)
-            output_images=[None]*len(train_input_names)
+        
+        input_image_names=[None]*len(train_input_names)
+        output_image_names=[None]*len(train_input_names)
 
         cnt=0
         for id in np.random.permutation(len(train_input_names)):
             st=time.time()
-            if input_images[id] is None:
-                input_images[id]=np.expand_dims(np.float32(cv2.imread(train_input_names[id],-1)),axis=0)/255.0
-                output_images[id]=np.expand_dims(np.float32(one_hot_it(cv2.imread(train_output_names[id],-1),360,480)), axis=0)
-                input_images[id] = tf.image.crop_to_bounding_box(input_images[id], 0, 0, 352, 480).eval(session=sess)
-                output_images[id] = tf.image.crop_to_bounding_box(output_images[id], 0, 0, 352, 480).eval(session=sess)
+            if input_image_names[id] is None:
+            	LOG(train_input_names[id])
+                input_image_names[id] = train_input_names[id]
+                output_image_names[id] = train_output_names[id]
+                input_image=np.expand_dims(np.float32(cv2.imread(input_image_names[id],-1)[:352, :480]),axis=0)/255.0
+                output_image=np.expand_dims(np.float32(one_hot_it(labels=cv2.imread(output_image_names[id],-1)[:352, :480])), axis=0)
+
+                # ***** THIS CAUSES A MEMORY LEAK AS NEW TENSORS KEEP GETTING CREATED *****
+                # input_image = tf.image.crop_to_bounding_box(input_image, offset_height=0, offset_width=0, 
+                # 												target_height=352, target_width=480).eval(session=sess)
+                # output_image = tf.image.crop_to_bounding_box(output_image, offset_height=0, offset_width=0, 
+                # 												target_height=352, target_width=480).eval(session=sess)
+                # ***** THIS CAUSES A MEMORY LEAK AS NEW TENSORS KEEP GETTING CREATED *****
+                if input_image.shape[1]*input_image.shape[2]>2200000:#due to GPU memory limitation
+                    print("Skipping due to GPU memory limitation")
+                    continue
+
+                memory()
             
-                _,current=sess.run([opt,loss],feed_dict={input:input_images[id],output:output_images[id]})
+                _,current=sess.run([opt,loss],feed_dict={input:input_image,output:output_image})
                 cnt = cnt + 1
-                print("Epoch = %d Count = %d Current = %.2f Time = %.2f"%(epoch,cnt,current,time.time()-st))
+                string_print = "Epoch = %d Count = %d Current = %.2f Time = %.2f"%(epoch,cnt,current,time.time()-st)
+                LOG(string_print)
 
         # os.makedirs("%s/%04d"%(task,epoch))
         # target=open("%s/%04d/score.txt"%(task,epoch),'w')
@@ -101,3 +126,14 @@ if is_training:
         #     print("%.3f"%(time.time()-st))
         #     output_image=np.minimum(np.maximum(output_image,0.0),1.0)*255.0
         #     cv2.imwrite("%s/%04d/%06d.jpg"%(task,epoch,ind+1),np.uint8(output_image[0,:,:,:]))
+
+
+
+
+# -- Implement batch training
+# -- Save checkpoints
+# -- Run on validation set during training
+# -- Show outputs properly and save them
+# -- Implement test functionality
+# -- Allow for using Citiscapes dataset
+# -- Implement the 100 layer version

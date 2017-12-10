@@ -22,9 +22,11 @@ def normalized(rgb):
 
     return norm
 
-def one_hot_it(labels,w,h):
+def one_hot_it(labels):
+    w = labels.shape[0]
+    h = labels.shape[1]
     x = np.zeros([w,h,12])
-    for i in range(w):
-        for j in range(h):
+    for i in range(0, w):
+        for j in range(0, h):
             x[i,j,labels[i][j]]=1
     return x
