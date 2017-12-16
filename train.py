@@ -7,6 +7,8 @@ import time, datetime
 
 from helper import *
 
+import matplotlib.pyplot as plt
+
 from FC_DenseNet_Tiramisu import build_fc_densenet
 
 def LOG(X, f=None):
@@ -63,7 +65,7 @@ def prepare_data(dataset_dir="CamVid"):
     for file in os.listdir(dataset_dir + "/test_labels"):
     	cwd = os.getcwd()
     	test_output_names.append(cwd + dataset_dir + "/test_labels/" + file)
-    return train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names
+    return train_input_names[:10],train_output_names[:10], val_input_names, val_output_names, test_input_names, test_output_names
 
 # Load the data
 print("Loading the data ...")
@@ -82,7 +84,7 @@ loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=network, la
 opt=tf.train.RMSPropOptimizer(learning_rate=0.001, decay=0.995).minimize(loss, var_list=[var for var in tf.trainable_variables()])
 
 is_training=True
-num_epochs=30
+num_epochs=3
 
 
 config = tf.ConfigProto()
@@ -92,11 +94,13 @@ sess=tf.Session(config=config)
 saver=tf.train.Saver(max_to_keep=1000)
 sess.run(tf.global_variables_initializer())
 
+avg_scores_per_epoch = []
+
 print("***** Begin training *****")
 
 if is_training:
 
-    for epoch in range(1,num_epochs):
+    for epoch in range(num_epochs):
         
         input_image_names=[None]*len(train_input_names)
         output_image_names=[None]*len(train_input_names)
@@ -142,12 +146,13 @@ if is_training:
         target=open("%s/%04d/scores.txt"%("checkpoints",epoch),'w')
         target.write("val_index, accuracy\n")
         val_indices = [1, 11, 21, 31, 41, 51, 61, 71, 81, 91]
+        scores_list = []
 
         for ind in val_indices:
             input_image = np.expand_dims(np.float32(cv2.imread(val_input_names[ind],-1)[:352, :480]),axis=0)/255.0
             st = time.time()
             output_image = sess.run(network,feed_dict={input:input_image})
-            print("%.3f"%(time.time()-st))
+            # print("%.3f"%(time.time()-st))
             
 
             output_image = np.array(output_image[0,:,:,:])
@@ -160,6 +165,8 @@ if is_training:
             accuracy = compute_accuracy(out, gt)
             target.write("%d, %f\n"%(ind, accuracy))
             print("Accuracy = ", accuracy)
+
+            scores_list.append(accuracy)
             # print(gt.shape)
             gt = colour_code_segmentation(np.expand_dims(gt, axis=-1))
  
@@ -171,9 +178,27 @@ if is_training:
 
         target.close()
 
+        avg_scores_per_epoch.append(np.mean(scores_list))
+
+        scores_list = []
+
+    fig = plt.figure(figsize=(11,8))
+    ax1 = fig.add_subplot(111)
+
+    
+    ax1.plot(range(num_epochs), avg_scores_per_epoch)
+    ax1.set_title("Average validation accuracy vs epochs")
+    ax1.set_xlabel("Epoch")
+    ax1.set_ylabel("Avg. val. accuracy")
+
+
+    plt.savefig('accuracy_vs_epochs.png')
 
 
 
+
+
+# -- Load latest checkpoint
 # -- Implement test functionality
 # -- Allow for using Citiscapes dataset
 # -- Implement the 100 layer version
