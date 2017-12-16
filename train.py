@@ -1,4 +1,4 @@
-from __future__ import division
+from __future__ import print_function
 import os,time,cv2
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
@@ -16,12 +16,25 @@ def LOG(X, f=None):
 	else:
 		f.write(time_stamp + " " + X)
 
+def compute_accuracy(y_pred, y_true):
+    print(y_true.shape)
+    w = y_true.shape[0]
+    h = y_true.shape[1]
+    total = w*h
+    count = 0
+    for i in range(w):
+        for j in range(h):
+            if y_pred[i, j] == y_true[i, j]:
+                count = count + 1
+    return count / total
+
+
 def memory():
     import os
     import psutil
     pid = os.getpid()
     py = psutil.Process(pid)
-    memoryUse = py.memory_info()[0]/2.**30  # memory use in GB...I think
+    memoryUse = py.memory_info()[0]/2.**30  # memory use in GB
     print('memory use:', memoryUse)
 
 def prepare_data(dataset_dir="CamVid"):
@@ -61,13 +74,15 @@ input=tf.placeholder(tf.float32,shape=[None,None,None,3])
 output=tf.placeholder(tf.float32,shape=[None,None,None,12])
 network=build_fc_densenet(input)
 
+
+
 loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=output))
 
 opt=tf.train.RMSPropOptimizer(learning_rate=0.001, decay=0.995).minimize(loss, var_list=[var for var in tf.trainable_variables()])
 
 is_training=True
-batch_size=4
-num_epochs=10
+num_epochs=30
+
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -89,7 +104,7 @@ if is_training:
         for id in np.random.permutation(len(train_input_names)):
             st=time.time()
             if input_image_names[id] is None:
-            	LOG(train_input_names[id])
+            	# LOG(train_input_names[id])
                 input_image_names[id] = train_input_names[id]
                 output_image_names[id] = train_output_names[id]
                 input_image=np.expand_dims(np.float32(cv2.imread(input_image_names[id],-1)[:352, :480]),axis=0)/255.0
@@ -105,12 +120,34 @@ if is_training:
                     print("Skipping due to GPU memory limitation")
                     continue
 
-                memory()
+                # memory()
             
                 _,current=sess.run([opt,loss],feed_dict={input:input_image,output:output_image})
                 cnt = cnt + 1
-                string_print = "Epoch = %d Count = %d Current = %.2f Time = %.2f"%(epoch,cnt,current,time.time()-st)
-                LOG(string_print)
+                string_print = "Epoch = %d Count = %d Current = %.2f Time = %.2f\r"%(epoch,cnt,current,time.time()-st)
+                print(string_print)
+
+
+        input_image=np.expand_dims(np.float32(cv2.imread("in.png",-1)[:352, :480]),axis=0)/255.0
+        st=time.time()
+        output_image=sess.run(network,feed_dict={input:input_image})
+        # print("%.3f"%(time.time()-st))
+        output_image = np.array(output_image[0,:,:,:])
+        output_image = reverse_one_hot(output_image)
+        out = output_image
+        output_image = colour_code_segmentation(output_image)
+
+        gt = cv2.imread("out.png",-1)[:352, :480]
+
+        accuracy = compute_accuracy(out, gt)
+        print("Accuracy = ", accuracy)
+        # print(gt.shape)
+        gt = colour_code_segmentation(np.expand_dims(gt, axis=-1))
+
+        
+       
+        cv2.imwrite("pred.png",np.uint8(output_image))
+        cv2.imwrite("gt.png",np.uint8(gt))
 
         # os.makedirs("%s/%04d"%(task,epoch))
         # target=open("%s/%04d/score.txt"%(task,epoch),'w')
@@ -130,7 +167,6 @@ if is_training:
 
 
 
-# -- Implement batch training
 # -- Save checkpoints
 # -- Run on validation set during training
 # -- Show outputs properly and save them
