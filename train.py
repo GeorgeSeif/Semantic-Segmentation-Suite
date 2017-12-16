@@ -86,6 +86,8 @@ opt=tf.train.RMSPropOptimizer(learning_rate=0.001, decay=0.995).minimize(loss, v
 is_training=True
 num_epochs=3
 
+continue_training = True
+
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -93,6 +95,10 @@ sess=tf.Session(config=config)
 
 saver=tf.train.Saver(max_to_keep=1000)
 sess.run(tf.global_variables_initializer())
+
+if continue_training:
+    print('loaded latest model checkpoint')
+    saver.restore(sess, "checkpoints/latest_model.ckpt")
 
 avg_scores_per_epoch = []
 
@@ -139,7 +145,7 @@ if is_training:
         if not os.path.isdir("%s/%04d"%("checkpoints",epoch)):
             os.makedirs("%s/%04d"%("checkpoints",epoch))
 
-        saver.save(sess,"%s/final_model.ckpt"%"checkpoints")
+        saver.save(sess,"%s/latest_model.ckpt"%"checkpoints")
         saver.save(sess,"%s/%04d/model.ckpt"%("checkpoints",epoch))
 
 
@@ -198,7 +204,6 @@ if is_training:
 
 
 
-# -- Load latest checkpoint
 # -- Implement test functionality
 # -- Allow for using Citiscapes dataset
 # -- Implement the 100 layer version
