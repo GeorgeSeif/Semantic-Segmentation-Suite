@@ -6,23 +6,8 @@ import numpy as np
 import itertools
 import operator
 
-
 from helper import *
 import os
-
-def normalized(rgb):
-    #return rgb/255.0
-    norm=np.zeros((rgb.shape[0], rgb.shape[1], 3),np.float32)
-
-    b=rgb[:,:,0]
-    g=rgb[:,:,1]
-    r=rgb[:,:,2]
-
-    norm[:,:,0]=cv2.equalizeHist(b)
-    norm[:,:,1]=cv2.equalizeHist(g)
-    norm[:,:,2]=cv2.equalizeHist(r)
-
-    return norm
 
 def one_hot_it(labels):
     w = labels.shape[0]
@@ -71,7 +56,7 @@ def colour_code_segmentation(image):
             x[i, j, :] = colour_dict(image[i, j, 0])
     return x
 
-# FYI they are:
+# Colour codes:
 # Sky = [128,128,128]
 # Building = [128,0,0]
 # Pole = [192,192,128]

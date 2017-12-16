@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 
 from FC_DenseNet_Tiramisu import build_fc_densenet
 
+# Print with time
 def LOG(X, f=None):
 	time_stamp = datetime.datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
 	if not f:
@@ -18,6 +19,7 @@ def LOG(X, f=None):
 	else:
 		f.write(time_stamp + " " + X)
 
+# Compute the segmentation accuracy
 def compute_accuracy(y_pred, y_true):
     # print(y_true.shape)
     w = y_true.shape[0]
@@ -31,15 +33,16 @@ def compute_accuracy(y_pred, y_true):
     # print(count)
     return count / total
 
-
+# Compute the memory usage, for debugging
 def memory():
     import os
     import psutil
     pid = os.getpid()
     py = psutil.Process(pid)
-    memoryUse = py.memory_info()[0]/2.**30  # memory use in GB
+    memoryUse = py.memory_info()[0]/2.**30  # Memory use in GB
     print('memory use:', memoryUse)
 
+# Get a list of the training, validation, and testing file paths
 def prepare_data(dataset_dir="CamVid"):
     train_input_names=[]
     train_output_names=[]
@@ -73,20 +76,17 @@ train_input_names,train_output_names, val_input_names, val_output_names, test_in
 
 
 print("Setting up training procedure ...")
-input=tf.placeholder(tf.float32,shape=[None,None,None,3])
-output=tf.placeholder(tf.float32,shape=[None,None,None,12])
-network=build_fc_densenet(input)
-
-
+input = tf.placeholder(tf.float32,shape=[None,None,None,3])
+output = tf.placeholder(tf.float32,shape=[None,None,None,12])
+network = build_fc_densenet(input)
 
 loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=output))
 
-opt=tf.train.RMSPropOptimizer(learning_rate=0.001, decay=0.995).minimize(loss, var_list=[var for var in tf.trainable_variables()])
+opt = tf.train.RMSPropOptimizer(learning_rate=0.001, decay=0.995).minimize(loss, var_list=[var for var in tf.trainable_variables()])
 
-is_training=False
-num_epochs=3
-
-continue_training = True
+is_training = True
+num_epochs = 200
+continue_training = False
 
 
 config = tf.ConfigProto()
@@ -97,16 +97,21 @@ saver=tf.train.Saver(max_to_keep=1000)
 sess.run(tf.global_variables_initializer())
 
 if continue_training:
-    print('loaded latest model checkpoint')
+    print('Loaded latest model checkpoint')
     saver.restore(sess, "checkpoints/latest_model.ckpt")
 
 avg_scores_per_epoch = []
 
-print("***** Begin training *****")
-
 if is_training:
 
+    print("***** Begin training *****")
+
+    avg_loss_per_epoch = []
+
+    # Do the training here
     for epoch in range(num_epochs):
+
+        current_losses = []
         
         input_image_names=[None]*len(train_input_names)
         output_image_names=[None]*len(train_input_names)
@@ -115,7 +120,7 @@ if is_training:
         for id in np.random.permutation(len(train_input_names)):
             st=time.time()
             if input_image_names[id] is None:
-            	# LOG(train_input_names[id])
+            	
                 input_image_names[id] = train_input_names[id]
                 output_image_names[id] = train_output_names[id]
                 input_image = np.expand_dims(np.float32(cv2.imread(input_image_names[id],-1)[:352, :480]),axis=0)/255.0
@@ -128,20 +133,19 @@ if is_training:
                 # 												target_height=352, target_width=480).eval(session=sess)
                 # ***** THIS CAUSES A MEMORY LEAK AS NEW TENSORS KEEP GETTING CREATED *****
 
-                if input_image.shape[1]*input_image.shape[2]>2200000:#due to GPU memory limitation
-                    print("Skipping due to GPU memory limitation")
-                    continue
-
                 # memory()
             
                 _,current=sess.run([opt,loss],feed_dict={input:input_image,output:output_image})
+                current_losses.append(current)
                 cnt = cnt + 1
-                string_print = "Epoch = %d Count = %d Current = %.2f Time = %.2f\r"%(epoch,cnt,current,time.time()-st)
-                print(string_print)
+                if cnt % 20 == 0:
+                    string_print = "Epoch = %d Count = %d Current = %.2f Time = %.2f"%(epoch,cnt,current,time.time()-st)
+                    print(string_print)
 
-
-        # print("%.3f"%(time.time()-st))
+        mean_loss = np.mean(current_losses)
+        avg_loss_per_epoch.append(mean_loss)
         
+        # Create directories if needed
         if not os.path.isdir("%s/%04d"%("checkpoints",epoch)):
             os.makedirs("%s/%04d"%("checkpoints",epoch))
 
@@ -154,11 +158,13 @@ if is_training:
         val_indices = [1, 11, 21, 31, 41, 51, 61, 71, 81, 91]
         scores_list = []
 
+
+
+        # Do the validation on a small set of validation images
         for ind in val_indices:
             input_image = np.expand_dims(np.float32(cv2.imread(val_input_names[ind],-1)[:352, :480]),axis=0)/255.0
             st = time.time()
             output_image = sess.run(network,feed_dict={input:input_image})
-            # print("%.3f"%(time.time()-st))
             
 
             output_image = np.array(output_image[0,:,:,:])
@@ -170,10 +176,9 @@ if is_training:
 
             accuracy = compute_accuracy(out, gt)
             target.write("%d, %f\n"%(ind, accuracy))
-            print("Accuracy = ", accuracy)
 
             scores_list.append(accuracy)
-            # print(gt.shape)
+
             gt = colour_code_segmentation(np.expand_dims(gt, axis=-1))
  
             file_name = os.path.basename(val_input_names[ind])
@@ -184,7 +189,9 @@ if is_training:
 
         target.close()
 
-        avg_scores_per_epoch.append(np.mean(scores_list))
+        avg_score = np.mean(scores_list)
+        avg_scores_per_epoch.append(avg_score)
+        print("Validation accuracy for epoch # %04d = %f"% (epoch, avg_score))
 
         scores_list = []
 
@@ -200,7 +207,22 @@ if is_training:
 
     plt.savefig('accuracy_vs_epochs.png')
 
+    plt.clf()
+
+    ax1 = fig.add_subplot(111)
+
+    
+    ax1.plot(range(num_epochs), avg_loss_per_epoch)
+    ax1.set_title("Average loss vs epochs")
+    ax1.set_xlabel("Epoch")
+    ax1.set_ylabel("Current loss")
+
+    plt.savefig('loss_vs_epochs.png')
+
 else:
+    print("***** Begin testing *****")
+
+    # Create directories if needed
     if not os.path.isdir("%s"%("Test")):
             os.makedirs("%s"%("Test"))
 
@@ -208,11 +230,11 @@ else:
     target.write("test_index, accuracy\n")
     scores_list = []
 
+    # Run testing on ALL test images
     for ind in range(len(test_input_names)):
         input_image = np.expand_dims(np.float32(cv2.imread(test_input_names[ind],-1)[:352, :480]),axis=0)/255.0
         st = time.time()
         output_image = sess.run(network,feed_dict={input:input_image})
-        # print("%.3f"%(time.time()-st))
         
 
         output_image = np.array(output_image[0,:,:,:])
@@ -227,7 +249,7 @@ else:
         print("Accuracy = ", accuracy)
 
         scores_list.append(accuracy)
-        # print(gt.shape)
+        
         gt = colour_code_segmentation(np.expand_dims(gt, axis=-1))
 
         file_name = os.path.basename(test_input_names[ind])
@@ -238,12 +260,11 @@ else:
 
     target.close()
 
-    print("Test accuracy = ", np.mean(scores_list))
+    print("Average test accuracy = ", np.mean(scores_list))
 
 
 
 
-
-# -- Allow for using Citiscapes dataset
+# -- Compute average accuracy per class
 # -- Implement the 100 layer version
-# -- Update comments and clean-up code
+# -- Add README

@@ -34,8 +34,7 @@ def DenseBlock(stack, n_layers, growth_rate, dropout_p, bottleneck=False, scope=
       # Compute new feature maps
       # if bottleneck, do a 1x1 conv before the 3x3
       if bottleneck:
-        stack = preact_conv(stack, 4*growth_rate, filter_size=[1, 1],
-                            dropout_p=0.0)
+        stack = preact_conv(stack, 4*growth_rate, filter_size=[1, 1], dropout_p=0.0)
       layer = preact_conv(stack, growth_rate, dropout_p=dropout_p)
       new_features.append(layer)
       # stack new layer
@@ -71,8 +70,7 @@ def TransitionDown(inputs, n_filters, dropout_p=0.2, scope=None):
 def TransitionUp(block_to_upsample, skip_connection, n_filters_keep, scope=None):
   """
   Transition Up for FC-DenseNet
-  Performs upsampling on block_to_upsample by a factor 2 and concatenates it
-  with the skip_connection
+  Performs upsampling on block_to_upsample by a factor 2 and concatenates it with the skip_connection
   """
   with tf.name_scope(scope) as sc:
     # Upsample
@@ -119,8 +117,7 @@ def build_fc_densenet(inputs, num_classes=12, n_filters_first_conv=48, n_pool=4,
         # Dense Block
         stack, _ = DenseBlock(stack, n_layers_per_block[i], growth_rate, dropout_p, scope='denseblock%d' % (i+1))
         n_filters += growth_rate * n_layers_per_block[i]
-        # At the end of the dense block, the current stack is stored
-        # in the skip_connections list
+        # At the end of the dense block, the current stack is stored in the skip_connections list
         skip_connection_list.append(stack)
 
         # Transition Down
