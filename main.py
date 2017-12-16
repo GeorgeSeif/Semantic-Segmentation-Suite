@@ -64,8 +64,8 @@ def prepare_data(dataset_dir="CamVid"):
     	test_input_names.append(cwd + "/" + dataset_dir + "/test/" + file)
     for file in os.listdir(dataset_dir + "/test_labels"):
     	cwd = os.getcwd()
-    	test_output_names.append(cwd + dataset_dir + "/test_labels/" + file)
-    return train_input_names[:10],train_output_names[:10], val_input_names, val_output_names, test_input_names, test_output_names
+    	test_output_names.append(cwd + "/" + dataset_dir + "/test_labels/" + file)
+    return train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names
 
 # Load the data
 print("Loading the data ...")
@@ -83,7 +83,7 @@ loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=network, la
 
 opt=tf.train.RMSPropOptimizer(learning_rate=0.001, decay=0.995).minimize(loss, var_list=[var for var in tf.trainable_variables()])
 
-is_training=True
+is_training=False
 num_epochs=3
 
 continue_training = True
@@ -149,7 +149,7 @@ if is_training:
         saver.save(sess,"%s/%04d/model.ckpt"%("checkpoints",epoch))
 
 
-        target=open("%s/%04d/scores.txt"%("checkpoints",epoch),'w')
+        target=open("%s/%04d/val_scores.txt"%("checkpoints",epoch),'w')
         target.write("val_index, accuracy\n")
         val_indices = [1, 11, 21, 31, 41, 51, 61, 71, 81, 91]
         scores_list = []
@@ -200,11 +200,50 @@ if is_training:
 
     plt.savefig('accuracy_vs_epochs.png')
 
+else:
+    if not os.path.isdir("%s"%("Test")):
+            os.makedirs("%s"%("Test"))
+
+    target=open("%s/test_scores.txt"%("Test"),'w')
+    target.write("test_index, accuracy\n")
+    scores_list = []
+
+    for ind in range(len(test_input_names)):
+        input_image = np.expand_dims(np.float32(cv2.imread(test_input_names[ind],-1)[:352, :480]),axis=0)/255.0
+        st = time.time()
+        output_image = sess.run(network,feed_dict={input:input_image})
+        # print("%.3f"%(time.time()-st))
+        
+
+        output_image = np.array(output_image[0,:,:,:])
+        output_image = reverse_one_hot(output_image)
+        out = output_image
+        output_image = colour_code_segmentation(output_image)
+
+        gt = cv2.imread(test_output_names[ind],-1)[:352, :480]
+
+        accuracy = compute_accuracy(out, gt)
+        target.write("%d, %f\n"%(ind, accuracy))
+        print("Accuracy = ", accuracy)
+
+        scores_list.append(accuracy)
+        # print(gt.shape)
+        gt = colour_code_segmentation(np.expand_dims(gt, axis=-1))
+
+        file_name = os.path.basename(test_input_names[ind])
+        file_name = os.path.splitext(file_name)[0]
+        cv2.imwrite("%s/%s_pred.png"%("Test", file_name),np.uint8(output_image))
+        cv2.imwrite("%s/%s_gt.png"%("Test", file_name),np.uint8(gt))
+
+
+    target.close()
+
+    print("Test accuracy = ", np.mean(scores_list))
 
 
 
 
-# -- Implement test functionality
+
 # -- Allow for using Citiscapes dataset
 # -- Implement the 100 layer version
 # -- Update comments and clean-up code
