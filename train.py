@@ -52,7 +52,7 @@ def prepare_data(dataset_dir="CamVid"):
     	train_output_names.append(cwd + "/" + dataset_dir + "/train_labels/" + file)
     for file in os.listdir(dataset_dir + "/val"):
     	cwd = os.getcwd()
-    	val_input_names.append(cwd + "/" + dataset_dir + "/val_labels/" + file)
+    	val_input_names.append(cwd + "/" + dataset_dir + "/val/" + file)
     for file in os.listdir(dataset_dir + "/val_labels"):
     	cwd = os.getcwd()
     	val_output_names.append(cwd + "/" + dataset_dir + "/val_labels/" + file)
@@ -107,8 +107,8 @@ if is_training:
             	# LOG(train_input_names[id])
                 input_image_names[id] = train_input_names[id]
                 output_image_names[id] = train_output_names[id]
-                input_image=np.expand_dims(np.float32(cv2.imread(input_image_names[id],-1)[:352, :480]),axis=0)/255.0
-                output_image=np.expand_dims(np.float32(one_hot_it(labels=cv2.imread(output_image_names[id],-1)[:352, :480])), axis=0)
+                input_image = np.expand_dims(np.float32(cv2.imread(input_image_names[id],-1)[:352, :480]),axis=0)/255.0
+                output_image = np.expand_dims(np.float32(one_hot_it(labels=cv2.imread(output_image_names[id],-1)[:352, :480])), axis=0)
 
                 # ***** THIS CAUSES A MEMORY LEAK AS NEW TENSORS KEEP GETTING CREATED *****
                 # input_image = tf.image.crop_to_bounding_box(input_image, offset_height=0, offset_width=0, 
@@ -128,48 +128,44 @@ if is_training:
                 print(string_print)
 
 
-        input_image=np.expand_dims(np.float32(cv2.imread("in.png",-1)[:352, :480]),axis=0)/255.0
-        st=time.time()
-        output_image=sess.run(network,feed_dict={input:input_image})
         # print("%.3f"%(time.time()-st))
-        output_image = np.array(output_image[0,:,:,:])
-        output_image = reverse_one_hot(output_image)
-        out = output_image
-        output_image = colour_code_segmentation(output_image)
-
-        gt = cv2.imread("out.png",-1)[:352, :480]
-
-        accuracy = compute_accuracy(out, gt)
-        print("Accuracy = ", accuracy)
-        # print(gt.shape)
-        gt = colour_code_segmentation(np.expand_dims(gt, axis=-1))
-
         
-       
-        cv2.imwrite("pred.png",np.uint8(output_image))
-        cv2.imwrite("gt.png",np.uint8(gt))
+        if not os.path.isdir("%s/%04d"%("checkpoints",epoch)):
+            os.makedirs("%s/%04d"%("checkpoints",epoch))
 
-        # os.makedirs("%s/%04d"%(task,epoch))
-        # target=open("%s/%04d/score.txt"%(task,epoch),'w')
-        # target.write("%f"%np.mean(all[np.where(all)]))
-        # target.close()
+        saver.save(sess,"%s/final_model.ckpt"%"checkpoints")
+        saver.save(sess,"%s/%04d/model.ckpt"%("checkpoints",epoch))
 
-        # saver.save(sess,"%s/model.ckpt"%task)
-        # saver.save(sess,"%s/%04d/model.ckpt"%(task,epoch))
-        # for ind in range(10):
-        #     input_image=np.expand_dims(np.float32(cv2.imread(val_names[ind],-1)),axis=0)/255.0
-        #     st=time.time()
-        #     output_image=sess.run(network,feed_dict={input:input_image})
-        #     print("%.3f"%(time.time()-st))
-        #     output_image=np.minimum(np.maximum(output_image,0.0),1.0)*255.0
-        #     cv2.imwrite("%s/%04d/%06d.jpg"%(task,epoch,ind+1),np.uint8(output_image[0,:,:,:]))
+        val_indices = [1, 11, 21, 31, 41, 51, 61, 71, 81, 91]
+
+        for ind in val_indices:
+            input_image = np.expand_dims(np.float32(cv2.imread(val_input_names[ind],-1)[:352, :480]),axis=0)/255.0
+            st = time.time()
+            output_image = sess.run(network,feed_dict={input:input_image})
+            print("%.3f"%(time.time()-st))
+            
+
+            output_image = np.array(output_image[0,:,:,:])
+            output_image = reverse_one_hot(output_image)
+            out = output_image
+            output_image = colour_code_segmentation(output_image)
+
+            gt = cv2.imread(val_output_names[ind],-1)[:352, :480]
+
+            accuracy = compute_accuracy(out, gt)
+            print("Accuracy = ", accuracy)
+            # print(gt.shape)
+            gt = colour_code_segmentation(np.expand_dims(gt, axis=-1))
+ 
+            file_name = os.path.basename(val_input_names[ind])
+            file_name = os.path.splitext(file_name)[0]
+            cv2.imwrite("%s/%04d/%s_pred.png"%("checkpoints",epoch, file_name),np.uint8(output_image))
+            cv2.imwrite("%s/%04d/%s_gt.png"%("checkpoints",epoch, file_name),np.uint8(gt))
 
 
 
 
-# -- Save checkpoints
-# -- Run on validation set during training
-# -- Show outputs properly and save them
+
 # -- Implement test functionality
 # -- Allow for using Citiscapes dataset
 # -- Implement the 100 layer version
