@@ -17,15 +17,16 @@ def LOG(X, f=None):
 		f.write(time_stamp + " " + X)
 
 def compute_accuracy(y_pred, y_true):
-    print(y_true.shape)
+    # print(y_true.shape)
     w = y_true.shape[0]
     h = y_true.shape[1]
     total = w*h
-    count = 0
+    count = 0.0
     for i in range(w):
         for j in range(h):
             if y_pred[i, j] == y_true[i, j]:
-                count = count + 1
+                count = count + 1.0
+    # print(count)
     return count / total
 
 
@@ -116,6 +117,7 @@ if is_training:
                 # output_image = tf.image.crop_to_bounding_box(output_image, offset_height=0, offset_width=0, 
                 # 												target_height=352, target_width=480).eval(session=sess)
                 # ***** THIS CAUSES A MEMORY LEAK AS NEW TENSORS KEEP GETTING CREATED *****
+
                 if input_image.shape[1]*input_image.shape[2]>2200000:#due to GPU memory limitation
                     print("Skipping due to GPU memory limitation")
                     continue
@@ -136,6 +138,9 @@ if is_training:
         saver.save(sess,"%s/final_model.ckpt"%"checkpoints")
         saver.save(sess,"%s/%04d/model.ckpt"%("checkpoints",epoch))
 
+
+        target=open("%s/%04d/scores.txt"%("checkpoints",epoch),'w')
+        target.write("val_index, accuracy\n")
         val_indices = [1, 11, 21, 31, 41, 51, 61, 71, 81, 91]
 
         for ind in val_indices:
@@ -153,6 +158,7 @@ if is_training:
             gt = cv2.imread(val_output_names[ind],-1)[:352, :480]
 
             accuracy = compute_accuracy(out, gt)
+            target.write("%d, %f\n"%(ind, accuracy))
             print("Accuracy = ", accuracy)
             # print(gt.shape)
             gt = colour_code_segmentation(np.expand_dims(gt, axis=-1))
@@ -163,9 +169,12 @@ if is_training:
             cv2.imwrite("%s/%04d/%s_gt.png"%("checkpoints",epoch, file_name),np.uint8(gt))
 
 
+        target.close()
+
 
 
 
 # -- Implement test functionality
 # -- Allow for using Citiscapes dataset
 # -- Implement the 100 layer version
+# -- Update comments and clean-up code

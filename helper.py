@@ -37,7 +37,7 @@ def reverse_one_hot(image):
     w = image.shape[0]
     h = image.shape[1]
     x = np.zeros([w,h,1])
-    print(image.shape)
+    # print(image.shape)
     for i in range(0, w):
         for j in range(0, h):
             index, value = max(enumerate(image[i, j, :]), key=operator.itemgetter(1))
