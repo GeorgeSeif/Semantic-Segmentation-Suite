@@ -80,7 +80,7 @@ def TransitionUp(block_to_upsample, skip_connection, n_filters_keep, scope=None)
     return l
 
 
-def build_fc_densenet(inputs, num_classes=12, n_filters_first_conv=48, n_pool=4, growth_rate=16, n_layers_per_block=5, dropout_p=0.2, scope=None):
+def build_fc_densenet(inputs, preset_model='FC-DenseNet56', num_classes=12, n_filters_first_conv=48, n_pool=5, growth_rate=12, n_layers_per_block=4, dropout_p=0.2, scope=None):
     """
     Args:
       n_classes: number of classes
@@ -91,6 +91,19 @@ def build_fc_densenet(inputs, num_classes=12, n_filters_first_conv=48, n_pool=4,
       dropout_p: dropout rate applied after each convolution (0. for not using)
     """
 
+    if preset_model == 'FC-DenseNet56':
+      n_pool=5
+      growth_rate=12
+      n_layers_per_block=4
+    elif preset_model == 'FC-DenseNet67':
+      n_pool=5
+      growth_rate=16
+      n_layers_per_block=5
+    elif preset_model == 'FC-DenseNet103':
+      n_pool=5
+      growth_rate=16
+      n_layers_per_block=[4, 5, 7, 10, 12, 15, 12, 10, 7, 5, 4]
+
     if type(n_layers_per_block) == list:
         assert (len(n_layers_per_block) == 2 * n_pool + 1)
     elif type(n_layers_per_block) == int:
@@ -98,7 +111,7 @@ def build_fc_densenet(inputs, num_classes=12, n_filters_first_conv=48, n_pool=4,
     else:
         raise ValueError
 
-    with tf.variable_scope(scope, 'fc_densenet', [inputs]) as sc:
+    with tf.variable_scope(scope, preset_model, [inputs]) as sc:
 
       #####################
       # First Convolution #

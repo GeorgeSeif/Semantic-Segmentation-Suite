@@ -48,14 +48,14 @@ train_input_names,train_output_names, val_input_names, val_output_names, test_in
 print("Setting up training procedure ...")
 input = tf.placeholder(tf.float32,shape=[None,None,None,3])
 output = tf.placeholder(tf.float32,shape=[None,None,None,12])
-network = build_fc_densenet(input)
+network = build_fc_densenet(input, preset_model = 'FC-DenseNet103')
 
 loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=output))
 
 opt = tf.train.RMSPropOptimizer(learning_rate=0.001, decay=0.995).minimize(loss, var_list=[var for var in tf.trainable_variables()])
 
-is_training = False
-num_epochs = 200
+is_training = True
+num_epochs = 300
 continue_training = False
 class_names_string = "Sky, Building, Pole, Road, Pavement, Tree, SignSymbol, Fence, Car, Pedestrian, Bicyclist, Unlabelled"
 class_names_list = ["Sky", "Building", "Pole", "Road", "Pavement", "Tree", "SignSymbol", "Fence", "Car", "Pedestrian", "Bicyclist", "Unlabelled"]
@@ -171,8 +171,8 @@ if is_training:
         avg_score = np.mean(scores_list)
         class_avg_scores = np.mean(class_scores_list, axis=0)
         avg_scores_per_epoch.append(avg_score)
-        print("Average validation accuracy for epoch # %04d = %f"% (epoch, avg_score))
-        print("Average per class validation accuracies for epoch # %04d = \n"% (epoch))
+        print("\nAverage validation accuracy for epoch # %04d = %f"% (epoch, avg_score))
+        print("Average per class validation accuracies for epoch # %04d:"% (epoch))
         for index, item in enumerate(class_avg_scores):
             print("%s = %f" % (class_names_list[index], item))
 
@@ -256,6 +256,3 @@ else:
 
 
 
-
-# -- Implement the 100 layer version
-# -- Add README
