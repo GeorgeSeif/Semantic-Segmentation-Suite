@@ -1,46 +1,16 @@
 from __future__ import print_function
-import os,time,cv2
+import os,time,cv2, sys, math
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 import numpy as np
 import time, datetime
 
 from helper import *
+from utils import *
 
 import matplotlib.pyplot as plt
 
 from FC_DenseNet_Tiramisu import build_fc_densenet
-
-# Print with time
-def LOG(X, f=None):
-	time_stamp = datetime.datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
-	if not f:
-		print(time_stamp + " " + X)
-	else:
-		f.write(time_stamp + " " + X)
-
-# Compute the segmentation accuracy
-def compute_accuracy(y_pred, y_true):
-    # print(y_true.shape)
-    w = y_true.shape[0]
-    h = y_true.shape[1]
-    total = w*h
-    count = 0.0
-    for i in range(w):
-        for j in range(h):
-            if y_pred[i, j] == y_true[i, j]:
-                count = count + 1.0
-    # print(count)
-    return count / total
-
-# Compute the memory usage, for debugging
-def memory():
-    import os
-    import psutil
-    pid = os.getpid()
-    py = psutil.Process(pid)
-    memoryUse = py.memory_info()[0]/2.**30  # Memory use in GB
-    print('memory use:', memoryUse)
 
 # Get a list of the training, validation, and testing file paths
 def prepare_data(dataset_dir="CamVid"):
@@ -84,9 +54,11 @@ loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=network, la
 
 opt = tf.train.RMSPropOptimizer(learning_rate=0.001, decay=0.995).minimize(loss, var_list=[var for var in tf.trainable_variables()])
 
-is_training = True
+is_training = False
 num_epochs = 200
 continue_training = False
+class_names_string = "Sky, Building, Pole, Road, Pavement, Tree, SignSymbol, Fence, Car, Pedestrian, Bicyclist, Unlabelled"
+class_names_list = ["Sky", "Building", "Pole", "Road", "Pavement", "Tree", "SignSymbol", "Fence", "Car", "Pedestrian", "Bicyclist", "Unlabelled"]
 
 
 config = tf.ConfigProto()
@@ -96,7 +68,7 @@ sess=tf.Session(config=config)
 saver=tf.train.Saver(max_to_keep=1000)
 sess.run(tf.global_variables_initializer())
 
-if continue_training:
+if continue_training or not is_training:
     print('Loaded latest model checkpoint')
     saver.restore(sess, "checkpoints/latest_model.ckpt")
 
@@ -154,9 +126,10 @@ if is_training:
 
 
         target=open("%s/%04d/val_scores.txt"%("checkpoints",epoch),'w')
-        target.write("val_index, accuracy\n")
+        target.write("val_name, avg_accuracy, %s\n" % (class_names_string))
         val_indices = [1, 11, 21, 31, 41, 51, 61, 71, 81, 91]
         scores_list = []
+        class_scores_list = []
 
 
 
@@ -174,10 +147,16 @@ if is_training:
 
             gt = cv2.imread(val_output_names[ind],-1)[:352, :480]
 
-            accuracy = compute_accuracy(out, gt)
-            target.write("%d, %f\n"%(ind, accuracy))
+            accuracy = compute_avg_accuracy(out, gt)
+            class_accuracies = compute_class_accuracies(out, gt)
+            file_name  =filepath_to_name(val_input_names[ind])
+            target.write("%s, %f"%(val_input_names[ind], accuracy))
+            for item in class_accuracies:
+                target.write(", %f"%(item))
+            target.write("\n")
 
             scores_list.append(accuracy)
+            class_scores_list.append(class_accuracies)
 
             gt = colour_code_segmentation(np.expand_dims(gt, axis=-1))
  
@@ -190,8 +169,12 @@ if is_training:
         target.close()
 
         avg_score = np.mean(scores_list)
+        class_avg_scores = np.mean(class_scores_list, axis=0)
         avg_scores_per_epoch.append(avg_score)
-        print("Validation accuracy for epoch # %04d = %f"% (epoch, avg_score))
+        print("Average validation accuracy for epoch # %04d = %f"% (epoch, avg_score))
+        print("Average per class validation accuracies for epoch # %04d = \n"% (epoch))
+        for index, item in enumerate(class_avg_scores):
+            print("%s = %f" % (class_names_list[index], item))
 
         scores_list = []
 
@@ -227,8 +210,9 @@ else:
             os.makedirs("%s"%("Test"))
 
     target=open("%s/test_scores.txt"%("Test"),'w')
-    target.write("test_index, accuracy\n")
+    target.write("test_name, avg_accuracy, %s\n" % (class_names_string))
     scores_list = []
+    class_scores_list = []
 
     # Run testing on ALL test images
     for ind in range(len(test_input_names)):
@@ -244,27 +228,34 @@ else:
 
         gt = cv2.imread(test_output_names[ind],-1)[:352, :480]
 
-        accuracy = compute_accuracy(out, gt)
-        target.write("%d, %f\n"%(ind, accuracy))
-        print("Accuracy = ", accuracy)
+        accuracy = compute_avg_accuracy(out, gt)
+        class_accuracies = compute_class_accuracies(out, gt)
+        file_name = filepath_to_name(test_input_names[ind])
+        target.write("%s, %f"%(file_name, accuracy))
+        for item in class_accuracies:
+            target.write(", %f"%(item))
+        target.write("\n")
 
         scores_list.append(accuracy)
+        class_scores_list.append(class_accuracies)
         
         gt = colour_code_segmentation(np.expand_dims(gt, axis=-1))
 
-        file_name = os.path.basename(test_input_names[ind])
-        file_name = os.path.splitext(file_name)[0]
         cv2.imwrite("%s/%s_pred.png"%("Test", file_name),np.uint8(output_image))
         cv2.imwrite("%s/%s_gt.png"%("Test", file_name),np.uint8(gt))
 
 
     target.close()
 
-    print("Average test accuracy = ", np.mean(scores_list))
+    avg_score = np.mean(scores_list)
+    class_avg_scores = np.mean(class_scores_list, axis=0)
+    print("Average test accuracy = ", avg_score)
+    print("Average per class test accuracies = \n")
+    for index, item in enumerate(class_avg_scores):
+        print("%s = %f" % (class_names_list[index], item))
 
 
 
 
-# -- Compute average accuracy per class
 # -- Implement the 100 layer version
 # -- Add README
