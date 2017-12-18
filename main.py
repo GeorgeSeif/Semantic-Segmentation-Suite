@@ -54,8 +54,8 @@ loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=network, la
 
 opt = tf.train.RMSPropOptimizer(learning_rate=0.001, decay=0.995).minimize(loss, var_list=[var for var in tf.trainable_variables()])
 
-is_training = True
-num_epochs = 300
+is_training = False
+num_epochs = 250
 continue_training = False
 class_names_string = "Sky, Building, Pole, Road, Pavement, Tree, SignSymbol, Fence, Car, Pedestrian, Bicyclist, Unlabelled"
 class_names_list = ["Sky", "Building", "Pole", "Road", "Pavement", "Tree", "SignSymbol", "Fence", "Car", "Pedestrian", "Bicyclist", "Unlabelled"]
@@ -81,7 +81,7 @@ if is_training:
     avg_loss_per_epoch = []
 
     # Do the training here
-    for epoch in range(num_epochs):
+    for epoch in range(0, num_epochs):
 
         current_losses = []
         
@@ -112,7 +112,7 @@ if is_training:
                 cnt = cnt + 1
                 if cnt % 20 == 0:
                     string_print = "Epoch = %d Count = %d Current = %.2f Time = %.2f"%(epoch,cnt,current,time.time()-st)
-                    print(string_print)
+                    LOG(string_print)
 
         mean_loss = np.mean(current_losses)
         avg_loss_per_epoch.append(mean_loss)
@@ -127,6 +127,7 @@ if is_training:
 
         target=open("%s/%04d/val_scores.txt"%("checkpoints",epoch),'w')
         target.write("val_name, avg_accuracy, %s\n" % (class_names_string))
+
         val_indices = [1, 11, 21, 31, 41, 51, 61, 71, 81, 91]
         scores_list = []
         class_scores_list = []
