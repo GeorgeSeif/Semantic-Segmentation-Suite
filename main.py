@@ -12,6 +12,22 @@ import matplotlib.pyplot as plt
 
 from FC_DenseNet_Tiramisu import build_fc_densenet
 
+# Count total number of parameters in the model
+def count_params():
+    total_parameters = 0
+    for variable in tf.trainable_variables():
+        # shape is an array of tf.Dimension
+        shape = variable.get_shape()
+        # print(shape)
+        # print(len(shape))
+        variable_parameters = 1
+        for dim in shape:
+            # print(dim)
+            variable_parameters *= dim.value
+        # print(variable_parameters)
+        total_parameters += variable_parameters
+    print("This model has %d total parameters"% (total_parameters))
+
 # Get a list of the training, validation, and testing file paths
 def prepare_data(dataset_dir="CamVid"):
     train_input_names=[]
@@ -54,7 +70,7 @@ loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=network, la
 
 opt = tf.train.RMSPropOptimizer(learning_rate=0.001, decay=0.995).minimize(loss, var_list=[var for var in tf.trainable_variables()])
 
-is_training = False
+is_training = True
 num_epochs = 250
 continue_training = False
 class_names_string = "Sky, Building, Pole, Road, Pavement, Tree, SignSymbol, Fence, Car, Pedestrian, Bicyclist, Unlabelled"
@@ -67,6 +83,8 @@ sess=tf.Session(config=config)
 
 saver=tf.train.Saver(max_to_keep=1000)
 sess.run(tf.global_variables_initializer())
+
+count_params()
 
 if continue_training or not is_training:
     print('Loaded latest model checkpoint')

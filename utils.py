@@ -84,3 +84,4 @@ def memory():
     py = psutil.Process(pid)
     memoryUse = py.memory_info()[0]/2.**30  # Memory use in GB
     print('memory use:', memoryUse)
+
