@@ -26,7 +26,7 @@ def count_params():
             variable_parameters *= dim.value
         # print(variable_parameters)
         total_parameters += variable_parameters
-    print("This model has %d total parameters"% (total_parameters))
+    print("This model has %d trainable parameters"% (total_parameters))
 
 # Get a list of the training, validation, and testing file paths
 def prepare_data(dataset_dir="CamVid"):

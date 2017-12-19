@@ -10,13 +10,13 @@ def preact_conv(inputs, n_filters, filter_size=[3, 3], dropout_p=0.2):
     Apply successivly BatchNormalization, ReLU nonlinearity, Convolution and
     Dropout (if dropout_p > 0) on the inputs
     """
-    preact = slim.batch_norm(inputs)
-    conv = slim.conv2d(preact, n_filters, filter_size, normalizer_fn=None)
+    preact = tf.nn.relu(slim.batch_norm(inputs))
+    conv = slim.conv2d(preact, n_filters, filter_size, activation_fn=None, normalizer_fn=None)
     if dropout_p != 0.0:
       conv = slim.dropout(conv, keep_prob=(1.0-dropout_p))
     return conv
 
-def DenseBlock(stack, n_layers, growth_rate, dropout_p, bottleneck=False, scope=None):
+def DenseBlock(stack, n_layers, growth_rate, dropout_p, scope=None):
   """
   DenseBlock for DenseNet and FC-DenseNet
   Args:
@@ -32,9 +32,6 @@ def DenseBlock(stack, n_layers, growth_rate, dropout_p, bottleneck=False, scope=
     new_features = []
     for j in range(n_layers):
       # Compute new feature maps
-      # if bottleneck, do a 1x1 conv before the 3x3
-      if bottleneck:
-        stack = preact_conv(stack, 4*growth_rate, filter_size=[1, 1], dropout_p=0.0)
       layer = preact_conv(stack, growth_rate, dropout_p=dropout_p)
       new_features.append(layer)
       # stack new layer

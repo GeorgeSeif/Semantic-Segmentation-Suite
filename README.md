@@ -57,17 +57,10 @@ In training, I used a batch size of 1 and image size of 352x480. The following r
 
 Loss vs Epochs            |  Val. Acc. vs Epochs
 :-------------------------:|:-------------------------:
-![alt text-1](https://github.com/GeorgeSeif/FC-DenseNet-Tiramisu/blob/master/Images/loss_vs_epochs.png)  |  ![alt text-2](https://github.com/GeorgeSeif/FC-DenseNet-Tiramisu/blob/master/Images/accuracy_vs_epochs.png))
+![alt text-1](https://github.com/GeorgeSeif/FC-DenseNet-Tiramisu/blob/master/Images/loss_vs_epochs.png)  |  ![alt text-2](https://github.com/GeorgeSeif/FC-DenseNet-Tiramisu/blob/master/Images/accuracy_vs_epochs.png)
 
 
 Original            |  GT   |  Result
 :-------------------------:|:-------------------------:|:-------------------------:
 ![alt-text-3](https://github.com/GeorgeSeif/FC-DenseNet-Tiramisu/blob/master/Images/0001TP_008550.png "Original")  |  ![alt-text-4](https://github.com/GeorgeSeif/FC-DenseNet-Tiramisu/blob/master/Images/0001TP_008550_gt.png "GT")  |   ![alt-text-5](https://github.com/GeorgeSeif/FC-DenseNet-Tiramisu/blob/master/Images/0001TP_008550_pred.png "Result")
 
-
-
-## TO DO
-
-- Use class weights to improve global accuracy 
-
-- Measure Intersection over Union (IoU)
