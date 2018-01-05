@@ -35,7 +35,9 @@ This project has the following dependencies:
 
 ## Results
 
-In training, I used a batch size of 1 and image size of 352x480. The following results are for the FC-DenseNet103 model trained for 250 epochs. I used RMSProp with learning rate 0.001 and decay 0.995. **Note that the checkpoint files are not uploaded to this repository since they are too big for GitHub (greater than 100 MB)**
+In training, I used a batch size of 1 and image size of 352x480. The following results are for the FC-DenseNet103 model trained for 300 epochs. I used RMSProp with learning rate 0.001 and decay 0.995. I **did not** use any data augmentation like in the paper.
+
+**Note that the checkpoint files are not uploaded to this repository since they are too big for GitHub (greater than 100 MB)**
 
 
 | Class 	| Original Accuracy  	| My Accuracy |

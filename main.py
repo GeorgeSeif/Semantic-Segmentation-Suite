@@ -71,7 +71,7 @@ loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=network, la
 opt = tf.train.RMSPropOptimizer(learning_rate=0.001, decay=0.995).minimize(loss, var_list=[var for var in tf.trainable_variables()])
 
 is_training = True
-num_epochs = 250
+num_epochs = 300
 continue_training = False
 class_names_string = "Sky, Building, Pole, Road, Pavement, Tree, SignSymbol, Fence, Car, Pedestrian, Bicyclist, Unlabelled"
 class_names_list = ["Sky", "Building", "Pole", "Road", "Pavement", "Tree", "SignSymbol", "Fence", "Car", "Pedestrian", "Bicyclist", "Unlabelled"]

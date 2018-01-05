@@ -9,15 +9,17 @@ import operator
 from helper import *
 import os
 
-def one_hot_it(labels):
+def one_hot_it(labels, num_classes=12):
     w = labels.shape[0]
     h = labels.shape[1]
-    x = np.zeros([w,h,12])
+    x = np.zeros([w,h,num_classes])
+    unique_labels = np.unique(labels)
     for i in range(0, w):
         for j in range(0, h):
-            x[i,j,labels[i][j]]=1
+            index = np.where(unique_labels==labels[i][j])
+            x[i,j,index]=1
     return x
-
+    
 def reverse_one_hot(image):
     w = image.shape[0]
     h = image.shape[1]
