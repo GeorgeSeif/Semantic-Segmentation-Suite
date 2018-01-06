@@ -5,6 +5,7 @@ import tensorflow.contrib.slim as slim
 import numpy as np
 import time, datetime
 import argparse
+import random
 
 import helpers 
 import utils 
@@ -47,7 +48,7 @@ def prepare_data(dataset_dir=args.dataset):
     for file in os.listdir(dataset_dir + "/test_labels"):
         cwd = os.getcwd()
         test_output_names.append(cwd + "/" + dataset_dir + "/test_labels/" + file)
-    return train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names
+    return train_input_names[:10],train_output_names[:10], val_input_names, val_output_names, test_input_names, test_output_names
 
 # Load the data
 print("Loading the data ...")
@@ -58,7 +59,6 @@ print("Setting up training procedure ...")
 input = tf.placeholder(tf.float32,shape=[None,None,None,3])
 output = tf.placeholder(tf.float32,shape=[None,None,None,12])
 network = build_fc_densenet(input, preset_model = 'FC-DenseNet56', num_classes=12)
-# network = MobileUNet(input_shape=(None, None, 3), alpha=1, alpha_up=0.25)
 
 loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=output))
 
@@ -135,16 +135,18 @@ if args.is_training:
 
 
         target=open("%s/%04d/val_scores.txt"%("checkpoints",epoch),'w')
-        target.write("val_name, avg_accuracy, %s\n" % (class_names_string))
+        target.write("val_name, avg_accuracy, precision, recall, f1 score %s\n" % (class_names_string))
 
-        val_indices = [1, 11, 21, 31, 41, 51, 61, 71, 81, 91]
         scores_list = []
         class_scores_list = []
-
+        precision_list = []
+        recall_list = []
+        f1_list = []
 
 
         # Do the validation on a small set of validation images
-        for ind in range(len(val_input_names)):
+        random.shuffle(val_input_names)
+        for ind in range(10):
             input_image = np.expand_dims(np.float32(cv2.imread(val_input_names[ind],-1)[:352, :480]),axis=0)/255.0
             st = time.time()
             output_image = sess.run(network,feed_dict={input:input_image})
@@ -159,16 +161,22 @@ if args.is_training:
 
             accuracy = utils.compute_avg_accuracy(out, gt)
             class_accuracies = utils.compute_class_accuracies(out, gt)
-            f1 = utils.f1score(out[:,:,0], gt)
-            file_name  =filepath_to_name(val_input_names[ind])
-            target.write("%s, %f"%(val_input_names[ind], accuracy))
+            prec = utils.precision(out[:,:,0], gt).eval(session=sess)
+            rec = utils.recall(out[:,:,0], gt).eval(session=sess)
+            f1 = utils.f1score(out[:,:,0], gt).eval(session=sess)
+        
+            file_name = utils.filepath_to_name(val_input_names[ind])
+            target.write("%s, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1))
             for item in class_accuracies:
                 target.write(", %f"%(item))
             target.write("\n")
 
             scores_list.append(accuracy)
             class_scores_list.append(class_accuracies)
-            print("F1 = ", f1.eval(session=sess))
+            precision_list.append(prec)
+            recall_list.append(rec)
+            f1_list.append(f1)
+            
 
             gt = helpers.colour_code_segmentation(np.expand_dims(gt, axis=-1))
  
@@ -183,10 +191,17 @@ if args.is_training:
         avg_score = np.mean(scores_list)
         class_avg_scores = np.mean(class_scores_list, axis=0)
         avg_scores_per_epoch.append(avg_score)
+        avg_precision = np.mean(precision_list)
+        avg_recall = np.mean(recall_list)
+        avg_f1 = np.mean(f1_list)
+
         print("\nAverage validation accuracy for epoch # %04d = %f"% (epoch, avg_score))
         print("Average per class validation accuracies for epoch # %04d:"% (epoch))
         for index, item in enumerate(class_avg_scores):
             print("%s = %f" % (class_names_list[index], item))
+        print("Validation precision = ", avg_precision)
+        print("Validation recall = ", avg_recall)
+        print("Validation F1 score = ", avg_f1)
 
         scores_list = []
 
@@ -222,9 +237,12 @@ else:
             os.makedirs("%s"%("Test"))
 
     target=open("%s/test_scores.txt"%("Test"),'w')
-    target.write("test_name, avg_accuracy, %s\n" % (class_names_string))
+    target.write("test_name, avg_accuracy, precision, recall, f1 score %s\n" % (class_names_string))
     scores_list = []
     class_scores_list = []
+    precision_list = []
+    recall_list = []
+    f1_list = []
 
     # Run testing on ALL test images
     for ind in range(len(test_input_names)):
@@ -242,15 +260,22 @@ else:
 
         accuracy = utils.compute_avg_accuracy(out, gt)
         class_accuracies = utils.compute_class_accuracies(out, gt)
-        file_name = filepath_to_name(test_input_names[ind])
-        target.write("%s, %f"%(file_name, accuracy))
+        prec = utils.precision(out[:,:,0], gt).eval(session=sess)
+        rec = utils.recall(out[:,:,0], gt).eval(session=sess)
+        f1 = utils.f1score(out[:,:,0], gt).eval(session=sess)
+    
+        file_name = utils.filepath_to_name(val_input_names[ind])
+        target.write("%s, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1))
         for item in class_accuracies:
             target.write(", %f"%(item))
         target.write("\n")
 
         scores_list.append(accuracy)
         class_scores_list.append(class_accuracies)
-        
+        precision_list.append(prec)
+        recall_list.append(rec)
+        f1_list.append(f1)
+    
         gt = helpers.colour_code_segmentation(np.expand_dims(gt, axis=-1))
 
         cv2.imwrite("%s/%s_pred.png"%("Test", file_name),np.uint8(output_image))
@@ -261,10 +286,15 @@ else:
 
     avg_score = np.mean(scores_list)
     class_avg_scores = np.mean(class_scores_list, axis=0)
+    avg_precision = np.mean(precision_list)
+    avg_recall = np.mean(recall_list)
+    avg_f1 = np.mean(f1_list)
     print("Average test accuracy = ", avg_score)
     print("Average per class test accuracies = \n")
     for index, item in enumerate(class_avg_scores):
         print("%s = %f" % (class_names_list[index], item))
-
+    print("Average precision = ", avg_precision)
+    print("Average recall = ", avg_recall)
+    print("Average F1 score = ", avg_f1)
 
 
