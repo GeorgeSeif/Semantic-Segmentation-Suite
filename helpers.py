@@ -5,8 +5,6 @@ import cv2
 import numpy as np
 import itertools
 import operator
-
-from helper import *
 import os
 
 def one_hot_it(labels, num_classes=12):
@@ -49,7 +47,7 @@ def colour_dict(x):
         11: [0,0,0]
     }[x]
 
-def colour_code_segmentation(image):
+def colour_code_segmentation(image, dataset="CamVid"):
     w = image.shape[0]
     h = image.shape[1]
     x = np.zeros([w,h,3])

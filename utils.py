@@ -4,6 +4,9 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 import numpy as np
 import time, datetime
+import os
+from scipy.misc import imread
+import ast
 
 # Takes an absolute file path and returns the name of the file without th extension
 def filepath_to_name(full_name):
@@ -31,6 +34,22 @@ def replaces_nan_in_array(input_array, replace_val=1.0):
         if math.isnan(item):
             input_array[index] = replace_val
     return input_array
+
+# Count total number of parameters in the model
+def count_params():
+    total_parameters = 0
+    for variable in tf.trainable_variables():
+        # shape is an array of tf.Dimension
+        shape = variable.get_shape()
+        # print(shape)
+        # print(len(shape))
+        variable_parameters = 1
+        for dim in shape:
+            # print(dim)
+            variable_parameters *= dim.value
+        # print(variable_parameters)
+        total_parameters += variable_parameters
+    print("This model has %d trainable parameters"% (total_parameters))
 
 
 # Compute the average segmentation accuracy across all classes
@@ -95,17 +114,9 @@ def f1score(pred, label):
     f1 = tf.divide(2 * prec * rec, (prec + rec))
     return f1
 
-import numpy as np
-import os
-from scipy.misc import imread
-import ast
-
-image_dir = "./CamVid/train_labels"
-image_files = [os.path.join(image_dir, file) for file in os.listdir(image_dir) if file.endswith('.png')]
 
 
-
-def median_frequency_balancing(image_files=image_files, num_classes=12):
+def median_frequency_balancing(image_dir, num_classes=12):
     '''
     Perform median frequency balancing on the image files, given by the formula:
     f = Median_freq_c / total_freq_c
@@ -114,7 +125,7 @@ def median_frequency_balancing(image_files=image_files, num_classes=12):
     and total_freq_c is the total number of pixels of c in the total pixels of the images where c appeared.
 
     INPUTS:
-    - image_files(list): a list of image_filenames which element can be read immediately
+    - image_dir(list): Directory where the image segmentation labels are
     - num_classes(int): the number of classes of pixels in all images
 
     OUTPUTS:
@@ -122,6 +133,8 @@ def median_frequency_balancing(image_files=image_files, num_classes=12):
 
     '''
     #Initialize all the labels key with a list value
+    image_files = [os.path.join(image_dir, file) for file in os.listdir(image_dir) if file.endswith('.png')]
+
     label_to_frequency_dict = {}
     for i in range(num_classes):
         label_to_frequency_dict[i] = []

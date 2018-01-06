@@ -4,32 +4,25 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 import numpy as np
 import time, datetime
+import argparse
 
-from helper import *
-from utils import *
+import helpers 
+import utils 
 
 import matplotlib.pyplot as plt
 
 from FC_DenseNet_Tiramisu import build_fc_densenet
 
-# Count total number of parameters in the model
-def count_params():
-    total_parameters = 0
-    for variable in tf.trainable_variables():
-        # shape is an array of tf.Dimension
-        shape = variable.get_shape()
-        # print(shape)
-        # print(len(shape))
-        variable_parameters = 1
-        for dim in shape:
-            # print(dim)
-            variable_parameters *= dim.value
-        # print(variable_parameters)
-        total_parameters += variable_parameters
-    print("This model has %d trainable parameters"% (total_parameters))
+parser = argparse.ArgumentParser()
+parser.add_argument('--num_epochs', type=int, default=300, help='Number of epochs to train for')
+parser.add_argument('--is_training', type=bool, default=True, help='Whether we are training or testing')
+parser.add_argument('--continue_training', type=bool, default=False, help='Whether to continue training from a checkpoint')
+parser.add_argument('--dataset', type=str, default="CamVid", help='Dataset you are using. Currently supports:\nCamVid')
+args = parser.parse_args()
+
 
 # Get a list of the training, validation, and testing file paths
-def prepare_data(dataset_dir="CamVid"):
+def prepare_data(dataset_dir=args.dataset):
     train_input_names=[]
     train_output_names=[]
     val_input_names=[]
@@ -37,23 +30,23 @@ def prepare_data(dataset_dir="CamVid"):
     test_input_names=[]
     test_output_names=[]
     for file in os.listdir(dataset_dir + "/train"):
-    	cwd = os.getcwd()
-    	train_input_names.append(cwd + "/" + dataset_dir + "/train/" + file)
+        cwd = os.getcwd()
+        train_input_names.append(cwd + "/" + dataset_dir + "/train/" + file)
     for file in os.listdir(dataset_dir + "/train_labels"):
-    	cwd = os.getcwd()
-    	train_output_names.append(cwd + "/" + dataset_dir + "/train_labels/" + file)
+        cwd = os.getcwd()
+        train_output_names.append(cwd + "/" + dataset_dir + "/train_labels/" + file)
     for file in os.listdir(dataset_dir + "/val"):
-    	cwd = os.getcwd()
-    	val_input_names.append(cwd + "/" + dataset_dir + "/val/" + file)
+        cwd = os.getcwd()
+        val_input_names.append(cwd + "/" + dataset_dir + "/val/" + file)
     for file in os.listdir(dataset_dir + "/val_labels"):
-    	cwd = os.getcwd()
-    	val_output_names.append(cwd + "/" + dataset_dir + "/val_labels/" + file)
+        cwd = os.getcwd()
+        val_output_names.append(cwd + "/" + dataset_dir + "/val_labels/" + file)
     for file in os.listdir(dataset_dir + "/test"):
-    	cwd = os.getcwd()
-    	test_input_names.append(cwd + "/" + dataset_dir + "/test/" + file)
+        cwd = os.getcwd()
+        test_input_names.append(cwd + "/" + dataset_dir + "/test/" + file)
     for file in os.listdir(dataset_dir + "/test_labels"):
-    	cwd = os.getcwd()
-    	test_output_names.append(cwd + "/" + dataset_dir + "/test_labels/" + file)
+        cwd = os.getcwd()
+        test_output_names.append(cwd + "/" + dataset_dir + "/test_labels/" + file)
     return train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names
 
 # Load the data
@@ -64,15 +57,13 @@ train_input_names,train_output_names, val_input_names, val_output_names, test_in
 print("Setting up training procedure ...")
 input = tf.placeholder(tf.float32,shape=[None,None,None,3])
 output = tf.placeholder(tf.float32,shape=[None,None,None,12])
-network = build_fc_densenet(input, preset_model = 'FC-DenseNet103')
+network = build_fc_densenet(input, preset_model = 'FC-DenseNet56', num_classes=12)
+# network = MobileUNet(input_shape=(None, None, 3), alpha=1, alpha_up=0.25)
 
 loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=output))
 
 opt = tf.train.RMSPropOptimizer(learning_rate=0.001, decay=0.995).minimize(loss, var_list=[var for var in tf.trainable_variables()])
 
-is_training = True
-num_epochs = 300
-continue_training = False
 class_names_string = "Sky, Building, Pole, Road, Pavement, Tree, SignSymbol, Fence, Car, Pedestrian, Bicyclist, Unlabelled"
 class_names_list = ["Sky", "Building", "Pole", "Road", "Pavement", "Tree", "SignSymbol", "Fence", "Car", "Pedestrian", "Bicyclist", "Unlabelled"]
 
@@ -84,22 +75,22 @@ sess=tf.Session(config=config)
 saver=tf.train.Saver(max_to_keep=1000)
 sess.run(tf.global_variables_initializer())
 
-count_params()
+utils.count_params()
 
-if continue_training or not is_training:
+if args.continue_training or not args.is_training:
     print('Loaded latest model checkpoint')
     saver.restore(sess, "checkpoints/latest_model.ckpt")
 
 avg_scores_per_epoch = []
 
-if is_training:
+if args.is_training:
 
     print("***** Begin training *****")
 
     avg_loss_per_epoch = []
 
     # Do the training here
-    for epoch in range(0, num_epochs):
+    for epoch in range(0, args.num_epochs):
 
         current_losses = []
         
@@ -110,17 +101,17 @@ if is_training:
         for id in np.random.permutation(len(train_input_names)):
             st=time.time()
             if input_image_names[id] is None:
-            	
+                
                 input_image_names[id] = train_input_names[id]
                 output_image_names[id] = train_output_names[id]
                 input_image = np.expand_dims(np.float32(cv2.imread(input_image_names[id],-1)[:352, :480]),axis=0)/255.0
-                output_image = np.expand_dims(np.float32(one_hot_it(labels=cv2.imread(output_image_names[id],-1)[:352, :480])), axis=0)
+                output_image = np.expand_dims(np.float32(helpers.one_hot_it(labels=cv2.imread(output_image_names[id],-1)[:352, :480], num_classes=12)), axis=0)
 
                 # ***** THIS CAUSES A MEMORY LEAK AS NEW TENSORS KEEP GETTING CREATED *****
                 # input_image = tf.image.crop_to_bounding_box(input_image, offset_height=0, offset_width=0, 
-                # 												target_height=352, target_width=480).eval(session=sess)
+                #                                               target_height=352, target_width=480).eval(session=sess)
                 # output_image = tf.image.crop_to_bounding_box(output_image, offset_height=0, offset_width=0, 
-                # 												target_height=352, target_width=480).eval(session=sess)
+                #                                               target_height=352, target_width=480).eval(session=sess)
                 # ***** THIS CAUSES A MEMORY LEAK AS NEW TENSORS KEEP GETTING CREATED *****
 
                 # memory()
@@ -130,7 +121,7 @@ if is_training:
                 cnt = cnt + 1
                 if cnt % 20 == 0:
                     string_print = "Epoch = %d Count = %d Current = %.2f Time = %.2f"%(epoch,cnt,current,time.time()-st)
-                    LOG(string_print)
+                    utils.LOG(string_print)
 
         mean_loss = np.mean(current_losses)
         avg_loss_per_epoch.append(mean_loss)
@@ -153,21 +144,22 @@ if is_training:
 
 
         # Do the validation on a small set of validation images
-        for ind in val_indices:
+        for ind in range(len(val_input_names)):
             input_image = np.expand_dims(np.float32(cv2.imread(val_input_names[ind],-1)[:352, :480]),axis=0)/255.0
             st = time.time()
             output_image = sess.run(network,feed_dict={input:input_image})
             
 
             output_image = np.array(output_image[0,:,:,:])
-            output_image = reverse_one_hot(output_image)
+            output_image = helpers.reverse_one_hot(output_image)
             out = output_image
-            output_image = colour_code_segmentation(output_image)
+            output_image = helpers.colour_code_segmentation(output_image)
 
             gt = cv2.imread(val_output_names[ind],-1)[:352, :480]
 
-            accuracy = compute_avg_accuracy(out, gt)
-            class_accuracies = compute_class_accuracies(out, gt)
+            accuracy = utils.compute_avg_accuracy(out, gt)
+            class_accuracies = utils.compute_class_accuracies(out, gt)
+            f1 = utils.f1score(out[:,:,0], gt)
             file_name  =filepath_to_name(val_input_names[ind])
             target.write("%s, %f"%(val_input_names[ind], accuracy))
             for item in class_accuracies:
@@ -176,8 +168,9 @@ if is_training:
 
             scores_list.append(accuracy)
             class_scores_list.append(class_accuracies)
+            print("F1 = ", f1.eval(session=sess))
 
-            gt = colour_code_segmentation(np.expand_dims(gt, axis=-1))
+            gt = helpers.colour_code_segmentation(np.expand_dims(gt, axis=-1))
  
             file_name = os.path.basename(val_input_names[ind])
             file_name = os.path.splitext(file_name)[0]
@@ -241,14 +234,14 @@ else:
         
 
         output_image = np.array(output_image[0,:,:,:])
-        output_image = reverse_one_hot(output_image)
+        output_image = helpers.reverse_one_hot(output_image)
         out = output_image
-        output_image = colour_code_segmentation(output_image)
+        output_image = helpers.colour_code_segmentation(output_image)
 
         gt = cv2.imread(test_output_names[ind],-1)[:352, :480]
 
-        accuracy = compute_avg_accuracy(out, gt)
-        class_accuracies = compute_class_accuracies(out, gt)
+        accuracy = utils.compute_avg_accuracy(out, gt)
+        class_accuracies = utils.compute_class_accuracies(out, gt)
         file_name = filepath_to_name(test_input_names[ind])
         target.write("%s, %f"%(file_name, accuracy))
         for item in class_accuracies:
@@ -258,7 +251,7 @@ else:
         scores_list.append(accuracy)
         class_scores_list.append(class_accuracies)
         
-        gt = colour_code_segmentation(np.expand_dims(gt, axis=-1))
+        gt = helpers.colour_code_segmentation(np.expand_dims(gt, axis=-1))
 
         cv2.imwrite("%s/%s_pred.png"%("Test", file_name),np.uint8(output_image))
         cv2.imwrite("%s/%s_gt.png"%("Test", file_name),np.uint8(gt))
