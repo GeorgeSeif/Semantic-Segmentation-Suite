@@ -116,7 +116,7 @@ def f1score(pred, label):
 
 
 
-def median_frequency_balancing(image_dir, num_classes=12):
+def median_frequency_balancing(labels_dir, num_classes=12):
     '''
     Perform median frequency balancing on the image files, given by the formula:
     f = Median_freq_c / total_freq_c
@@ -125,7 +125,7 @@ def median_frequency_balancing(image_dir, num_classes=12):
     and total_freq_c is the total number of pixels of c in the total pixels of the images where c appeared.
 
     INPUTS:
-    - image_dir(list): Directory where the image segmentation labels are
+    - labels_dir(list): Directory where the image segmentation labels are
     - num_classes(int): the number of classes of pixels in all images
 
     OUTPUTS:
@@ -133,7 +133,7 @@ def median_frequency_balancing(image_dir, num_classes=12):
 
     '''
     #Initialize all the labels key with a list value
-    image_files = [os.path.join(image_dir, file) for file in os.listdir(image_dir) if file.endswith('.png')]
+    image_files = [os.path.join(labels_dir, file) for file in os.listdir(labels_dir) if file.endswith('.png')]
 
     label_to_frequency_dict = {}
     for i in range(num_classes):

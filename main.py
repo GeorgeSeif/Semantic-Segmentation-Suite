@@ -19,6 +19,10 @@ parser.add_argument('--num_epochs', type=int, default=300, help='Number of epoch
 parser.add_argument('--is_training', type=bool, default=True, help='Whether we are training or testing')
 parser.add_argument('--continue_training', type=bool, default=False, help='Whether to continue training from a checkpoint')
 parser.add_argument('--dataset', type=str, default="CamVid", help='Dataset you are using. Currently supports:\nCamVid')
+parser.add_argument('--crop_height', type=int, default=256, help='Height of input image to network')
+parser.add_argument('--crop_width', type=int, default=256, help='Width of input image to network')
+parser.add_argument('--batch_size', type=int, default=4, help='Width of input image to network')
+parser.add_argument('--num_val_images', type=int, default=10, help='The number of images to used for validations')
 args = parser.parse_args()
 
 
@@ -48,7 +52,7 @@ def prepare_data(dataset_dir=args.dataset):
     for file in os.listdir(dataset_dir + "/test_labels"):
         cwd = os.getcwd()
         test_output_names.append(cwd + "/" + dataset_dir + "/test_labels/" + file)
-    return train_input_names[:10],train_output_names[:10], val_input_names, val_output_names, test_input_names, test_output_names
+    return train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names
 
 # Load the data
 print("Loading the data ...")
@@ -98,30 +102,46 @@ if args.is_training:
         output_image_names=[None]*len(train_input_names)
 
         cnt=0
-        for id in np.random.permutation(len(train_input_names)):
+        id_list = np.random.permutation(len(train_input_names))
+        num_iters = int(np.floor(len(id_list) / args.batch_size))
+
+        for i in range(num_iters):
             st=time.time()
-            if input_image_names[id] is None:
-                
-                input_image_names[id] = train_input_names[id]
-                output_image_names[id] = train_output_names[id]
-                input_image = np.expand_dims(np.float32(cv2.imread(input_image_names[id],-1)[:352, :480]),axis=0)/255.0
-                output_image = np.expand_dims(np.float32(helpers.one_hot_it(labels=cv2.imread(output_image_names[id],-1)[:352, :480], num_classes=12)), axis=0)
-
-                # ***** THIS CAUSES A MEMORY LEAK AS NEW TENSORS KEEP GETTING CREATED *****
-                # input_image = tf.image.crop_to_bounding_box(input_image, offset_height=0, offset_width=0, 
-                #                                               target_height=352, target_width=480).eval(session=sess)
-                # output_image = tf.image.crop_to_bounding_box(output_image, offset_height=0, offset_width=0, 
-                #                                               target_height=352, target_width=480).eval(session=sess)
-                # ***** THIS CAUSES A MEMORY LEAK AS NEW TENSORS KEEP GETTING CREATED *****
-
-                # memory()
             
-                _,current=sess.run([opt,loss],feed_dict={input:input_image,output:output_image})
-                current_losses.append(current)
-                cnt = cnt + 1
-                if cnt % 20 == 0:
-                    string_print = "Epoch = %d Count = %d Current = %.2f Time = %.2f"%(epoch,cnt,current,time.time()-st)
-                    utils.LOG(string_print)
+            input_image_batch = []
+            output_image_batch = [] 
+
+            for j in range(args.batch_size):
+                index = i*args.batch_size + j
+                id = id_list[index]
+                input_image = np.expand_dims(np.float32(cv2.imread(train_input_names[id],-1)[:args.crop_height, :args.crop_width]),axis=0)/255.0
+                output_image = np.expand_dims(np.float32(helpers.one_hot_it(labels=cv2.imread(train_output_names[id],-1)[:args.crop_height, :args.crop_width], num_classes=12)), axis=0)
+
+                input_image_batch.append(input_image)
+                output_image_batch.append(output_image)
+
+            # ***** THIS CAUSES A MEMORY LEAK AS NEW TENSORS KEEP GETTING CREATED *****
+            # input_image = tf.image.crop_to_bounding_box(input_image, offset_height=0, offset_width=0, 
+            #                                               target_height=args.crop_height, target_width=args.crop_width).eval(session=sess)
+            # output_image = tf.image.crop_to_bounding_box(output_image, offset_height=0, offset_width=0, 
+            #                                               target_height=args.crop_height, target_width=args.crop_width).eval(session=sess)
+            # ***** THIS CAUSES A MEMORY LEAK AS NEW TENSORS KEEP GETTING CREATED *****
+
+            # memory()
+            
+            if args.batch_size == 1:
+                input_image_batch = input_image_batch[0]
+                output_image_batch = output_image_batch[0]
+            else:
+                input_image_batch = tf.squeeze(tf.stack(input_image_batch, axis=1)).eval(session=sess)
+                output_image_batch = tf.squeeze(tf.stack(output_image_batch, axis=1)).eval(session=sess)
+
+            _,current=sess.run([opt,loss],feed_dict={input:input_image_batch,output:output_image_batch})
+            current_losses.append(current)
+            cnt = cnt + args.batch_size
+            if cnt % 20 == 0:
+                string_print = "Epoch = %d Count = %d Current = %.2f Time = %.2f"%(epoch,cnt,current,time.time()-st)
+                utils.LOG(string_print)
 
         mean_loss = np.mean(current_losses)
         avg_loss_per_epoch.append(mean_loss)
@@ -146,8 +166,8 @@ if args.is_training:
 
         # Do the validation on a small set of validation images
         random.shuffle(val_input_names)
-        for ind in range(10):
-            input_image = np.expand_dims(np.float32(cv2.imread(val_input_names[ind],-1)[:352, :480]),axis=0)/255.0
+        for ind in range(min(args.num_val_images, len(val_input_names))):
+            input_image = np.expand_dims(np.float32(cv2.imread(val_input_names[ind],-1)[:args.crop_height, :args.crop_width]),axis=0)/255.0
             st = time.time()
             output_image = sess.run(network,feed_dict={input:input_image})
             
@@ -157,7 +177,7 @@ if args.is_training:
             out = output_image
             output_image = helpers.colour_code_segmentation(output_image)
 
-            gt = cv2.imread(val_output_names[ind],-1)[:352, :480]
+            gt = cv2.imread(val_output_names[ind],-1)[:args.crop_height, :args.crop_width]
 
             accuracy = utils.compute_avg_accuracy(out, gt)
             class_accuracies = utils.compute_class_accuracies(out, gt)
@@ -246,7 +266,7 @@ else:
 
     # Run testing on ALL test images
     for ind in range(len(test_input_names)):
-        input_image = np.expand_dims(np.float32(cv2.imread(test_input_names[ind],-1)[:352, :480]),axis=0)/255.0
+        input_image = np.expand_dims(np.float32(cv2.imread(test_input_names[ind],-1)[:args.crop_height, :args.crop_width]),axis=0)/255.0
         st = time.time()
         output_image = sess.run(network,feed_dict={input:input_image})
         
@@ -256,7 +276,7 @@ else:
         out = output_image
         output_image = helpers.colour_code_segmentation(output_image)
 
-        gt = cv2.imread(test_output_names[ind],-1)[:352, :480]
+        gt = cv2.imread(test_output_names[ind],-1)[:args.crop_height, :args.crop_width]
 
         accuracy = utils.compute_avg_accuracy(out, gt)
         class_accuracies = utils.compute_class_accuracies(out, gt)
