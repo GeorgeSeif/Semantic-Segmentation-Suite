@@ -23,6 +23,8 @@ parser.add_argument('--crop_height', type=int, default=256, help='Height of inpu
 parser.add_argument('--crop_width', type=int, default=256, help='Width of input image to network')
 parser.add_argument('--batch_size', type=int, default=4, help='Width of input image to network')
 parser.add_argument('--num_val_images', type=int, default=10, help='The number of images to used for validations')
+parser.add_argument('--h_flip', type=bool, default=False, help='Whether to do horizontal flipping data augmentation')
+parser.add_argument('--v_flip', type=bool, default=False, help='Whether to do vertical flipping data augmentation')
 args = parser.parse_args()
 
 
@@ -114,11 +116,23 @@ if args.is_training:
             for j in range(args.batch_size):
                 index = i*args.batch_size + j
                 id = id_list[index]
-                input_image = np.expand_dims(np.float32(cv2.imread(train_input_names[id],-1)[:args.crop_height, :args.crop_width]),axis=0)/255.0
-                output_image = np.expand_dims(np.float32(helpers.one_hot_it(labels=cv2.imread(train_output_names[id],-1)[:args.crop_height, :args.crop_width], num_classes=12)), axis=0)
+                input_image = cv2.imread(train_input_names[id],-1)
+                output_image = cv2.imread(train_output_names[id],-1)
 
-                input_image_batch.append(input_image)
-                output_image_batch.append(output_image)
+                input_image, output_image = utils.random_crop(input_image, output_image, [args.crop_height, args.crop_width])
+
+                if args.h_flip and random.randint(0,1):
+                    input_image = cv2.flip(input_image, 1)
+                    output_image = cv2.flip(output_image, 1)
+                if args.v_flip and random.randint(0,1):
+                    input_image = cv2.flip(input_image, 0)
+                    output_image = cv2.flip(output_image, 0)
+
+                input_image = np.float32(input_image) / 255.0
+                output_image = np.float32(helpers.one_hot_it(labels=output_image, num_classes=12))
+                
+                input_image_batch.append(np.expand_dims(input_image, axis=0))
+                output_image_batch.append(np.expand_dims(output_image, axis=0))
 
             # ***** THIS CAUSES A MEMORY LEAK AS NEW TENSORS KEEP GETTING CREATED *****
             # input_image = tf.image.crop_to_bounding_box(input_image, offset_height=0, offset_width=0, 

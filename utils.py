@@ -4,7 +4,7 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 import numpy as np
 import time, datetime
-import os
+import os, random
 from scipy.misc import imread
 import ast
 
@@ -51,6 +51,18 @@ def count_params():
         total_parameters += variable_parameters
     print("This model has %d trainable parameters"% (total_parameters))
 
+
+def random_crop(image, label, crop_shape):
+    if (image.shape[0] != label.shape[0]) or (image.shape[1] != label.shape[1]):
+        raise Exception('Image and label must have the same dimensions!')
+        
+    if (crop_shape[0] < image.shape[1]) and (crop_shape[1] < image.shape[0]):
+        x = random.randrange(image.shape[1]-crop_shape[0])
+        y = random.randrange(image.shape[0]-crop_shape[1])
+        
+        return image[y:y+crop_shape[1], x:x+crop_shape[0], :], label[y:y+crop_shape[1], x:x+crop_shape[0]]
+    else:
+        raise Exception('Crop shape exceeds image dimensions!')
 
 # Compute the average segmentation accuracy across all classes
 def compute_avg_accuracy(y_pred, y_true):
