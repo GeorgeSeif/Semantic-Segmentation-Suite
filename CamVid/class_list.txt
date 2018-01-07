@@ -1,0 +1,12 @@
+Sky
+Building
+Pole
+Road
+Pavement
+Tree
+SignSymbol
+Fence
+Car
+Pedestrian
+Bicyclist
+Unlabelled

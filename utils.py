@@ -14,7 +14,7 @@ def filepath_to_name(full_name):
     file_name = os.path.splitext(file_name)[0]
     return file_name
 
-# Print with time
+# Print with time. To console or file
 def LOG(X, f=None):
 	time_stamp = datetime.datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
 	if not f:
@@ -29,6 +29,7 @@ def replace_val_in_array(input_array, original_val, replace_val = sys.maxsize - 
             input_array[index] = replace_val
     return input_array
 
+# Replace NaNs with a value
 def replaces_nan_in_array(input_array, replace_val=1.0):
     for index, item in enumerate(input_array):
         if math.isnan(item):
@@ -39,34 +40,28 @@ def replaces_nan_in_array(input_array, replace_val=1.0):
 def count_params():
     total_parameters = 0
     for variable in tf.trainable_variables():
-        # shape is an array of tf.Dimension
         shape = variable.get_shape()
-        # print(shape)
-        # print(len(shape))
         variable_parameters = 1
         for dim in shape:
-            # print(dim)
             variable_parameters *= dim.value
-        # print(variable_parameters)
         total_parameters += variable_parameters
     print("This model has %d trainable parameters"% (total_parameters))
 
-
-def random_crop(image, label, crop_shape):
+# Randomly crop the image to a specific size. For data augmentation
+def random_crop(image, label, crop_height, crop_width):
     if (image.shape[0] != label.shape[0]) or (image.shape[1] != label.shape[1]):
         raise Exception('Image and label must have the same dimensions!')
         
-    if (crop_shape[0] < image.shape[1]) and (crop_shape[1] < image.shape[0]):
-        x = random.randrange(image.shape[1]-crop_shape[0])
-        y = random.randrange(image.shape[0]-crop_shape[1])
+    if (crop_width <= image.shape[1]) and (crop_height <= image.shape[0]):
+        x = random.randint(0, image.shape[1]-crop_width)
+        y = random.randint(0, image.shape[0]-crop_height)
         
-        return image[y:y+crop_shape[1], x:x+crop_shape[0], :], label[y:y+crop_shape[1], x:x+crop_shape[0]]
+        return image[y:y+crop_height, x:x+crop_width, :], label[y:y+crop_height, x:x+crop_width]
     else:
         raise Exception('Crop shape exceeds image dimensions!')
 
 # Compute the average segmentation accuracy across all classes
 def compute_avg_accuracy(y_pred, y_true):
-    # print(y_true.shape)
     w = y_true.shape[0]
     h = y_true.shape[1]
     total = w*h
@@ -75,12 +70,10 @@ def compute_avg_accuracy(y_pred, y_true):
         for j in range(h):
             if y_pred[i, j] == y_true[i, j]:
                 count = count + 1.0
-    # print(count)
     return count / total
 
 # Compute the class-specific segmentation accuracy
 def compute_class_accuracies(y_pred, y_true, num_classes=12):
-    # print(y_true.shape)
     w = y_true.shape[0]
     h = y_true.shape[1]
     flat_image = np.reshape(y_true, w*h)
@@ -93,7 +86,6 @@ def compute_class_accuracies(y_pred, y_true, num_classes=12):
         for j in range(h):
             if y_pred[i, j] == y_true[i, j]:
                 count[int(y_pred[i, j])] = count[int(y_pred[i, j])] + 1.0
-    # print(count)
 
     # If there are no pixels from a certain class in the GT, 
     # it returns NAN because of divide by zero
@@ -107,6 +99,7 @@ def compute_class_accuracies(y_pred, y_true, num_classes=12):
 
     return accuracies
 
+# Compute precision
 def precision(pred, label):
     TP = tf.count_nonzero(pred * label)
     FP = tf.count_nonzero(pred * (label - 1))
@@ -114,12 +107,14 @@ def precision(pred, label):
     precision = tf.divide(TP,(TP + FP))
     return precision
 
+# Compute recall
 def recall(pred, label):
     TP = tf.count_nonzero(pred * label)
     FN = tf.count_nonzero((pred - 1) * label)
     recall = tf.divide(TP, (TP + FN))
     return recall
 
+# Compute f1 score
 def f1score(pred, label):
     prec = precision(pred, label)
     rec = recall(pred, label)
@@ -133,15 +128,15 @@ def median_frequency_balancing(labels_dir, num_classes=12):
     Perform median frequency balancing on the image files, given by the formula:
     f = Median_freq_c / total_freq_c
 
-    where median_freq_c is the median frequency of the class for all pixels of C that appeared in images
+    Where median_freq_c is the median frequency of the class for all pixels of C that appeared in images
     and total_freq_c is the total number of pixels of c in the total pixels of the images where c appeared.
 
-    INPUTS:
-    - labels_dir(list): Directory where the image segmentation labels are
-    - num_classes(int): the number of classes of pixels in all images
+    Arguments:
+        labels_dir(list): Directory where the image segmentation labels are
+        num_classes(int): the number of classes of pixels in all images
 
-    OUTPUTS:
-    - class_weights(list): a list of class weights where each index represents each class label and the element is the class weight for that label.
+    Returns:
+        class_weights(list): a list of class weights where each index represents each class label and the element is the class weight for that label.
 
     '''
     #Initialize all the labels key with a list value
@@ -174,20 +169,15 @@ def median_frequency_balancing(labels_dir, num_classes=12):
         total_pixels += sum(frequencies)
 
     for i, j in label_to_frequency_dict.items():
-        j = sorted(j) #To obtain the median, we got to sort the frequencies
+        j = sorted(j) #To obtain the median, we've got to sort the frequencies
 
         median_frequency = np.median(j) / sum(j)
         total_frequency = sum(j) / total_pixels
         median_frequency_balanced = median_frequency / total_frequency
         class_weights.append(median_frequency_balanced)
 
-    #Set the last class_weight to 0.0 as it's the background class
-    # class_weights[-1] = 0.0
 
     return class_weights
-
-if __name__ == "__main__":
-    print(median_frequency_balancing(image_files, num_classes=2))
 
 # Compute the memory usage, for debugging
 def memory():

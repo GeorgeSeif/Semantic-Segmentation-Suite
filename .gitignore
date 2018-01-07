@@ -1,3 +1,7 @@
 *.pyc
+models/*.pyc
 checkpoints/
 Test/*.png
+accuracy_vs_epochs.png
+loss_vs_epochs.png
+colour_codes.txt

@@ -6,25 +6,31 @@ import numpy as np
 import time, datetime
 import argparse
 import random
+import os, sys
 
 import helpers 
 import utils 
 
 import matplotlib.pyplot as plt
 
+sys.path.append("models")
 from FC_DenseNet_Tiramisu import build_fc_densenet
+from Encoder_Decoder import build_encoder_decoder
+from Encoder_Decoder_Skip import build_encoder_decoder_skip
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_epochs', type=int, default=300, help='Number of epochs to train for')
 parser.add_argument('--is_training', type=bool, default=True, help='Whether we are training or testing')
 parser.add_argument('--continue_training', type=bool, default=False, help='Whether to continue training from a checkpoint')
-parser.add_argument('--dataset', type=str, default="CamVid", help='Dataset you are using. Currently supports:\nCamVid')
+parser.add_argument('--dataset', type=str, default="CamVid", help='Dataset you are using.')
 parser.add_argument('--crop_height', type=int, default=256, help='Height of input image to network')
 parser.add_argument('--crop_width', type=int, default=256, help='Width of input image to network')
-parser.add_argument('--batch_size', type=int, default=4, help='Width of input image to network')
+parser.add_argument('--batch_size', type=int, default=1, help='Width of input image to network')
 parser.add_argument('--num_val_images', type=int, default=10, help='The number of images to used for validations')
 parser.add_argument('--h_flip', type=bool, default=False, help='Whether to do horizontal flipping data augmentation')
 parser.add_argument('--v_flip', type=bool, default=False, help='Whether to do vertical flipping data augmentation')
+parser.add_argument('--model', type=str, default="FC-DenseNet103", help='The model you are using. Currently supports:\
+    FC-DenseNet56, FC-DenseNet67, FC-DenseNet103, Encoder-Decoder, Encoder-Decoder-Skip, custom')
 args = parser.parse_args()
 
 
@@ -56,23 +62,47 @@ def prepare_data(dataset_dir=args.dataset):
         test_output_names.append(cwd + "/" + dataset_dir + "/test_labels/" + file)
     return train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names
 
+
+# Check if model is available
+AVAILABLE_MODELS = ["FC-DenseNet56", "FC-DenseNet67", "FC-DenseNet103", "Encoder-Decoder", "Encoder-Decoder-Skip", "custom"]
+if args.model not in AVAILABLE_MODELS:
+    print("Error: given model is not available. Try these:")
+    print(AVAILABLE_MODELS)
+    print("Now exiting ...")
+    sys.exit()
+
 # Load the data
 print("Loading the data ...")
 train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names = prepare_data()
 
 
+class_names_list = helpers.get_class_list(os.path.join(args.dataset, "class_list.txt"))
+class_names_string = ""
+for class_name in class_names_list:
+    if not class_name == class_names_list[-1]:
+        class_names_string = class_names_string + class_name + ", "
+    else:
+        class_names_string = class_names_string + class_name
+
+num_classes = len(class_names_list)
+
 print("Setting up training procedure ...")
 input = tf.placeholder(tf.float32,shape=[None,None,None,3])
-output = tf.placeholder(tf.float32,shape=[None,None,None,12])
-network = build_fc_densenet(input, preset_model = 'FC-DenseNet56', num_classes=12)
+output = tf.placeholder(tf.float32,shape=[None,None,None,num_classes])
+
+network = None
+if args.model == "FC-DenseNet56" or args.model == "FC-DenseNet67" or args.model == "FC-DenseNet103":
+    network = build_fc_densenet(input, preset_model = args.model, num_classes=num_classes)
+elif args.model == "Encoder-Decoder":
+    network = build_encoder_decoder(input, num_classes)
+elif args.model == "Encoder-Decoder-Skip":
+    network = build_encoder_decoder_skip(input, num_classes)
+elif args.model == "custom":
+    network = build_custom(input, num_classes)
 
 loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=output))
 
 opt = tf.train.RMSPropOptimizer(learning_rate=0.001, decay=0.995).minimize(loss, var_list=[var for var in tf.trainable_variables()])
-
-class_names_string = "Sky, Building, Pole, Road, Pavement, Tree, SignSymbol, Fence, Car, Pedestrian, Bicyclist, Unlabelled"
-class_names_list = ["Sky", "Building", "Pole", "Road", "Pavement", "Tree", "SignSymbol", "Fence", "Car", "Pedestrian", "Bicyclist", "Unlabelled"]
-
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -83,9 +113,10 @@ sess.run(tf.global_variables_initializer())
 
 utils.count_params()
 
+model_checkpoint_name = "checkpoints/latest_model_" + args.model + "_" + args.dataset + ".ckpt"
 if args.continue_training or not args.is_training:
     print('Loaded latest model checkpoint')
-    saver.restore(sess, "checkpoints/latest_model.ckpt")
+    saver.restore(sess, model_checkpoint_name)
 
 avg_scores_per_epoch = []
 
@@ -119,7 +150,7 @@ if args.is_training:
                 input_image = cv2.imread(train_input_names[id],-1)
                 output_image = cv2.imread(train_output_names[id],-1)
 
-                input_image, output_image = utils.random_crop(input_image, output_image, [args.crop_height, args.crop_width])
+                input_image, output_image = utils.random_crop(input_image, output_image, args.crop_height, args.crop_width)
 
                 if args.h_flip and random.randint(0,1):
                     input_image = cv2.flip(input_image, 1)
@@ -129,7 +160,7 @@ if args.is_training:
                     output_image = cv2.flip(output_image, 0)
 
                 input_image = np.float32(input_image) / 255.0
-                output_image = np.float32(helpers.one_hot_it(labels=output_image, num_classes=12))
+                output_image = np.float32(helpers.one_hot_it(label=output_image, num_classes=num_classes))
                 
                 input_image_batch.append(np.expand_dims(input_image, axis=0))
                 output_image_batch.append(np.expand_dims(output_image, axis=0))
@@ -147,8 +178,8 @@ if args.is_training:
                 input_image_batch = input_image_batch[0]
                 output_image_batch = output_image_batch[0]
             else:
-                input_image_batch = tf.squeeze(tf.stack(input_image_batch, axis=1)).eval(session=sess)
-                output_image_batch = tf.squeeze(tf.stack(output_image_batch, axis=1)).eval(session=sess)
+                input_image_batch = np.squeeze(np.stack(input_image_batch, axis=1))
+                output_image_batch = np.squeeze(np.stack(output_image_batch, axis=1))
 
             _,current=sess.run([opt,loss],feed_dict={input:input_image_batch,output:output_image_batch})
             current_losses.append(current)
@@ -164,7 +195,7 @@ if args.is_training:
         if not os.path.isdir("%s/%04d"%("checkpoints",epoch)):
             os.makedirs("%s/%04d"%("checkpoints",epoch))
 
-        saver.save(sess,"%s/latest_model.ckpt"%"checkpoints")
+        saver.save(sess,model_checkpoint_name)
         saver.save(sess,"%s/%04d/model.ckpt"%("checkpoints",epoch))
 
 
@@ -179,10 +210,14 @@ if args.is_training:
 
 
         # Do the validation on a small set of validation images
-        random.shuffle(val_input_names)
-        for ind in range(min(args.num_val_images, len(val_input_names))):
+        num_vals = min(args.num_val_images, len(val_input_names))
+        for ind in range(num_vals):
+            ind = random.randint(0, len(val_input_names) - 1)
             input_image = np.expand_dims(np.float32(cv2.imread(val_input_names[ind],-1)[:args.crop_height, :args.crop_width]),axis=0)/255.0
+            gt = cv2.imread(val_output_names[ind],-1)[:args.crop_height, :args.crop_width]
+
             st = time.time()
+
             output_image = sess.run(network,feed_dict={input:input_image})
             
 
@@ -190,8 +225,6 @@ if args.is_training:
             output_image = helpers.reverse_one_hot(output_image)
             out = output_image
             output_image = helpers.colour_code_segmentation(output_image)
-
-            gt = cv2.imread(val_output_names[ind],-1)[:args.crop_height, :args.crop_width]
 
             accuracy = utils.compute_avg_accuracy(out, gt)
             class_accuracies = utils.compute_class_accuracies(out, gt)
@@ -211,8 +244,8 @@ if args.is_training:
             recall_list.append(rec)
             f1_list.append(f1)
             
-
-            gt = helpers.colour_code_segmentation(np.expand_dims(gt, axis=-1))
+            gt = helpers.reverse_one_hot(helpers.one_hot_it(gt))
+            gt = helpers.colour_code_segmentation(gt)
  
             file_name = os.path.basename(val_input_names[ind])
             file_name = os.path.splitext(file_name)[0]
@@ -310,7 +343,8 @@ else:
         recall_list.append(rec)
         f1_list.append(f1)
     
-        gt = helpers.colour_code_segmentation(np.expand_dims(gt, axis=-1))
+        gt = helpers.reverse_one_hot(helpers.one_hot_it(gt))
+        gt = helpers.colour_code_segmentation(gt)
 
         cv2.imwrite("%s/%s_pred.png"%("Test", file_name),np.uint8(output_image))
         cv2.imwrite("%s/%s_gt.png"%("Test", file_name),np.uint8(gt))
