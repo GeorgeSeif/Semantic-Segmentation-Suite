@@ -10,6 +10,8 @@ This repository serves as a Semantic Segmentation Suite. The goal is to easily b
 - Evaluation including precision, recall, f1 score, average accuracy, and per-class accuracy
 - Plotting of loss function and accuracy over epochs
 
+Any suggestions to improve this repository are welcome!
+
 ## Models
 The following models are currently made available:
 
