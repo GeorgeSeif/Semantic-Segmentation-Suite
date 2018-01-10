@@ -18,13 +18,22 @@ from FC_DenseNet_Tiramisu import build_fc_densenet
 from Encoder_Decoder import build_encoder_decoder
 from Encoder_Decoder_Skip import build_encoder_decoder_skip
 
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_epochs', type=int, default=300, help='Number of epochs to train for')
-parser.add_argument('--is_training', type=bool, default=True, help='Whether we are training or testing')
+parser.add_argument('--is_training', type=str2bool, default=True, help='Whether we are training or testing')
 parser.add_argument('--continue_training', type=bool, default=False, help='Whether to continue training from a checkpoint')
+parser.add_argument('--class_balancing', type=bool, default=False, help='Whether to use class weight balancing')
 parser.add_argument('--dataset', type=str, default="CamVid", help='Dataset you are using.')
-parser.add_argument('--crop_height', type=int, default=256, help='Height of input image to network')
-parser.add_argument('--crop_width', type=int, default=256, help='Width of input image to network')
+parser.add_argument('--crop_height', type=int, default=352, help='Height of input image to network')
+parser.add_argument('--crop_width', type=int, default=480, help='Width of input image to network')
 parser.add_argument('--batch_size', type=int, default=1, help='Width of input image to network')
 parser.add_argument('--num_val_images', type=int, default=10, help='The number of images to used for validations')
 parser.add_argument('--h_flip', type=bool, default=False, help='Whether to do horizontal flipping data augmentation')
@@ -100,7 +109,21 @@ elif args.model == "Encoder-Decoder-Skip":
 elif args.model == "custom":
     network = build_custom(input, num_classes)
 
-loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=output))
+
+# Compute your (unweighted) softmax cross entropy loss
+loss = tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=output)
+
+if args.class_balancing:
+    # Your class weights
+    class_weights = utils.median_frequency_balancing(os.path.join(args.dataset, "train_labels"))
+    # Deduce weights for batch samples based on their true label
+    weights = tf.reduce_sum(class_weights * output, axis=1)
+    # Apply the weights, relying on broadcasting of the multiplication
+    weighted_losses = loss * weights
+    loss = weighted_losses
+
+# Reduce the result to get your final loss
+loss = tf.reduce_mean(loss)
 
 opt = tf.train.RMSPropOptimizer(learning_rate=0.001, decay=0.995).minimize(loss, var_list=[var for var in tf.trainable_variables()])
 
@@ -208,13 +231,14 @@ if args.is_training:
 
 
         target=open("%s/%04d/val_scores.txt"%("checkpoints",epoch),'w')
-        target.write("val_name, avg_accuracy, precision, recall, f1 score %s\n" % (class_names_string))
+        target.write("val_name, avg_accuracy, precision, recall, f1 score, mean iou %s\n" % (class_names_string))
 
         scores_list = []
         class_scores_list = []
         precision_list = []
         recall_list = []
         f1_list = []
+        iou_list = []
 
 
         # Do the validation on a small set of validation images
@@ -238,9 +262,10 @@ if args.is_training:
             prec = utils.precision(out[:,:,0], gt)
             rec = utils.recall(out[:,:,0], gt)
             f1 = utils.f1score(out[:,:,0], gt)
+            iou = utils.compute_mean_iou(out[:,:,0], gt)
         
             file_name = utils.filepath_to_name(val_input_names[ind])
-            target.write("%s, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1))
+            target.write("%s, %f, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1, iou))
             for item in class_accuracies:
                 target.write(", %f"%(item))
             target.write("\n")
@@ -250,6 +275,7 @@ if args.is_training:
             precision_list.append(prec)
             recall_list.append(rec)
             f1_list.append(f1)
+            iou_list.append(iou)
             
             gt = helpers.reverse_one_hot(helpers.one_hot_it(gt))
             gt = helpers.colour_code_segmentation(gt)
@@ -268,6 +294,7 @@ if args.is_training:
         avg_precision = np.mean(precision_list)
         avg_recall = np.mean(recall_list)
         avg_f1 = np.mean(f1_list)
+        avg_iou = np.mean(iou_list)
 
         print("\nAverage validation accuracy for epoch # %04d = %f"% (epoch, avg_score))
         print("Average per class validation accuracies for epoch # %04d:"% (epoch))
@@ -276,6 +303,7 @@ if args.is_training:
         print("Validation precision = ", avg_precision)
         print("Validation recall = ", avg_recall)
         print("Validation F1 score = ", avg_f1)
+        print("Validation IoU score = ", avg_iou)
 
         scores_list = []
 
@@ -311,12 +339,13 @@ else:
             os.makedirs("%s"%("Test"))
 
     target=open("%s/test_scores.txt"%("Test"),'w')
-    target.write("test_name, avg_accuracy, precision, recall, f1 score %s\n" % (class_names_string))
+    target.write("test_name, avg_accuracy, precision, recall, f1 score, mean iou %s\n" % (class_names_string))
     scores_list = []
     class_scores_list = []
     precision_list = []
     recall_list = []
     f1_list = []
+    iou_list = []
 
     # Run testing on ALL test images
     for ind in range(len(test_input_names)):
@@ -325,21 +354,22 @@ else:
         output_image = sess.run(network,feed_dict={input:input_image})
         
 
+        gt = cv2.imread(test_output_names[ind],-1)[:args.crop_height, :args.crop_width]
+
         output_image = np.array(output_image[0,:,:,:])
         output_image = helpers.reverse_one_hot(output_image)
         out = output_image
         output_image = helpers.colour_code_segmentation(output_image)
-
-        gt = cv2.imread(test_output_names[ind],-1)[:args.crop_height, :args.crop_width]
 
         accuracy = utils.compute_avg_accuracy(out, gt)
         class_accuracies = utils.compute_class_accuracies(out, gt)
         prec = utils.precision(out[:,:,0], gt)
         rec = utils.recall(out[:,:,0], gt)
         f1 = utils.f1score(out[:,:,0], gt)
-
+        iou = utils.compute_mean_iou(out[:,:,0], gt)
+    
         file_name = utils.filepath_to_name(val_input_names[ind])
-        target.write("%s, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1))
+        target.write("%s, %f, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1, iou))
         for item in class_accuracies:
             target.write(", %f"%(item))
         target.write("\n")
@@ -349,6 +379,7 @@ else:
         precision_list.append(prec)
         recall_list.append(rec)
         f1_list.append(f1)
+        iou_list.append(iou)
     
         gt = helpers.reverse_one_hot(helpers.one_hot_it(gt))
         gt = helpers.colour_code_segmentation(gt)
@@ -364,6 +395,7 @@ else:
     avg_precision = np.mean(precision_list)
     avg_recall = np.mean(recall_list)
     avg_f1 = np.mean(f1_list)
+    avg_iou = np.mean(iou_list)
     print("Average test accuracy = ", avg_score)
     print("Average per class test accuracies = \n")
     for index, item in enumerate(class_avg_scores):
@@ -371,5 +403,6 @@ else:
     print("Average precision = ", avg_precision)
     print("Average recall = ", avg_recall)
     print("Average F1 score = ", avg_f1)
+    print("Average mean IoU score = ", avg_iou)
 
 

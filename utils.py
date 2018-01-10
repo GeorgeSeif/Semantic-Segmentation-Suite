@@ -120,7 +120,12 @@ def f1score(pred, label):
     f1 = np.divide(2 * prec * rec, (prec + rec))
     return f1
 
-
+def compute_mean_iou(pred, label):
+    TP = np.float(np.count_nonzero(pred * label))
+    FP = np.float(np.count_nonzero(pred * (label - 1)))
+    FN = np.float(np.count_nonzero((pred - 1) * label))
+    mean_iou = TP / (TP + FP + FN)
+    return mean_iou
 
 def median_frequency_balancing(labels_dir, num_classes=12):
     '''
