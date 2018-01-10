@@ -101,24 +101,23 @@ def compute_class_accuracies(y_pred, y_true, num_classes=12):
 
 # Compute precision
 def precision(pred, label):
-    TP = tf.count_nonzero(pred * label)
-    FP = tf.count_nonzero(pred * (label - 1))
-
-    precision = tf.divide(TP,(TP + FP))
-    return precision
+    TP = np.float(np.count_nonzero(pred * label))
+    FP = np.float(np.count_nonzero(pred * (label - 1)))
+    prec = TP / (TP + FP)
+    return prec
 
 # Compute recall
 def recall(pred, label):
-    TP = tf.count_nonzero(pred * label)
-    FN = tf.count_nonzero((pred - 1) * label)
-    recall = tf.divide(TP, (TP + FN))
-    return recall
+    TP = np.float(np.count_nonzero(pred * label))
+    FN = np.float(np.count_nonzero((pred - 1) * label))
+    rec = TP / (TP + FN)
+    return rec
 
 # Compute f1 score
 def f1score(pred, label):
     prec = precision(pred, label)
     rec = recall(pred, label)
-    f1 = tf.divide(2 * prec * rec, (prec + rec))
+    f1 = np.divide(2 * prec * rec, (prec + rec))
     return f1
 
 

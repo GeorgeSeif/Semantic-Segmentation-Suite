@@ -126,13 +126,17 @@ if args.is_training:
 
     avg_loss_per_epoch = []
 
+    # Which validation images doe we want
+    val_indices = []
+    num_vals = min(args.num_val_images, len(val_input_names))
+    for i in range(num_vals):
+        ind = random.randint(0, len(val_input_names) - 1)
+        val_indices.append(ind)
+
     # Do the training here
     for epoch in range(0, args.num_epochs):
 
         current_losses = []
-        
-        input_image_names=[None]*len(train_input_names)
-        output_image_names=[None]*len(train_input_names)
 
         cnt=0
         id_list = np.random.permutation(len(train_input_names))
@@ -144,12 +148,14 @@ if args.is_training:
             input_image_batch = []
             output_image_batch = [] 
 
+            # Collect a batch of images
             for j in range(args.batch_size):
                 index = i*args.batch_size + j
                 id = id_list[index]
                 input_image = cv2.imread(train_input_names[id],-1)
                 output_image = cv2.imread(train_output_names[id],-1)
 
+                # Data augmentation
                 input_image, output_image = utils.random_crop(input_image, output_image, args.crop_height, args.crop_width)
 
                 if args.h_flip and random.randint(0,1):
@@ -159,6 +165,7 @@ if args.is_training:
                     input_image = cv2.flip(input_image, 0)
                     output_image = cv2.flip(output_image, 0)
 
+                # Prep the data. Make sure the labels are in one-hot format
                 input_image = np.float32(input_image) / 255.0
                 output_image = np.float32(helpers.one_hot_it(label=output_image, num_classes=num_classes))
                 
@@ -181,6 +188,7 @@ if args.is_training:
                 input_image_batch = np.squeeze(np.stack(input_image_batch, axis=1))
                 output_image_batch = np.squeeze(np.stack(output_image_batch, axis=1))
 
+            # Do the training
             _,current=sess.run([opt,loss],feed_dict={input:input_image_batch,output:output_image_batch})
             current_losses.append(current)
             cnt = cnt + args.batch_size
@@ -210,9 +218,8 @@ if args.is_training:
 
 
         # Do the validation on a small set of validation images
-        num_vals = min(args.num_val_images, len(val_input_names))
-        for ind in range(num_vals):
-            ind = random.randint(0, len(val_input_names) - 1)
+        for ind in val_indices:
+            
             input_image = np.expand_dims(np.float32(cv2.imread(val_input_names[ind],-1)[:args.crop_height, :args.crop_width]),axis=0)/255.0
             gt = cv2.imread(val_output_names[ind],-1)[:args.crop_height, :args.crop_width]
 
@@ -228,9 +235,9 @@ if args.is_training:
 
             accuracy = utils.compute_avg_accuracy(out, gt)
             class_accuracies = utils.compute_class_accuracies(out, gt)
-            prec = utils.precision(out[:,:,0], gt).eval(session=sess)
-            rec = utils.recall(out[:,:,0], gt).eval(session=sess)
-            f1 = utils.f1score(out[:,:,0], gt).eval(session=sess)
+            prec = utils.precision(out[:,:,0], gt)
+            rec = utils.recall(out[:,:,0], gt)
+            f1 = utils.f1score(out[:,:,0], gt)
         
             file_name = utils.filepath_to_name(val_input_names[ind])
             target.write("%s, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1))
@@ -327,10 +334,10 @@ else:
 
         accuracy = utils.compute_avg_accuracy(out, gt)
         class_accuracies = utils.compute_class_accuracies(out, gt)
-        prec = utils.precision(out[:,:,0], gt).eval(session=sess)
-        rec = utils.recall(out[:,:,0], gt).eval(session=sess)
-        f1 = utils.f1score(out[:,:,0], gt).eval(session=sess)
-    
+        prec = utils.precision(out[:,:,0], gt)
+        rec = utils.recall(out[:,:,0], gt)
+        f1 = utils.f1score(out[:,:,0], gt)
+
         file_name = utils.filepath_to_name(val_input_names[ind])
         target.write("%s, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1))
         for item in class_accuracies:
