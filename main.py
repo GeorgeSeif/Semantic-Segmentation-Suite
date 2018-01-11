@@ -29,15 +29,14 @@ def str2bool(v):
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_epochs', type=int, default=300, help='Number of epochs to train for')
 parser.add_argument('--is_training', type=str2bool, default=True, help='Whether we are training or testing')
-parser.add_argument('--continue_training', type=bool, default=False, help='Whether to continue training from a checkpoint')
-parser.add_argument('--class_balancing', type=bool, default=False, help='Whether to use class weight balancing')
+parser.add_argument('--continue_training', type=str2bool, default=False, help='Whether to continue training from a checkpoint')
 parser.add_argument('--dataset', type=str, default="CamVid", help='Dataset you are using.')
 parser.add_argument('--crop_height', type=int, default=352, help='Height of input image to network')
 parser.add_argument('--crop_width', type=int, default=480, help='Width of input image to network')
 parser.add_argument('--batch_size', type=int, default=1, help='Width of input image to network')
 parser.add_argument('--num_val_images', type=int, default=10, help='The number of images to used for validations')
-parser.add_argument('--h_flip', type=bool, default=False, help='Whether to do horizontal flipping data augmentation')
-parser.add_argument('--v_flip', type=bool, default=False, help='Whether to do vertical flipping data augmentation')
+parser.add_argument('--h_flip', type=str2bool, default=False, help='Whether to do horizontal flipping data augmentation')
+parser.add_argument('--v_flip', type=str2bool, default=False, help='Whether to do vertical flipping data augmentation')
 parser.add_argument('--model', type=str, default="FC-DenseNet103", help='The model you are using. Currently supports:\
     FC-DenseNet56, FC-DenseNet67, FC-DenseNet103, Encoder-Decoder, Encoder-Decoder-Skip, custom')
 args = parser.parse_args()
@@ -111,19 +110,7 @@ elif args.model == "custom":
 
 
 # Compute your (unweighted) softmax cross entropy loss
-loss = tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=output)
-
-if args.class_balancing:
-    # Your class weights
-    class_weights = utils.median_frequency_balancing(os.path.join(args.dataset, "train_labels"))
-    # Deduce weights for batch samples based on their true label
-    weights = tf.reduce_sum(class_weights * output, axis=1)
-    # Apply the weights, relying on broadcasting of the multiplication
-    weighted_losses = loss * weights
-    loss = weighted_losses
-
-# Reduce the result to get your final loss
-loss = tf.reduce_mean(loss)
+loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=output))
 
 opt = tf.train.RMSPropOptimizer(learning_rate=0.001, decay=0.995).minimize(loss, var_list=[var for var in tf.trainable_variables()])
 
@@ -368,7 +355,7 @@ else:
         f1 = utils.f1score(out[:,:,0], gt)
         iou = utils.compute_mean_iou(out[:,:,0], gt)
     
-        file_name = utils.filepath_to_name(val_input_names[ind])
+        file_name = utils.filepath_to_name(test_input_names[ind])
         target.write("%s, %f, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1, iou))
         for item in class_accuracies:
             target.write(", %f"%(item))
