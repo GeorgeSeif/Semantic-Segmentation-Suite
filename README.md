@@ -61,9 +61,9 @@ The only thing you have to do to get started is set up the folders in the follow
     |   ├── train
     |   ├── train_labels
     |   ├── val
-    | 	├── val_labels
+    |   ├── val_labels
     |   ├── test
-    | 	├── test_labels
+    |   ├── test_labels
 
 Put a text file under the dataset directory called "class_list" which contains the list of classes, one on each line like so:
 
