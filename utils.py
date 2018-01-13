@@ -121,10 +121,21 @@ def f1score(pred, label):
     return f1
 
 def compute_mean_iou(pred, label):
-    TP = np.float(np.count_nonzero(pred * label))
-    FP = np.float(np.count_nonzero(pred * (label - 1)))
-    FN = np.float(np.count_nonzero((pred - 1) * label))
-    mean_iou = TP / (TP + FP + FN)
+    w = label.shape[0]
+    h = label.shape[1]
+    unique_classes = np.unique(label)
+    iou_list = list([0]) * len(unique_classes)
+
+    for index, curr_class in enumerate(unique_classes):
+        pred_mask = pred[:, :] == curr_class
+        label_mask = label[:, :] == curr_class
+
+        TP = np.float(np.count_nonzero(pred_mask * label_mask))
+        FP = np.float(np.count_nonzero(pred_mask * (label_mask - 1)))
+        FN = np.float(np.count_nonzero((pred_mask - 1) * label_mask))
+        iou_list[index] = TP / (TP + FP + FN)
+
+    mean_iou = np.mean(iou_list)
     return mean_iou
 
 def median_frequency_balancing(labels_dir, num_classes=12):

@@ -7,10 +7,10 @@ This repository serves as a Semantic Segmentation Suite. The goal is to easily b
 - Data augmentation
 - Several state-of-the-art models. Easily **plug and play** with different models
 - Able to use **any** dataset
-- Evaluation including precision, recall, f1 score, average accuracy, and per-class accuracy
+- Evaluation including precision, recall, f1 score, average accuracy, per-class accuracy, and mean IoU
 - Plotting of loss function and accuracy over epochs
 
-Any suggestions to improve this repository are welcome!
+**Any suggestions to improve this repository are welcome!**
 
 ## Models
 The following models are currently made available:
