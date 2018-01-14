@@ -1,5 +1,6 @@
 *.pyc
 models/*.pyc
+models/*.ckpt
 checkpoints/
 Test/*.png
 accuracy_vs_epochs.png

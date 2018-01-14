@@ -17,6 +17,7 @@ sys.path.append("models")
 from FC_DenseNet_Tiramisu import build_fc_densenet
 from Encoder_Decoder import build_encoder_decoder
 from Encoder_Decoder_Skip import build_encoder_decoder_skip
+from RefineNet import build_refinenet
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -35,10 +36,11 @@ parser.add_argument('--crop_height', type=int, default=352, help='Height of inpu
 parser.add_argument('--crop_width', type=int, default=480, help='Width of input image to network')
 parser.add_argument('--batch_size', type=int, default=1, help='Width of input image to network')
 parser.add_argument('--num_val_images', type=int, default=10, help='The number of images to used for validations')
-parser.add_argument('--h_flip', type=str2bool, default=False, help='Whether to do horizontal flipping data augmentation')
-parser.add_argument('--v_flip', type=str2bool, default=False, help='Whether to do vertical flipping data augmentation')
+parser.add_argument('--h_flip', type=str2bool, default=False, help='Whether to randomly flip the image horizontally for data augmentation')
+parser.add_argument('--v_flip', type=str2bool, default=False, help='Whether to randomly flip the image vertically for data augmentation')
+parser.add_argument('--brightness', type=str2bool, default=False, help='Whether to randomly change the image brightness for data augmentation')
 parser.add_argument('--model', type=str, default="FC-DenseNet103", help='The model you are using. Currently supports:\
-    FC-DenseNet56, FC-DenseNet67, FC-DenseNet103, Encoder-Decoder, Encoder-Decoder-Skip, custom')
+    FC-DenseNet56, FC-DenseNet67, FC-DenseNet103, Encoder-Decoder, Encoder-Decoder-Skip, RefineNet-Res101, RefineNet-Res152, custom')
 args = parser.parse_args()
 
 
@@ -72,7 +74,9 @@ def prepare_data(dataset_dir=args.dataset):
 
 
 # Check if model is available
-AVAILABLE_MODELS = ["FC-DenseNet56", "FC-DenseNet67", "FC-DenseNet103", "Encoder-Decoder", "Encoder-Decoder-Skip", "custom"]
+AVAILABLE_MODELS = ["FC-DenseNet56", "FC-DenseNet67", "FC-DenseNet103", 
+                    "Encoder-Decoder", "Encoder-Decoder-Skip", 
+                    "RefineNet-Res101", "RefineNet-Res152", "custom"]
 if args.model not in AVAILABLE_MODELS:
     print("Error: given model is not available. Try these:")
     print(AVAILABLE_MODELS)
@@ -94,13 +98,15 @@ for class_name in class_names_list:
 
 num_classes = len(class_names_list)
 
-print("Setting up training procedure ...")
+print("Preparing the model ...")
 input = tf.placeholder(tf.float32,shape=[None,None,None,3])
 output = tf.placeholder(tf.float32,shape=[None,None,None,num_classes])
 
 network = None
 if args.model == "FC-DenseNet56" or args.model == "FC-DenseNet67" or args.model == "FC-DenseNet103":
     network = build_fc_densenet(input, preset_model = args.model, num_classes=num_classes)
+elif args.model == "RefineNet-Res101" or args.model == "RefineNet-Res152":
+    network = build_refinenet(input, preset_model = args.model, num_classes=num_classes)
 elif args.model == "Encoder-Decoder":
     network = build_encoder_decoder(input, num_classes)
 elif args.model == "Encoder-Decoder-Skip":
@@ -174,6 +180,13 @@ if args.is_training:
                 if args.v_flip and random.randint(0,1):
                     input_image = cv2.flip(input_image, 0)
                     output_image = cv2.flip(output_image, 0)
+                if args.brightness:
+                    factor = 1.0 + abs(random.gauss(mu=0.0, sigma=self.brightness))
+                    if random.randint(0,1):
+                        factor = 1.0/factor
+                    table = np.array([((i / 255.0) ** factor) * 255 for i in np.arange(0, 256)]).astype(np.uint8)
+                    image = cv2.LUT(image, table)
+
 
                 # Prep the data. Make sure the labels are in one-hot format
                 input_image = np.float32(input_image) / 255.0
@@ -241,15 +254,15 @@ if args.is_training:
 
             output_image = np.array(output_image[0,:,:,:])
             output_image = helpers.reverse_one_hot(output_image)
-            out = output_image
-            output_image = helpers.colour_code_segmentation(output_image)
+            out_eval_image = output_image[:,:,0]
+            out_vis_image = helpers.colour_code_segmentation(output_image)
 
-            accuracy = utils.compute_avg_accuracy(out, gt)
-            class_accuracies = utils.compute_class_accuracies(out, gt)
-            prec = utils.precision(out[:,:,0], gt)
-            rec = utils.recall(out[:,:,0], gt)
-            f1 = utils.f1score(out[:,:,0], gt)
-            iou = utils.compute_mean_iou(out[:,:,0], gt)
+            accuracy = utils.compute_avg_accuracy(out_eval_image, gt)
+            class_accuracies = utils.compute_class_accuracies(out_eval_image, gt)
+            prec = utils.precision(out_eval_image, gt)
+            rec = utils.recall(out_eval_image, gt)
+            f1 = utils.f1score(out_eval_image, gt)
+            iou = utils.compute_mean_iou(out_eval_image, gt)
         
             file_name = utils.filepath_to_name(val_input_names[ind])
             target.write("%s, %f, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1, iou))
@@ -269,7 +282,7 @@ if args.is_training:
  
             file_name = os.path.basename(val_input_names[ind])
             file_name = os.path.splitext(file_name)[0]
-            cv2.imwrite("%s/%04d/%s_pred.png"%("checkpoints",epoch, file_name),np.uint8(output_image))
+            cv2.imwrite("%s/%04d/%s_pred.png"%("checkpoints",epoch, file_name),np.uint8(out_vis_image))
             cv2.imwrite("%s/%04d/%s_gt.png"%("checkpoints",epoch, file_name),np.uint8(gt))
 
 
@@ -336,6 +349,9 @@ else:
 
     # Run testing on ALL test images
     for ind in range(len(test_input_names)):
+        sys.stdout.write("\rRunning test image %d / %d"%(ind+1, len(test_input_names)))
+        sys.stdout.flush()
+
         input_image = np.expand_dims(np.float32(cv2.imread(test_input_names[ind],-1)[:args.crop_height, :args.crop_width]),axis=0)/255.0
         st = time.time()
         output_image = sess.run(network,feed_dict={input:input_image})
@@ -345,15 +361,15 @@ else:
 
         output_image = np.array(output_image[0,:,:,:])
         output_image = helpers.reverse_one_hot(output_image)
-        out = output_image
-        output_image = helpers.colour_code_segmentation(output_image)
+        out_eval_image = output_image[:,:,0]
+        out_vis_image = helpers.colour_code_segmentation(output_image)
 
-        accuracy = utils.compute_avg_accuracy(out, gt)
-        class_accuracies = utils.compute_class_accuracies(out, gt)
-        prec = utils.precision(out[:,:,0], gt)
-        rec = utils.recall(out[:,:,0], gt)
-        f1 = utils.f1score(out[:,:,0], gt)
-        iou = utils.compute_mean_iou(out[:,:,0], gt)
+        accuracy = utils.compute_avg_accuracy(out_eval_image, gt)
+        class_accuracies = utils.compute_class_accuracies(out_eval_image, gt)
+        prec = utils.precision(out_eval_image, gt)
+        rec = utils.recall(out_eval_image, gt)
+        f1 = utils.f1score(out_eval_image, gt)
+        iou = utils.compute_mean_iou(out_eval_image, gt)
     
         file_name = utils.filepath_to_name(test_input_names[ind])
         target.write("%s, %f, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1, iou))
@@ -371,7 +387,7 @@ else:
         gt = helpers.reverse_one_hot(helpers.one_hot_it(gt))
         gt = helpers.colour_code_segmentation(gt)
 
-        cv2.imwrite("%s/%s_pred.png"%("Test", file_name),np.uint8(output_image))
+        cv2.imwrite("%s/%s_pred.png"%("Test", file_name),np.uint8(out_vis_image))
         cv2.imwrite("%s/%s_gt.png"%("Test", file_name),np.uint8(gt))
 
 

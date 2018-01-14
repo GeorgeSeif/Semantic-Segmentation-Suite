@@ -63,6 +63,15 @@ def TransitionUp(block_to_upsample, skip_connection, n_filters_keep, scope=None)
     l = tf.concat([l, skip_connection], axis=-1)
     return l
 
+def mean_image_subtraction(inputs, means=[123.68, 116.78, 103.94]):
+    inputs=tf.to_float(inputs)
+    num_channels = inputs.get_shape().as_list()[-1]
+    if len(means) != num_channels:
+      raise ValueError('len(means) must match the number of channels')
+    channels = tf.split(axis=3, num_or_size_splits=num_channels, value=inputs)
+    for i in range(num_channels):
+        channels[i] -= means[i]
+    return tf.concat(axis=3, values=channels)
 
 def build_fc_densenet(inputs, preset_model='FC-DenseNet56', num_classes=12, n_filters_first_conv=48, n_pool=5, growth_rate=12, n_layers_per_block=4, dropout_p=0.2, scope=None):
     """

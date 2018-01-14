@@ -15,11 +15,13 @@ This repository serves as a Semantic Segmentation Suite. The goal is to easily b
 ## Models
 The following models are currently made available:
 
-- [The One Hundred Layers Tiramisu: Fully Convolutional DenseNets for Semantic Segmentation](https://arxiv.org/pdf/1611.09326.pdf)
+- [Encoder-Decoder based on SegNet](https://arxiv.org/abs/1511.00561). This network uses a VGG-style encoder-decoder, where the upsampling in the decoder is done using transposed convolutions.
 
-- [Encoder-Decoder based on SegNet](https://arxiv.org/abs/1511.00561)
+- [Encoder-Decoder with skip connections based on SegNet](https://arxiv.org/abs/1511.00561). This network uses a VGG-style encoder-decoder, where the upsampling in the decoder is done using transposed convolutions. In addition, it employs additive skip connections from the encoder to the decoder. 
 
-- [Encoder-Decoder with skip connections based on SegNet](https://arxiv.org/abs/1511.00561)
+- [The One Hundred Layers Tiramisu: Fully Convolutional DenseNets for Semantic Segmentation](https://arxiv.org/pdf/1611.09326.pdf). Uses a downsampling-upsampling style encoder-decoder network. Each stage i.e between the pooling layers uses dense blocks. In addition, it concatenated skip connections from the encoder to the decoder. 
+
+- [RefineNet: Multi-Path Refinement Networks for High-Resolution Semantic Segmentation](https://arxiv.org/abs/1611.06612). A multi-path refinement network that explicitly exploits all the information available along the down-sampling process to enable high-resolution prediction using long-range residual connections. In this way, the deeper layers that capture high-level semantic features can be directly refined using fine-grained features from earlier convolutions.
 
 - Or make your own and plug and play!
 
@@ -93,11 +95,18 @@ optional arguments:
                         Width of input image to network
   --num_val_images NUM_VAL_IMAGES
                         The number of images to used for validations
-  --h_flip H_FLIP       Whether to do horizontal flipping data augmentation
-  --v_flip V_FLIP       Whether to do vertical flipping data augmentation
+  --h_flip H_FLIP       Whether to randomly flip the image horizontally for
+                        data augmentation
+  --v_flip V_FLIP       Whether to randomly flip the image vertically for data
+                        augmentation
+  --brightness BRIGHTNESS
+                        Whether to randomly change the image brightness for
+                        data augmentation
   --model MODEL         The model you are using. Currently supports: FC-
                         DenseNet56, FC-DenseNet67, FC-DenseNet103, Encoder-
-                        Decoder, Encoder-Decoder-Skip
+                        Decoder, Encoder-Decoder-Skip, RefineNet-Res101,
+                        RefineNet-Res152, custom
+
 ```
     
 

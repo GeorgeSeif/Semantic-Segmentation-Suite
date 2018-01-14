@@ -47,6 +47,16 @@ def count_params():
         total_parameters += variable_parameters
     print("This model has %d trainable parameters"% (total_parameters))
 
+def mean_image_subtraction(inputs, means=[123.68, 116.78, 103.94]):
+    inputs=tf.to_float(inputs)
+    num_channels = inputs.get_shape().as_list()[-1]
+    if len(means) != num_channels:
+      raise ValueError('len(means) must match the number of channels')
+    channels = tf.split(axis=3, num_or_size_splits=num_channels, value=inputs)
+    for i in range(num_channels):
+        channels[i] -= means[i]
+    return tf.concat(axis=3, values=channels)
+
 # Randomly crop the image to a specific size. For data augmentation
 def random_crop(image, label, crop_height, crop_width):
     if (image.shape[0] != label.shape[0]) or (image.shape[1] != label.shape[1]):
@@ -130,10 +140,12 @@ def compute_mean_iou(pred, label):
         pred_mask = pred[:, :] == curr_class
         label_mask = label[:, :] == curr_class
 
-        TP = np.float(np.count_nonzero(pred_mask * label_mask))
-        FP = np.float(np.count_nonzero(pred_mask * (label_mask - 1)))
-        FN = np.float(np.count_nonzero((pred_mask - 1) * label_mask))
-        iou_list[index] = TP / (TP + FP + FN)
+        # TP = np.float(np.count_nonzero(pred_mask * label_mask))
+        # FP = np.float(np.count_nonzero(pred_mask * (label_mask - 1)))
+        # FN = np.float(np.count_nonzero((pred_mask - 1) * label_mask))
+        iou_and = np.float(np.sum(np.logical_and(pred_mask, label_mask)))
+        iou_or = np.float(np.sum(np.logical_or(pred_mask, label_mask)))
+        iou_list[index] = iou_and / iou_or
 
     mean_iou = np.mean(iou_list)
     return mean_iou
