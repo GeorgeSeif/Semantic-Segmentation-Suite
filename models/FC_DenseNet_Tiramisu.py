@@ -4,14 +4,14 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 import numpy as np
 
-def preact_conv(inputs, n_filters, filter_size=[3, 3], dropout_p=0.2):
+def preact_conv(inputs, n_filters, kernel_size=[3, 3], dropout_p=0.2):
     """
     Basic pre-activation layer for DenseNets
     Apply successivly BatchNormalization, ReLU nonlinearity, Convolution and
     Dropout (if dropout_p > 0) on the inputs
     """
     preact = tf.nn.relu(slim.batch_norm(inputs))
-    conv = slim.conv2d(preact, n_filters, filter_size, activation_fn=None, normalizer_fn=None)
+    conv = slim.conv2d(preact, n_filters, kernel_size, activation_fn=None, normalizer_fn=None)
     if dropout_p != 0.0:
       conv = slim.dropout(conv, keep_prob=(1.0-dropout_p))
     return conv
@@ -46,7 +46,7 @@ def TransitionDown(inputs, n_filters, dropout_p=0.2, scope=None):
   Apply 1x1 BN + ReLU + conv then 2x2 max pooling
   """
   with tf.name_scope(scope) as sc:
-    l = preact_conv(inputs, n_filters, filter_size=[1, 1], dropout_p=dropout_p)
+    l = preact_conv(inputs, n_filters, kernel_size=[1, 1], dropout_p=dropout_p)
     l = slim.pool(l, [2, 2], stride=[2, 2], pooling_type='MAX')
     return l
 
@@ -62,16 +62,6 @@ def TransitionUp(block_to_upsample, skip_connection, n_filters_keep, scope=None)
     # Concatenate with skip connection
     l = tf.concat([l, skip_connection], axis=-1)
     return l
-
-def mean_image_subtraction(inputs, means=[123.68, 116.78, 103.94]):
-    inputs=tf.to_float(inputs)
-    num_channels = inputs.get_shape().as_list()[-1]
-    if len(means) != num_channels:
-      raise ValueError('len(means) must match the number of channels')
-    channels = tf.split(axis=3, num_or_size_splits=num_channels, value=inputs)
-    for i in range(num_channels):
-        channels[i] -= means[i]
-    return tf.concat(axis=3, values=channels)
 
 def build_fc_densenet(inputs, preset_model='FC-DenseNet56', num_classes=12, n_filters_first_conv=48, n_pool=5, growth_rate=12, n_layers_per_block=4, dropout_p=0.2, scope=None):
     """
@@ -103,6 +93,8 @@ def build_fc_densenet(inputs, preset_model='FC-DenseNet56', num_classes=12, n_fi
       n_pool=5
       growth_rate=16
       n_layers_per_block=[4, 5, 7, 10, 12, 15, 12, 10, 7, 5, 4]
+    else:
+      raise ValueError("Unsupported FC-DenseNet model '%s'. This function only supports FC-DenseNet56, FC-DenseNet67, and FC-DenseNet103" % (preset_model)) 
 
     if type(n_layers_per_block) == list:
         assert (len(n_layers_per_block) == 2 * n_pool + 1)
@@ -120,6 +112,7 @@ def build_fc_densenet(inputs, preset_model='FC-DenseNet56', num_classes=12, n_fi
       stack = slim.conv2d(inputs, n_filters_first_conv, [3, 3], scope='first_conv')
 
       n_filters = n_filters_first_conv
+      
       #####################
       # Downsampling path #
       #####################

@@ -6,26 +6,26 @@ def Upsampling(inputs,scale):
     return tf.image.resize_bilinear(inputs, size=[tf.shape(inputs)[1]*scale,  tf.shape(inputs)[2]*scale])
 
 
-def ResidualConvUnit(inputs,features=256,kernel_size=3):
+def ResidualConvUnit(inputs,n_filters=256,kernel_size=3):
     """
     A local residual unit designed to fine-tune the pretrained ResNet weights
 
     Arguments:
       inputs: The input tensor
-      features: Number of output feature maps for each conv
+      n_filters: Number of output feature maps for each conv
       kernel_size: Size of convolution kernel
 
     Returns:
       Output of local residual block
     """
     net=tf.nn.relu(inputs)
-    net=slim.conv2d(net, features, kernel_size)
+    net=slim.conv2d(net, n_filters, kernel_size)
     net=tf.nn.relu(net)
-    net=slim.conv2d(net,features,kernel_size)
+    net=slim.conv2d(net,n_filters,kernel_size)
     net=tf.add(net,inputs)
     return net
 
-def ChainedResidualPooling(inputs,features=256):
+def ChainedResidualPooling(inputs,n_filters=256):
     """
     Chained residual pooling aims to capture background 
     context from a large image region. This component is 
@@ -38,7 +38,7 @@ def ChainedResidualPooling(inputs,features=256):
 
     Arguments:
       inputs: The input tensor
-      features: Number of output feature maps for each conv
+      n_filters: Number of output feature maps for each conv
 
     Returns:
       Double-pooled feature maps
@@ -46,17 +46,17 @@ def ChainedResidualPooling(inputs,features=256):
 
     net_relu=tf.nn.relu(inputs)
     net=slim.max_pool2d(net_relu, [5, 5],stride=1,padding='SAME')
-    net=slim.conv2d(net,features,3)
+    net=slim.conv2d(net,n_filters,3)
     net_sum_1=tf.add(net,net_relu)
 
     net = slim.max_pool2d(net_relu, [5, 5], stride=1, padding='SAME')
-    net = slim.conv2d(net, features, 3)
+    net = slim.conv2d(net, n_filters, 3)
     net_sum_2=tf.add(net,net_sum_1)
 
     return net_sum_2
 
 
-def MultiResolutionFusion(high_inputs=None,low_inputs=None,features=256):
+def MultiResolutionFusion(high_inputs=None,low_inputs=None,n_filters=256):
     """
     Fuse together all path inputs. This block first applies convolutions
     for input adaptation, which generate feature maps of the same feature dimension 
@@ -66,7 +66,7 @@ def MultiResolutionFusion(high_inputs=None,low_inputs=None,features=256):
     Arguments:
       high_inputs: The input tensors that have the higher resolution
       low_inputs: The input tensors that have the lower resolution
-      features: Number of output feature maps for each conv
+      n_filters: Number of output feature maps for each conv
 
     Returns:
       Fused feature maps at higher resolution
@@ -77,8 +77,8 @@ def MultiResolutionFusion(high_inputs=None,low_inputs=None,features=256):
         rcu_low_1 = low_inputs[0]
         rcu_low_2 = low_inputs[1]
 
-        rcu_low_1 = slim.conv2d(rcu_low_1, features, 3)
-        rcu_low_2 = slim.conv2d(rcu_low_2, features, 3)
+        rcu_low_1 = slim.conv2d(rcu_low_1, n_filters, 3)
+        rcu_low_2 = slim.conv2d(rcu_low_2, n_filters, 3)
 
         return tf.add(rcu_low_1,rcu_low_2)
 
@@ -86,16 +86,16 @@ def MultiResolutionFusion(high_inputs=None,low_inputs=None,features=256):
         rcu_low_1 = low_inputs[0]
         rcu_low_2 = low_inputs[1]
 
-        rcu_low_1 = slim.conv2d(rcu_low_1, features, 3)
-        rcu_low_2 = slim.conv2d(rcu_low_2, features, 3)
+        rcu_low_1 = slim.conv2d(rcu_low_1, n_filters, 3)
+        rcu_low_2 = slim.conv2d(rcu_low_2, n_filters, 3)
 
         rcu_low = tf.add(rcu_low_1,rcu_low_2)
 
         rcu_high_1 = high_inputs[0]
         rcu_high_2 = high_inputs[1]
 
-        rcu_high_1 = Upsampling(slim.conv2d(rcu_high_1, features, 3),2)
-        rcu_high_2 = Upsampling(slim.conv2d(rcu_high_2, features, 3),2)
+        rcu_high_1 = Upsampling(slim.conv2d(rcu_high_1, n_filters, 3),2)
+        rcu_high_2 = Upsampling(slim.conv2d(rcu_high_2, n_filters, 3),2)
 
         rcu_high = tf.add(rcu_high_1,rcu_high_2)
 
@@ -118,26 +118,26 @@ def RefineBlock(high_inputs=None,low_inputs=None):
     """
 
     if high_inputs is None: # block 4
-        rcu_low_1= ResidualConvUnit(low_inputs, features=256)
-        rcu_low_2 = ResidualConvUnit(low_inputs, features=256)
+        rcu_low_1= ResidualConvUnit(low_inputs, n_filters=256)
+        rcu_low_2 = ResidualConvUnit(low_inputs, n_filters=256)
         rcu_low = [rcu_low_1, rcu_low_2]
 
-        fuse = MultiResolutionFusion(high_inputs=None, low_inputs=rcu_low, features=256)
-        fuse_pooling = ChainedResidualPooling(fuse, features=256)
-        output = ResidualConvUnit(fuse_pooling, features=256)
+        fuse = MultiResolutionFusion(high_inputs=None, low_inputs=rcu_low, n_filters=256)
+        fuse_pooling = ChainedResidualPooling(fuse, n_filters=256)
+        output = ResidualConvUnit(fuse_pooling, n_filters=256)
         return output
     else:
-        rcu_low_1 = ResidualConvUnit(low_inputs, features=256)
-        rcu_low_2 = ResidualConvUnit(low_inputs, features=256)
+        rcu_low_1 = ResidualConvUnit(low_inputs, n_filters=256)
+        rcu_low_2 = ResidualConvUnit(low_inputs, n_filters=256)
         rcu_low = [rcu_low_1, rcu_low_2]
 
-        rcu_high_1 = ResidualConvUnit(high_inputs, features=256)
-        rcu_high_2 = ResidualConvUnit(high_inputs, features=256)
+        rcu_high_1 = ResidualConvUnit(high_inputs, n_filters=256)
+        rcu_high_2 = ResidualConvUnit(high_inputs, n_filters=256)
         rcu_high = [rcu_high_1, rcu_high_2]
 
-        fuse = MultiResolutionFusion(rcu_high, rcu_low,features=256)
-        fuse_pooling = ChainedResidualPooling(fuse, features=256)
-        output = ResidualConvUnit(fuse_pooling, features=256)
+        fuse = MultiResolutionFusion(rcu_high, rcu_low,n_filters=256)
+        fuse_pooling = ChainedResidualPooling(fuse, n_filters=256)
+        output = ResidualConvUnit(fuse_pooling, n_filters=256)
         return output
 
 
@@ -163,37 +163,29 @@ def build_refinenet(inputs, preset_model='RefineNet-Res101', num_classes=12, wei
     elif preset_model == 'RefineNet-Res152':
         with slim.arg_scope(resnet_v1.resnet_arg_scope(weight_decay=weight_decay)):
             logits, end_points = resnet_v1.resnet_v1_152(inputs, is_training=is_training, scope='resnet_v1_152')
+    else:
+    	raise ValueError("Unsupported ResNet model '%s'. This function only supports ResNet 101 and ResNet 152" % (preset_model))
 
-    with tf.variable_scope('feature_fusion', values=[end_points.values]):
-        batch_norm_params = {'decay': 0.997,'epsilon': 1e-5,'scale': True,'is_training': is_training}
-        with slim.arg_scope([slim.conv2d],
-                            activation_fn=tf.nn.relu,
-                            normalizer_fn=slim.batch_norm,
-                            normalizer_params=batch_norm_params,
-                            weights_regularizer=slim.l2_regularizer(weight_decay)):
+    
 
 
-            f = [end_points['pool5'], end_points['pool4'],
-                 end_points['pool3'], end_points['pool2']]
-            # for i in range(4):
-            #     print('Shape of f_{} {}'.format(i, f[i].shape))
+    f = [end_points['pool5'], end_points['pool4'],
+         end_points['pool3'], end_points['pool2']]
 
-            g = [None, None, None, None]
-            h = [None, None, None, None]
+    g = [None, None, None, None]
+    h = [None, None, None, None]
 
-            for i in range(4):
-                h[i]=slim.conv2d(f[i], 256, 1)
-            # for i in range(4):
-            #     print('Shape of h_{} {}'.format(i, h[i].shape))
+    for i in range(4):
+        h[i]=slim.conv2d(f[i], 256, 1)
 
-            g[0]=RefineBlock(high_inputs=None,low_inputs=h[0])
-            g[1]=RefineBlock(g[0],h[1])
-            g[2]=RefineBlock(g[1],h[2])
-            g[3]=RefineBlock(g[2],h[3])
-            g[3]=Upsampling(g[3],scale=4)
-            F_score = slim.conv2d(g[3], num_classes, 1, activation_fn=tf.nn.relu, normalizer_fn=None)
+    g[0]=RefineBlock(high_inputs=None,low_inputs=h[0])
+    g[1]=RefineBlock(g[0],h[1])
+    g[2]=RefineBlock(g[1],h[2])
+    g[3]=RefineBlock(g[2],h[3])
+    g[3]=Upsampling(g[3],scale=4)
+    net = slim.conv2d(g[3], num_classes, [1, 1], scope='logits')
 
-    return F_score
+    return net
 
 
 def mean_image_subtraction(inputs, means=[123.68, 116.78, 103.94]):

@@ -18,6 +18,7 @@ from FC_DenseNet_Tiramisu import build_fc_densenet
 from Encoder_Decoder import build_encoder_decoder
 from Encoder_Decoder_Skip import build_encoder_decoder_skip
 from RefineNet import build_refinenet
+from FRRN import build_frrn
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -40,7 +41,7 @@ parser.add_argument('--h_flip', type=str2bool, default=False, help='Whether to r
 parser.add_argument('--v_flip', type=str2bool, default=False, help='Whether to randomly flip the image vertically for data augmentation')
 parser.add_argument('--brightness', type=str2bool, default=False, help='Whether to randomly change the image brightness for data augmentation')
 parser.add_argument('--model', type=str, default="FC-DenseNet103", help='The model you are using. Currently supports:\
-    FC-DenseNet56, FC-DenseNet67, FC-DenseNet103, Encoder-Decoder, Encoder-Decoder-Skip, RefineNet-Res101, RefineNet-Res152, custom')
+    FC-DenseNet56, FC-DenseNet67, FC-DenseNet103, Encoder-Decoder, Encoder-Decoder-Skip, RefineNet-Res101, RefineNet-Res152, FRRN-A, FRRN-B, custom')
 args = parser.parse_args()
 
 
@@ -73,15 +74,6 @@ def prepare_data(dataset_dir=args.dataset):
     return train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names
 
 
-# Check if model is available
-AVAILABLE_MODELS = ["FC-DenseNet56", "FC-DenseNet67", "FC-DenseNet103", 
-                    "Encoder-Decoder", "Encoder-Decoder-Skip", 
-                    "RefineNet-Res101", "RefineNet-Res152", "custom"]
-if args.model not in AVAILABLE_MODELS:
-    print("Error: given model is not available. Try these:")
-    print(AVAILABLE_MODELS)
-    print("Now exiting ...")
-    sys.exit()
 
 # Load the data
 print("Loading the data ...")
@@ -107,12 +99,16 @@ if args.model == "FC-DenseNet56" or args.model == "FC-DenseNet67" or args.model 
     network = build_fc_densenet(input, preset_model = args.model, num_classes=num_classes)
 elif args.model == "RefineNet-Res101" or args.model == "RefineNet-Res152":
     network = build_refinenet(input, preset_model = args.model, num_classes=num_classes)
+elif args.model == "FRRN-A" or args.model == "FRRN-B":
+    network = build_frrn(input, preset_model = args.model, num_classes=num_classes)
 elif args.model == "Encoder-Decoder":
     network = build_encoder_decoder(input, num_classes)
 elif args.model == "Encoder-Decoder-Skip":
     network = build_encoder_decoder_skip(input, num_classes)
 elif args.model == "custom":
     network = build_custom(input, num_classes)
+else:
+    raise ValueError("Error: the model %d is not available. Try checking which models are available using the command python main.py --help")
 
 
 # Compute your (unweighted) softmax cross entropy loss

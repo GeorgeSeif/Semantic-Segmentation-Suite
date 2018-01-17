@@ -4,19 +4,19 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 import numpy as np
 
-def conv_block(inputs, n_filters, filter_size=[3, 3], dropout_p=0.0):
+def conv_block(inputs, n_filters, kernel_size=[3, 3], dropout_p=0.0):
 	"""
 	Basic conv block for Encoder-Decoder
 	Apply successivly Convolution, BatchNormalization, ReLU nonlinearity
 	Dropout (if dropout_p > 0) on the inputs
 	"""
-	conv = slim.conv2d(inputs, n_filters, filter_size, activation_fn=None, normalizer_fn=None)
+	conv = slim.conv2d(inputs, n_filters, kernel_size, activation_fn=None, normalizer_fn=None)
 	out = tf.nn.relu(slim.batch_norm(conv))
 	if dropout_p != 0.0:
 	  out = slim.dropout(out, keep_prob=(1.0-dropout_p))
 	return out
 
-def conv_transpose_block(inputs, n_filters, filter_size=[3, 3], dropout_p=0.0):
+def conv_transpose_block(inputs, n_filters, kernel_size=[3, 3], dropout_p=0.0):
 	"""
 	Basic conv transpose block for Encoder-Decoder upsampling
 	Apply successivly Transposed Convolution, BatchNormalization, ReLU nonlinearity
