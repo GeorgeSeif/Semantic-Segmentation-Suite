@@ -48,14 +48,14 @@ def FullResolutionResidualUnit(pool_stream, res_stream, n_filters_3, n_filters_1
 
     
 
-    net = slim.conv2d(G, n_filters_3, kernel_size=3)
+    net = slim.conv2d(G, n_filters_3, kernel_size=3, activation_fn=None)
     net = slim.batch_norm(net)
     net = tf.nn.relu(net)
-    net = slim.conv2d(net, n_filters_3, kernel_size=3)
+    net = slim.conv2d(net, n_filters_3, kernel_size=3, activation_fn=None)
     net = slim.batch_norm(net)
     pool_stream_out = tf.nn.relu(net)
 
-    net = slim.conv2d(pool_stream_out, n_filters_1, kernel_size=1)
+    net = slim.conv2d(pool_stream_out, n_filters_1, kernel_size=1, activation_fn=None)
     net = Upsampling(net, scale=pool_scale)
     res_stream_out = tf.add(res_stream, net)
 
@@ -81,7 +81,7 @@ def build_frrn(inputs, preset_model='FRRN-A', num_classes=12):
         #####################
         # Initial Stage   
         #####################
-        net = slim.conv2d(inputs, 48, kernel_size=5)
+        net = slim.conv2d(inputs, 48, kernel_size=5, activation_fn=None)
         net = slim.batch_norm(net)
         net = tf.nn.relu(net)
 
@@ -94,7 +94,7 @@ def build_frrn(inputs, preset_model='FRRN-A', num_classes=12):
         # Downsampling Path 
         #####################
         pool_stream = slim.pool(net, [2, 2], stride=[2, 2], pooling_type='MAX')
-        res_stream = slim.conv2d(net, 32, kernel_size=1)
+        res_stream = slim.conv2d(net, 32, kernel_size=1, activation_fn=None)
 
         pool_stream, res_stream = FullResolutionResidualUnit(pool_stream=pool_stream, res_stream=res_stream, n_filters_3=96, n_filters_1=32, pool_scale=2)
         pool_stream, res_stream = FullResolutionResidualUnit(pool_stream=pool_stream, res_stream=res_stream, n_filters_3=96, n_filters_1=32, pool_scale=2)
@@ -139,7 +139,7 @@ def build_frrn(inputs, preset_model='FRRN-A', num_classes=12):
         net = ResidualUnit(net, n_filters=48, filter_size=3)
         net = ResidualUnit(net, n_filters=48, filter_size=3)
 
-        net = slim.conv2d(net, num_classes, [1, 1], scope='logits')
+        net = slim.conv2d(net, num_classes, [1, 1], activation_fn=None, scope='logits')
         return net
 
         
@@ -147,7 +147,7 @@ def build_frrn(inputs, preset_model='FRRN-A', num_classes=12):
         #####################
         # Initial Stage   
         #####################
-        net = slim.conv2d(inputs, 48, kernel_size=5)
+        net = slim.conv2d(inputs, 48, kernel_size=5, activation_fn=None)
         net = slim.batch_norm(net)
         net = tf.nn.relu(net)
 
@@ -160,7 +160,7 @@ def build_frrn(inputs, preset_model='FRRN-A', num_classes=12):
         # Downsampling Path 
         #####################
         pool_stream = slim.pool(net, [2, 2], stride=[2, 2], pooling_type='MAX')
-        res_stream = slim.conv2d(net, 32, kernel_size=1)
+        res_stream = slim.conv2d(net, 32, kernel_size=1, activation_fn=None)
 
         pool_stream, res_stream = FullResolutionResidualUnit(pool_stream=pool_stream, res_stream=res_stream, n_filters_3=96, n_filters_1=32, pool_scale=2)
         pool_stream, res_stream = FullResolutionResidualUnit(pool_stream=pool_stream, res_stream=res_stream, n_filters_3=96, n_filters_1=32, pool_scale=2)
@@ -213,7 +213,7 @@ def build_frrn(inputs, preset_model='FRRN-A', num_classes=12):
         net = ResidualUnit(net, n_filters=48, filter_size=3)
         net = ResidualUnit(net, n_filters=48, filter_size=3)
 
-        net = slim.conv2d(net, num_classes, [1, 1], scope='logits')
+        net = slim.conv2d(net, num_classes, [1, 1], activation_fn=None, scope='logits')
         return net
 
     else:

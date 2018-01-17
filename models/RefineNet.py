@@ -19,9 +19,9 @@ def ResidualConvUnit(inputs,n_filters=256,kernel_size=3):
       Output of local residual block
     """
     net=tf.nn.relu(inputs)
-    net=slim.conv2d(net, n_filters, kernel_size)
+    net=slim.conv2d(net, n_filters, kernel_size, activation_fn=None)
     net=tf.nn.relu(net)
-    net=slim.conv2d(net,n_filters,kernel_size)
+    net=slim.conv2d(net,n_filters,kernel_size, activation_fn=None)
     net=tf.add(net,inputs)
     return net
 
@@ -46,11 +46,11 @@ def ChainedResidualPooling(inputs,n_filters=256):
 
     net_relu=tf.nn.relu(inputs)
     net=slim.max_pool2d(net_relu, [5, 5],stride=1,padding='SAME')
-    net=slim.conv2d(net,n_filters,3)
+    net=slim.conv2d(net,n_filters,3, activation_fn=None)
     net_sum_1=tf.add(net,net_relu)
 
     net = slim.max_pool2d(net_relu, [5, 5], stride=1, padding='SAME')
-    net = slim.conv2d(net, n_filters, 3)
+    net = slim.conv2d(net, n_filters, 3, activation_fn=None)
     net_sum_2=tf.add(net,net_sum_1)
 
     return net_sum_2
@@ -77,8 +77,8 @@ def MultiResolutionFusion(high_inputs=None,low_inputs=None,n_filters=256):
         rcu_low_1 = low_inputs[0]
         rcu_low_2 = low_inputs[1]
 
-        rcu_low_1 = slim.conv2d(rcu_low_1, n_filters, 3)
-        rcu_low_2 = slim.conv2d(rcu_low_2, n_filters, 3)
+        rcu_low_1 = slim.conv2d(rcu_low_1, n_filters, 3, activation_fn=None)
+        rcu_low_2 = slim.conv2d(rcu_low_2, n_filters, 3, activation_fn=None)
 
         return tf.add(rcu_low_1,rcu_low_2)
 
@@ -86,16 +86,16 @@ def MultiResolutionFusion(high_inputs=None,low_inputs=None,n_filters=256):
         rcu_low_1 = low_inputs[0]
         rcu_low_2 = low_inputs[1]
 
-        rcu_low_1 = slim.conv2d(rcu_low_1, n_filters, 3)
-        rcu_low_2 = slim.conv2d(rcu_low_2, n_filters, 3)
+        rcu_low_1 = slim.conv2d(rcu_low_1, n_filters, 3, activation_fn=None)
+        rcu_low_2 = slim.conv2d(rcu_low_2, n_filters, 3, activation_fn=None)
 
         rcu_low = tf.add(rcu_low_1,rcu_low_2)
 
         rcu_high_1 = high_inputs[0]
         rcu_high_2 = high_inputs[1]
 
-        rcu_high_1 = Upsampling(slim.conv2d(rcu_high_1, n_filters, 3),2)
-        rcu_high_2 = Upsampling(slim.conv2d(rcu_high_2, n_filters, 3),2)
+        rcu_high_1 = Upsampling(slim.conv2d(rcu_high_1, n_filters, 3, activation_fn=None),2)
+        rcu_high_2 = Upsampling(slim.conv2d(rcu_high_2, n_filters, 3, activation_fn=None),2)
 
         rcu_high = tf.add(rcu_high_1,rcu_high_2)
 
@@ -183,7 +183,7 @@ def build_refinenet(inputs, preset_model='RefineNet-Res101', num_classes=12, wei
     g[2]=RefineBlock(g[1],h[2])
     g[3]=RefineBlock(g[2],h[3])
     g[3]=Upsampling(g[3],scale=4)
-    net = slim.conv2d(g[3], num_classes, [1, 1], scope='logits')
+    net = slim.conv2d(g[3], num_classes, [1, 1], activation_fn=None, scope='logits')
 
     return net
 

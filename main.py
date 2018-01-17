@@ -16,9 +16,9 @@ import matplotlib.pyplot as plt
 sys.path.append("models")
 from FC_DenseNet_Tiramisu import build_fc_densenet
 from Encoder_Decoder import build_encoder_decoder
-from Encoder_Decoder_Skip import build_encoder_decoder_skip
 from RefineNet import build_refinenet
 from FRRN import build_frrn
+from MobileUNet import build_mobile_unet
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -41,7 +41,7 @@ parser.add_argument('--h_flip', type=str2bool, default=False, help='Whether to r
 parser.add_argument('--v_flip', type=str2bool, default=False, help='Whether to randomly flip the image vertically for data augmentation')
 parser.add_argument('--brightness', type=str2bool, default=False, help='Whether to randomly change the image brightness for data augmentation')
 parser.add_argument('--model', type=str, default="FC-DenseNet103", help='The model you are using. Currently supports:\
-    FC-DenseNet56, FC-DenseNet67, FC-DenseNet103, Encoder-Decoder, Encoder-Decoder-Skip, RefineNet-Res101, RefineNet-Res152, FRRN-A, FRRN-B, custom')
+    FC-DenseNet56, FC-DenseNet67, FC-DenseNet103, Encoder-Decoder, Encoder-Decoder-Skip, RefineNet-Res101, RefineNet-Res152, FRRN-A, FRRN-B, MobileUNet, MobileUNet-Skip, custom')
 args = parser.parse_args()
 
 
@@ -101,10 +101,10 @@ elif args.model == "RefineNet-Res101" or args.model == "RefineNet-Res152":
     network = build_refinenet(input, preset_model = args.model, num_classes=num_classes)
 elif args.model == "FRRN-A" or args.model == "FRRN-B":
     network = build_frrn(input, preset_model = args.model, num_classes=num_classes)
-elif args.model == "Encoder-Decoder":
-    network = build_encoder_decoder(input, num_classes)
-elif args.model == "Encoder-Decoder-Skip":
-    network = build_encoder_decoder_skip(input, num_classes)
+elif args.model == "Encoder-Decoder" or args.model == "Encoder-Decoder-Skip":
+    network = build_encoder_decoder(input, preset_model = args.model, num_classes=num_classes)
+elif args.model == "MobileUNet" or args.model == "MobileUNet-Skip":
+    network = build_mobile_unet(input, preset_model = args.model, num_classes=num_classes)
 elif args.model == "custom":
     network = build_custom(input, num_classes)
 else:
