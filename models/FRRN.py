@@ -21,10 +21,10 @@ def ResidualUnit(inputs, n_filters=48, filter_size=3):
       Output of local residual block
     """
 
-    net = slim.conv2d(inputs, n_filters, filter_size)
+    net = slim.conv2d(inputs, n_filters, filter_size, activation_fn=None)
     net = slim.batch_norm(net)
     net = tf.nn.relu(net)
-    net = slim.conv2d(net, n_filters, filter_size)
+    net = slim.conv2d(net, n_filters, filter_size, activation_fn=None)
     net = slim.batch_norm(net)
 
     return net
