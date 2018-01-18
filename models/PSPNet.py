@@ -1,50 +1,49 @@
 import tensorflow as tf
 from tensorflow.contrib import slim
-import math
+import numpy as np
 import resnet_v1
 
 def Upsampling(inputs,feature_map_shape):
-    return tf.image.resize_bilinear(inputs, size=[feature_map_shape[1], feature_map_shape[2]])
+    return tf.image.resize_bilinear(inputs, size=feature_map_shape)
 
 def InterpBlock(net, level, feature_map_shape, pooling_type):
-    kernel_strides_map = {1: 60,
-                          2: 30,
-                          3: 20,
-                          6: 10}
     
-    kernel = (kernel_strides_map[level], kernel_strides_map[level])
-    strides = (kernel_strides_map[level], kernel_strides_map[level])
+    # Compute the kernel and stride sizes according to how large the final feature map will be
+    # When the kernel size and strides are equal, then we can compute the final feature map size
+    # by simply dividing the current size by the kernel or stride size
+    # The final feature map sizes are 1x1, 2x2, 3x3, and 6x6. We round to the closest integer
+    kernel_size = [int(np.round(float(feature_map_shape[0]) / float(level))), int(np.round(float(feature_map_shape[1]) / float(level)))]
+    stride_size = kernel_size
 
-    net = slim.pool(net, kernel, stride=strides, pooling_type='MAX')
+    net = slim.pool(net, kernel_size, stride=stride_size, pooling_type='MAX')
     net = slim.conv2d(net, 512, [1, 1], activation_fn=None)
     net = slim.batch_norm(net)
     net = tf.nn.relu(net)
     net = Upsampling(net, feature_map_shape)
     return net
 
-def PyramidPoolingModule(inputs, pooling_type):
+def PyramidPoolingModule(inputs, feature_map_shape, pooling_type):
     """
     Build the Pyramid Pooling Module.
     """
 
-    feature_map_size = tf.cast(tf.cast(tf.shape(inputs), tf.float32) / tf.convert_to_tensor(8.0), tf.int32)
-
-    interp_block1 = InterpBlock(inputs, 1, feature_map_size, pooling_type)
-    interp_block2 = InterpBlock(inputs, 2, feature_map_size, pooling_type)
-    interp_block3 = InterpBlock(inputs, 3, feature_map_size, pooling_type)
-    interp_block6 = InterpBlock(inputs, 6, feature_map_size, pooling_type)
+    interp_block1 = InterpBlock(inputs, 1, feature_map_shape, pooling_type)
+    interp_block2 = InterpBlock(inputs, 2, feature_map_shape, pooling_type)
+    interp_block3 = InterpBlock(inputs, 3, feature_map_shape, pooling_type)
+    interp_block6 = InterpBlock(inputs, 6, feature_map_shape, pooling_type)
 
     res = tf.concat([inputs, interp_block6, interp_block3, interp_block2, interp_block1], axis=-1)
     return res
 
 
 
-def build_pspnet(inputs, preset_model='PSPNet-Res50', pooling_type = "MAX", num_classes=12, weight_decay=1e-5, is_training=True):
+def build_pspnet(inputs, label_size, preset_model='PSPNet-Res50', pooling_type = "MAX", num_classes=12, weight_decay=1e-5, is_training=True):
     """
     Builds the PSPNet model. 
 
     Arguments:
       inputs: The input tensor
+      label_size: Size of the final label tensor. We need to know this for proper upscaling 
       preset_model: Which model you want to use. Select which ResNet model to use for feature extraction 
       num_classes: Number of classes
       pooling_type: Max or Average pooling
@@ -74,8 +73,8 @@ def build_pspnet(inputs, preset_model='PSPNet-Res50', pooling_type = "MAX", num_
          end_points['pool3'], end_points['pool2']]
 
 
-    original_shape = tf.shape(inputs)
-    psp = PyramidPoolingModule(f[0], pooling_type=pooling_type)
+    feature_map_shape = [int(x / 8.0) for x in label_size]
+    psp = PyramidPoolingModule(f[2], feature_map_shape=feature_map_shape, pooling_type=pooling_type)
 
     net = slim.conv2d(psp, 512, [3, 3], activation_fn=None)
     net = slim.batch_norm(net)
@@ -85,7 +84,7 @@ def build_pspnet(inputs, preset_model='PSPNet-Res50', pooling_type = "MAX", num_
     
     net = slim.conv2d(net, num_classes, [1, 1], activation_fn=None, scope='logits')
 
-    net = Upsampling(net, original_shape)
+    net = Upsampling(net, label_size)
 
     return net
 

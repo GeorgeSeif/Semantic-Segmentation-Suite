@@ -34,9 +34,9 @@ parser.add_argument('--num_epochs', type=int, default=300, help='Number of epoch
 parser.add_argument('--is_training', type=str2bool, default=True, help='Whether we are training or testing')
 parser.add_argument('--continue_training', type=str2bool, default=False, help='Whether to continue training from a checkpoint')
 parser.add_argument('--dataset', type=str, default="CamVid", help='Dataset you are using.')
-parser.add_argument('--crop_height', type=int, default=352, help='Height of input image to network')
-parser.add_argument('--crop_width', type=int, default=480, help='Width of input image to network')
-parser.add_argument('--batch_size', type=int, default=1, help='Width of input image to network')
+parser.add_argument('--crop_height', type=int, default=352, help='Height of cropped input image to network')
+parser.add_argument('--crop_width', type=int, default=480, help='Width of cropped input image to network')
+parser.add_argument('--batch_size', type=int, default=1, help='Number of images in each batch')
 parser.add_argument('--num_val_images', type=int, default=10, help='The number of images to used for validations')
 parser.add_argument('--h_flip', type=str2bool, default=False, help='Whether to randomly flip the image horizontally for data augmentation')
 parser.add_argument('--v_flip', type=str2bool, default=False, help='Whether to randomly flip the image vertically for data augmentation')
@@ -107,7 +107,8 @@ elif args.model == "Encoder-Decoder" or args.model == "Encoder-Decoder-Skip":
 elif args.model == "MobileUNet" or args.model == "MobileUNet-Skip":
     network = build_mobile_unet(input, preset_model = args.model, num_classes=num_classes)
 elif args.model == "PSPNet-Res50" or args.model == "PSPNet-Res101" or args.model == "PSPNet-Res151":
-    network = build_pspnet(input, preset_model = args.model, num_classes=num_classes)
+    # Image size is required for PSPNet
+    network = build_pspnet(input, label_size=[args.crop_height, args.crop_width], preset_model = args.model, num_classes=num_classes)
 elif args.model == "custom":
     network = build_custom(input, num_classes)
 else:

@@ -133,8 +133,8 @@ def resnet_v1(inputs,
                 net = resnet_utils.stack_blocks_dense(net, blocks, output_stride)
                 end_points = slim.utils.convert_collection_to_dict(end_points_collection)
 
-                end_points['pool3'] = end_points['resnet_v1_101/block1']
-                end_points['pool4'] = end_points['resnet_v1_101/block2']
+                end_points['pool3'] = end_points[scope + '/block1']
+                end_points['pool4'] = end_points[scope + '/block2']
                 end_points['pool5'] = net
                 return net, end_points
 
