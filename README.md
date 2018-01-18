@@ -12,6 +12,14 @@ This repository serves as a Semantic Segmentation Suite. The goal is to easily b
 
 **Any suggestions to improve this repository are welcome!**
 
+### Coming Soon
+
+- Use ResNet pretrained weights with RefineNet and PSPNet.
+
+- Implement auxiliary loss for PSPNet
+
+- Implement ICNet
+
 ## Models
 The following models are currently made available:
 
@@ -31,9 +39,6 @@ The following models are currently made available:
 to obtain robust features for recognition. The two streams are coupled at the full image resolution using residuals.
 
 - Or make your own and plug and play!
-
-
-**Many more coming soon!**
 
 
 ## Files and Directories

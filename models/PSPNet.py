@@ -56,7 +56,7 @@ def build_pspnet(inputs, label_size, preset_model='PSPNet-Res50', pooling_type =
 
     if preset_model == 'PSPNet-Res50':
         with slim.arg_scope(resnet_v1.resnet_arg_scope(weight_decay=weight_decay)):
-            logits, end_points = resnet_v1.resnet_v1_50(inputs, is_training=is_training, scope='resnet_v1_101')
+            logits, end_points = resnet_v1.resnet_v1_50(inputs, is_training=is_training, scope='resnet_v1_50')
     elif preset_model == 'PSPNet-Res101':
         with slim.arg_scope(resnet_v1.resnet_arg_scope(weight_decay=weight_decay)):
             logits, end_points = resnet_v1.resnet_v1_101(inputs, is_training=is_training, scope='resnet_v1_101')
