@@ -12,14 +12,6 @@ This repository serves as a Semantic Segmentation Suite. The goal is to easily b
 
 **Any suggestions to improve this repository are welcome!**
 
-### Coming Soon
-
-- Use ResNet pretrained weights with RefineNet and PSPNet.
-
-- Implement auxiliary loss for PSPNet
-
-- Implement ICNet
-
 ## Models
 The following models are currently made available:
 
@@ -100,11 +92,11 @@ optional arguments:
                         Whether to continue training from a checkpoint
   --dataset DATASET     Dataset you are using.
   --crop_height CROP_HEIGHT
-                        Height of input image to network
+                        Height of cropped input image to network
   --crop_width CROP_WIDTH
-                        Width of input image to network
+                        Width of cropped input image to network
   --batch_size BATCH_SIZE
-                        Width of input image to network
+                        Number of images in each batch
   --num_val_images NUM_VAL_IMAGES
                         The number of images to used for validations
   --h_flip H_FLIP       Whether to randomly flip the image horizontally for
@@ -117,7 +109,9 @@ optional arguments:
   --model MODEL         The model you are using. Currently supports: FC-
                         DenseNet56, FC-DenseNet67, FC-DenseNet103, Encoder-
                         Decoder, Encoder-Decoder-Skip, RefineNet-Res101,
-                        RefineNet-Res152, FRRN-A, FRRN-B, custom
+                        RefineNet-Res152, FRRN-A, FRRN-B, MobileUNet,
+                        MobileUNet-Skip, PSPNet, custom
+
 
 ```
     
