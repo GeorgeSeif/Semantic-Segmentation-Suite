@@ -2,6 +2,7 @@ import tensorflow as tf
 from tensorflow.contrib import slim
 import numpy as np
 import resnet_v1
+import os, sys
 
 def Upsampling(inputs,feature_map_shape):
     return tf.image.resize_bilinear(inputs, size=feature_map_shape)
@@ -37,7 +38,7 @@ def PyramidPoolingModule(inputs, feature_map_shape, pooling_type):
 
 
 
-def build_pspnet(inputs, label_size, preset_model='PSPNet-Res50', pooling_type = "MAX", num_classes=12, weight_decay=1e-5, is_training=True):
+def build_pspnet(inputs, label_size, preset_model='PSPNet-Res50', pooling_type = "MAX", num_classes=12, weight_decay=1e-5, is_training=True, pretrained_dir="models"):
     """
     Builds the PSPNet model. 
 
@@ -57,12 +58,18 @@ def build_pspnet(inputs, label_size, preset_model='PSPNet-Res50', pooling_type =
     if preset_model == 'PSPNet-Res50':
         with slim.arg_scope(resnet_v1.resnet_arg_scope(weight_decay=weight_decay)):
             logits, end_points = resnet_v1.resnet_v1_50(inputs, is_training=is_training, scope='resnet_v1_50')
+            # PSPNet requires pre-trained ResNet weights
+            init_fn = slim.assign_from_checkpoint_fn(os.path.join(pretrained_dir, 'resnet_v1_50.ckpt'), slim.get_model_variables('resnet_v1_50'))
     elif preset_model == 'PSPNet-Res101':
         with slim.arg_scope(resnet_v1.resnet_arg_scope(weight_decay=weight_decay)):
             logits, end_points = resnet_v1.resnet_v1_101(inputs, is_training=is_training, scope='resnet_v1_101')
+            # PSPNet requires pre-trained ResNet weights
+            init_fn = slim.assign_from_checkpoint_fn(os.path.join(pretrained_dir, 'resnet_v1_101.ckpt'), slim.get_model_variables('resnet_v1_101'))
     elif preset_model == 'PSPNet-Res152':
         with slim.arg_scope(resnet_v1.resnet_arg_scope(weight_decay=weight_decay)):
             logits, end_points = resnet_v1.resnet_v1_152(inputs, is_training=is_training, scope='resnet_v1_152')
+            # PSPNet requires pre-trained ResNet weights
+            init_fn = slim.assign_from_checkpoint_fn(os.path.join(pretrained_dir, 'resnet_v1_152.ckpt'), slim.get_model_variables('resnet_v1_152'))
     else:
         raise ValueError("Unsupported ResNet model '%s'. This function only supports ResNet 50, ResNet 101, and ResNet 152" % (preset_model))
 
@@ -86,7 +93,7 @@ def build_pspnet(inputs, label_size, preset_model='PSPNet-Res50', pooling_type =
 
     net = Upsampling(net, label_size)
 
-    return net
+    return net, init_fn
 
 
 def mean_image_subtraction(inputs, means=[123.68, 116.78, 103.94]):

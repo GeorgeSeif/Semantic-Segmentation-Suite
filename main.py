@@ -42,7 +42,7 @@ parser.add_argument('--h_flip', type=str2bool, default=False, help='Whether to r
 parser.add_argument('--v_flip', type=str2bool, default=False, help='Whether to randomly flip the image vertically for data augmentation')
 parser.add_argument('--brightness', type=str2bool, default=False, help='Whether to randomly change the image brightness for data augmentation')
 parser.add_argument('--model', type=str, default="FC-DenseNet103", help='The model you are using. Currently supports:\
-    FC-DenseNet56, FC-DenseNet67, FC-DenseNet103, Encoder-Decoder, Encoder-Decoder-Skip, RefineNet-Res101, RefineNet-Res152, \
+    FC-DenseNet56, FC-DenseNet67, FC-DenseNet103, Encoder-Decoder, Encoder-Decoder-Skip, RefineNet-Res50, RefineNet-Res101, RefineNet-Res152, \
     FRRN-A, FRRN-B, MobileUNet, MobileUNet-Skip, PSPNet, custom')
 args = parser.parse_args()
 
@@ -91,6 +91,10 @@ for class_name in class_names_list:
 
 num_classes = len(class_names_list)
 
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+sess=tf.Session(config=config)
+
 print("Preparing the model ...")
 input = tf.placeholder(tf.float32,shape=[None,None,None,3])
 output = tf.placeholder(tf.float32,shape=[None,None,None,num_classes])
@@ -98,8 +102,10 @@ output = tf.placeholder(tf.float32,shape=[None,None,None,num_classes])
 network = None
 if args.model == "FC-DenseNet56" or args.model == "FC-DenseNet67" or args.model == "FC-DenseNet103":
     network = build_fc_densenet(input, preset_model = args.model, num_classes=num_classes)
-elif args.model == "RefineNet-Res101" or args.model == "RefineNet-Res152":
-    network = build_refinenet(input, preset_model = args.model, num_classes=num_classes)
+elif args.model == "RefineNet-Res50" or args.model == "RefineNet-Res101" or args.model == "RefineNet-Res152":
+    # RefineNet requires pre-trained ResNet weights
+    network, init_fn = build_refinenet(input, preset_model = args.model, num_classes=num_classes)
+    init_fn(sess)
 elif args.model == "FRRN-A" or args.model == "FRRN-B":
     network = build_frrn(input, preset_model = args.model, num_classes=num_classes)
 elif args.model == "Encoder-Decoder" or args.model == "Encoder-Decoder-Skip":
@@ -108,21 +114,18 @@ elif args.model == "MobileUNet" or args.model == "MobileUNet-Skip":
     network = build_mobile_unet(input, preset_model = args.model, num_classes=num_classes)
 elif args.model == "PSPNet-Res50" or args.model == "PSPNet-Res101" or args.model == "PSPNet-Res151":
     # Image size is required for PSPNet
-    network = build_pspnet(input, label_size=[args.crop_height, args.crop_width], preset_model = args.model, num_classes=num_classes)
+    # PSPNet requires pre-trained ResNet weights
+    network, init_fn = build_pspnet(input, label_size=[args.crop_height, args.crop_width], preset_model = args.model, num_classes=num_classes)
+    init_fn(sess)
 elif args.model == "custom":
     network = build_custom(input, num_classes)
 else:
     raise ValueError("Error: the model %d is not available. Try checking which models are available using the command python main.py --help")
 
-
 # Compute your (unweighted) softmax cross entropy loss
 loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=output))
 
 opt = tf.train.RMSPropOptimizer(learning_rate=0.001, decay=0.995).minimize(loss, var_list=[var for var in tf.trainable_variables()])
-
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-sess=tf.Session(config=config)
 
 saver=tf.train.Saver(max_to_keep=1000)
 sess.run(tf.global_variables_initializer())

@@ -10,7 +10,7 @@ This repository serves as a Semantic Segmentation Suite. The goal is to easily b
 - Evaluation including precision, recall, f1 score, average accuracy, per-class accuracy, and mean IoU
 - Plotting of loss function and accuracy over epochs
 
-**Any suggestions to improve this repository are welcome!**
+**Any suggestions to improve this repository, including any addition segmentation models you would like to see are welcome!**
 
 ## Models
 The following models are currently made available:
@@ -21,7 +21,7 @@ The following models are currently made available:
 
 - [Mobile UNet for Semantic Segmentation](https://arxiv.org/abs/1704.04861). Combining the ideas of MobileNets Depthwise Separable Convolutions with UNet to build a high speed, low parameter Semantic Segmentation model.
 
-- [Pyramid Scene Parsing Network](https://arxiv.org/abs/1612.01105). In this paper, the capability of global context information by different-region based context aggregation is applied through a pyramid pooling module together with the proposed pyramid scene parsing network (PSPNet). 
+- [Pyramid Scene Parsing Network](https://arxiv.org/abs/1612.01105). In this paper, the capability of global context information by different-region based context aggregation is applied through a pyramid pooling module together with the proposed pyramid scene parsing network (PSPNet).
 
 - [The One Hundred Layers Tiramisu: Fully Convolutional DenseNets for Semantic Segmentation](https://arxiv.org/abs/1611.09326). Uses a downsampling-upsampling style encoder-decoder network. Each stage i.e between the pooling layers uses dense blocks. In addition, it concatenated skip connections from the encoder to the decoder. 
 
@@ -32,6 +32,8 @@ to obtain robust features for recognition. The two streams are coupled at the fu
 
 - Or make your own and plug and play!
 
+**Note:** If you are using any of the networks that rely on a pre-trained ResNet, then you will need to download the pre-trained weights using the provided script. These are currently: PSPNet, RefineNet.
+
 
 ## Files and Directories
 
@@ -41,6 +43,8 @@ to obtain robust features for recognition. The two streams are coupled at the fu
 - **helper.py:** Quick helper functions for data preparation and visualization
 
 - **utils.py:** Utilities for printing, debugging, testing, and evaluation
+
+- **get_pretrained_checkpoints.py:** Downloads the pre-trained ResNet weights for ResNet50, ResNet101, and ResNet152
 
 - **models:** Folder containing all model files. Use this to build your models, or use a pre-built one
 
