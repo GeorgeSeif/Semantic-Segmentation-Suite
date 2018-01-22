@@ -6,6 +6,24 @@ import os, sys
 def Upsampling(inputs,scale):
     return tf.image.resize_bilinear(inputs, size=[tf.shape(inputs)[1]*scale,  tf.shape(inputs)[2]*scale])
 
+def ConvBlock(inputs, n_filters, kernel_size=[3, 3]):
+    """
+    Basic conv block for Encoder-Decoder
+    Apply successivly Convolution, BatchNormalization, ReLU nonlinearity
+    """
+    net = slim.conv2d(inputs, n_filters, kernel_size, activation_fn=None, normalizer_fn=None)
+    net = tf.nn.relu(slim.batch_norm(net))
+    return net
+
+def ConvUpscaleBlock(inputs, n_filters, kernel_size=[3, 3], scale=2):
+    """
+    Basic conv transpose block for Encoder-Decoder upsampling
+    Apply successivly Transposed Convolution, BatchNormalization, ReLU nonlinearity
+    """
+    net = slim.conv2d_transpose(inputs, n_filters, kernel_size=[3, 3], stride=[2, 2], activation_fn=None)
+    net = tf.nn.relu(slim.batch_norm(net))
+    return net
+
 
 def ResidualConvUnit(inputs,n_filters=256,kernel_size=3):
     """
@@ -143,7 +161,7 @@ def RefineBlock(high_inputs=None,low_inputs=None):
 
 
 
-def build_refinenet(inputs, preset_model='RefineNet-Res101', num_classes=12, weight_decay=1e-5, is_training=True, pretrained_dir="models"):
+def build_refinenet(inputs, preset_model='RefineNet-Res101', num_classes=12, weight_decay=1e-5, is_training=True, upscaling_method="bilinear", pretrained_dir="models"):
     """
     Builds the RefineNet model. 
 
@@ -192,7 +210,19 @@ def build_refinenet(inputs, preset_model='RefineNet-Res101', num_classes=12, wei
     g[1]=RefineBlock(g[0],h[1])
     g[2]=RefineBlock(g[1],h[2])
     g[3]=RefineBlock(g[2],h[3])
-    g[3]=Upsampling(g[3],scale=4)
+
+    # g[3]=Upsampling(g[3],scale=4)
+
+    if upscaling_method.lower() == "conv":
+        net = ConvUpscaleBlock(net, 256, kernel_size=[3, 3], scale=2)
+        net = ConvBlock(net, 256)
+        net = ConvUpscaleBlock(net, 128, kernel_size=[3, 3], scale=2)
+        net = ConvBlock(net, 128)
+        net = ConvUpscaleBlock(net, 64, kernel_size=[3, 3], scale=2)
+        net = ConvBlock(net, 64)
+    elif upscaling_method.lower() == "bilinear":
+        net = Upsampling(net, label_size)
+
     net = slim.conv2d(g[3], num_classes, [1, 1], activation_fn=None, scope='logits')
 
     return net, init_fn

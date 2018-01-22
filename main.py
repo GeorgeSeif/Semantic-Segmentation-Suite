@@ -80,7 +80,7 @@ def prepare_data(dataset_dir=args.dataset):
 print("Loading the data ...")
 train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names = prepare_data()
 
-
+# Get the names of the classes so we can record the evaluation results
 class_names_list = helpers.get_class_list(os.path.join(args.dataset, "class_list.txt"))
 class_names_string = ""
 for class_name in class_names_list:
@@ -95,17 +95,19 @@ config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
 sess=tf.Session(config=config)
 
+# Get the selected model. 
+# Some of they require pre-trained ResNet
 print("Preparing the model ...")
 input = tf.placeholder(tf.float32,shape=[None,None,None,3])
 output = tf.placeholder(tf.float32,shape=[None,None,None,num_classes])
 
 network = None
+init_fn = None
 if args.model == "FC-DenseNet56" or args.model == "FC-DenseNet67" or args.model == "FC-DenseNet103":
     network = build_fc_densenet(input, preset_model = args.model, num_classes=num_classes)
 elif args.model == "RefineNet-Res50" or args.model == "RefineNet-Res101" or args.model == "RefineNet-Res152":
     # RefineNet requires pre-trained ResNet weights
     network, init_fn = build_refinenet(input, preset_model = args.model, num_classes=num_classes)
-    init_fn(sess)
 elif args.model == "FRRN-A" or args.model == "FRRN-B":
     network = build_frrn(input, preset_model = args.model, num_classes=num_classes)
 elif args.model == "Encoder-Decoder" or args.model == "Encoder-Decoder-Skip":
@@ -116,7 +118,6 @@ elif args.model == "PSPNet-Res50" or args.model == "PSPNet-Res101" or args.model
     # Image size is required for PSPNet
     # PSPNet requires pre-trained ResNet weights
     network, init_fn = build_pspnet(input, label_size=[args.crop_height, args.crop_width], preset_model = args.model, num_classes=num_classes)
-    init_fn(sess)
 elif args.model == "custom":
     network = build_custom(input, num_classes)
 else:
@@ -132,6 +133,12 @@ sess.run(tf.global_variables_initializer())
 
 utils.count_params()
 
+# If a pre-trained ResNet is required, load the weights.
+# This must be done AFTER the variables are initialized with sess.run(tf.global_variables_initializer())
+if init_fn is not None:
+    init_fn(sess)
+
+# Load a previous checkpoint if desired
 model_checkpoint_name = "checkpoints/latest_model_" + args.model + "_" + args.dataset + ".ckpt"
 if args.continue_training or not args.is_training:
     print('Loaded latest model checkpoint')

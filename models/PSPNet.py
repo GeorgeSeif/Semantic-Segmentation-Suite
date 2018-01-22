@@ -7,6 +7,24 @@ import os, sys
 def Upsampling(inputs,feature_map_shape):
     return tf.image.resize_bilinear(inputs, size=feature_map_shape)
 
+def ConvUpscaleBlock(inputs, n_filters, kernel_size=[3, 3], scale=2):
+    """
+    Basic conv transpose block for Encoder-Decoder upsampling
+    Apply successivly Transposed Convolution, BatchNormalization, ReLU nonlinearity
+    """
+    net = slim.conv2d_transpose(inputs, n_filters, kernel_size=[3, 3], stride=[2, 2], activation_fn=None)
+    net = tf.nn.relu(slim.batch_norm(net))
+    return net
+
+def ConvBlock(inputs, n_filters, kernel_size=[3, 3]):
+    """
+    Basic conv block for Encoder-Decoder
+    Apply successivly Convolution, BatchNormalization, ReLU nonlinearity
+    """
+    net = slim.conv2d(inputs, n_filters, kernel_size, activation_fn=None, normalizer_fn=None)
+    net = tf.nn.relu(slim.batch_norm(net))
+    return net
+
 def InterpBlock(net, level, feature_map_shape, pooling_type):
     
     # Compute the kernel and stride sizes according to how large the final feature map will be
@@ -38,7 +56,8 @@ def PyramidPoolingModule(inputs, feature_map_shape, pooling_type):
 
 
 
-def build_pspnet(inputs, label_size, preset_model='PSPNet-Res50', pooling_type = "MAX", num_classes=12, weight_decay=1e-5, is_training=True, pretrained_dir="models"):
+def build_pspnet(inputs, label_size, preset_model='PSPNet-Res50', pooling_type = "MAX", num_classes=12, 
+    weight_decay=1e-5, upscaling_method="bilinear", is_training=True, pretrained_dir="models"):
     """
     Builds the PSPNet model. 
 
@@ -86,12 +105,21 @@ def build_pspnet(inputs, label_size, preset_model='PSPNet-Res50', pooling_type =
     net = slim.conv2d(psp, 512, [3, 3], activation_fn=None)
     net = slim.batch_norm(net)
     net = tf.nn.relu(net)
+
+    if upscaling_method.lower() == "conv":
+        net = ConvUpscaleBlock(net, 256, kernel_size=[3, 3], scale=2)
+        net = ConvBlock(net, 256)
+        net = ConvUpscaleBlock(net, 128, kernel_size=[3, 3], scale=2)
+        net = ConvBlock(net, 128)
+        net = ConvUpscaleBlock(net, 64, kernel_size=[3, 3], scale=2)
+        net = ConvBlock(net, 64)
+    elif upscaling_method.lower() == "bilinear":
+        net = Upsampling(net, label_size)
+
     
     net = slim.dropout(net, keep_prob=(0.9))
     
     net = slim.conv2d(net, num_classes, [1, 1], activation_fn=None, scope='logits')
-
-    net = Upsampling(net, label_size)
 
     return net, init_fn
 
