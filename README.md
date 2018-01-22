@@ -1,7 +1,7 @@
 # Semantic Segmentation Suite in TensorFlow
 
 ## Description
-This repository serves as a Semantic Segmentation Suite. The goal is to easily be able to implement, train, and test new Semantic Segmentation models. Complete with the following:
+This repository serves as a Semantic Segmentation Suite. The goal is to easily be able to implement, train, and test new Semantic Segmentation models! Complete with the following:
 
 - Training and testing modes
 - Data augmentation
@@ -10,7 +10,7 @@ This repository serves as a Semantic Segmentation Suite. The goal is to easily b
 - Evaluation including precision, recall, f1 score, average accuracy, per-class accuracy, and mean IoU
 - Plotting of loss function and accuracy over epochs
 
-**Any suggestions to improve this repository, including any addition segmentation models you would like to see are welcome!**
+**Any suggestions to improve this repository, including any new segmentation models you would like to see are welcome!**
 
 ## Models
 The following models are currently made available:
