@@ -1,5 +1,11 @@
 # Semantic Segmentation Suite in TensorFlow
 
+## News
+
+- The current version of this repo works with grayscale labels. I.e the labels only have one channel, where each pixel has the value of its class (so for 12 classes, the labels are integers 0 to 11). I'm currently working on fixing this to work with colour image labels.
+
+- The DeepLabV3 model is on the way!
+
 ## Description
 This repository serves as a Semantic Segmentation Suite. The goal is to easily be able to implement, train, and test new Semantic Segmentation models! Complete with the following:
 
