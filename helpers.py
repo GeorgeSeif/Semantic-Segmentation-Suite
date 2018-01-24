@@ -24,7 +24,7 @@ def get_class_list(list_path):
     return class_list
 
 
-def one_hot_it(label, num_classes=12):
+def one_hot_it(label, num_classes):
     """
     Convert a segmentation image label array to one-hot format
     by replacing each pixel value with a vector of length num_classes
@@ -40,7 +40,7 @@ def one_hot_it(label, num_classes=12):
     w = label.shape[0]
     h = label.shape[1]
     x = np.zeros([w,h,num_classes])
-    unique_labels = np.unique(label)
+    unique_labels = range(num_classes)
     for i in range(0, w):
         for j in range(0, h):
             index = np.where(unique_labels==label[i][j])
