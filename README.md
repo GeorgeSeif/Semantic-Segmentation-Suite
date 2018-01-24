@@ -2,7 +2,7 @@
 
 ## News
 
-- The current version of this repo works with grayscale labels. I.e the labels only have one channel, where each pixel has the value of its class (so for 12 classes, the labels are integers 0 to 11). I'm currently working on fixing this to work with colour image labels.
+- The current version of this repo works with grayscale labels. I.e the labels only have one channel, where each pixel has the value of its class (so for 12 classes, the labels are integers 0 to 11). I'm currently working on extending this to work with colour image labels.
 
 - The DeepLabV3 model is on the way!
 
