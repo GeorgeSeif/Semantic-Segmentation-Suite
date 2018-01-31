@@ -1,37 +1,44 @@
-from __future__ import absolute_import
-from __future__ import print_function
-
 import cv2
 import numpy as np
 import itertools
 import operator
-import os
+import os, csv
 
-def get_class_list(list_path):
+def get_class_dict(csv_path):
     """
-    Retrieve the list of classes for the selected dataset.
-    Note that the classes in the file must be LINE SEPARATED
+    Retrieve the class dictionairy for the selected dataset.
+    Must be in CSV format!
 
     # Arguments
-        list_path: The file path of the list of classes
+        csv_path: The file path of the class dictionairy
         
     # Returns
-        A python list of classes as strings
+        A python dictionairy where the key is the class name 
+        and the value is the class's pixel value
     """
-    with open(list_path) as f:
-        content = f.readlines()
-    class_list = [x.strip() for x in content] 
-    return class_list
+    filename, file_extension = os.path.splitext(csv_path)
+    if not file_extension == ".csv":
+        return ValueError("File is not a CSV!")
+
+    class_dict = {}
+    with open(csv_path, 'rb') as csvfile:
+        file_reader = csv.reader(csvfile, delimiter=',')
+        header = next(file_reader)
+        for row in file_reader:
+            # Class dictionairy MUST be in BGR format for OpenCV
+            class_dict[row[0]] = (int(row[3]), int(row[2]), int(row[1]))
+        # print(class_dict)
+    return class_dict
 
 
-def one_hot_it(label, num_classes):
+def one_hot_it(label, class_dict):
     """
     Convert a segmentation image label array to one-hot format
     by replacing each pixel value with a vector of length num_classes
 
     # Arguments
         label: The 2D array segmentation image label
-        num_classes: The number of unique classes for this dataset
+        class_dict: A dictionairy of class--> pixel values
         
     # Returns
         A 2D array with the same width and hieght as the input, but
@@ -39,11 +46,12 @@ def one_hot_it(label, num_classes):
     """
     w = label.shape[0]
     h = label.shape[1]
+    num_classes = len(class_dict)
     x = np.zeros([w,h,num_classes])
-    unique_labels = range(num_classes)
+    unique_labels = list(class_dict.values())
     for i in range(0, w):
         for j in range(0, h):
-            index = np.where(unique_labels==label[i][j])
+            index = unique_labels.index(tuple(label[i][j][:]))
             x[i,j,index]=1
     return x
     
@@ -72,58 +80,13 @@ def reverse_one_hot(image):
     return x
 
 
-
-def colour_dict(x):
-    """
-    Dictionairy of colour codes for visualizing segmentation results
-
-    # Arguments
-        x: Value of the current pixel
-
-    # Returns
-        Colour code
-    """
-    return {
-        0: [64,128,64],
-        1: [192,0,128],
-        2: [0,128,192],
-        3: [0,128,64],
-        4: [128,0,0],
-        5: [64,0,128],
-        6: [64,0,192],
-        7: [192,128,64],
-        8: [192,192,128],
-        9: [64,64,128],
-        10: [128,0,192],
-        11: [192,0,64],
-        12: [128,128,64],
-        13: [192,0,192],
-        14: [128,64,64],
-        15: [64,192,128],
-        16: [64,64,0],
-        17: [128,64,128],
-        18: [128,128,192],
-        19: [0,0,192],
-        20: [192,128,128],
-        21: [128,128,128],
-        22: [64,128,192],
-        23: [0,0,64],
-        24: [0,64,64],
-        25: [192,64,128],
-        26: [128,128,0],
-        27: [192,128,192],
-        28: [64,0,64],
-        29: [192,192,0],
-        30: [64,192,0],
-        31: [0,0,0]
-    }[x]
-
-def colour_code_segmentation(image):
+def colour_code_segmentation(image, class_dict):
     """
     Given a 1-channel array of class keys, colour code the segmentation results.
 
     # Arguments
         image: single channel array where each value represents the class key.
+        class_dict: A dictionairy of class--> pixel values
         
     # Returns
         Colour coded image for segmentation visualization
@@ -132,9 +95,16 @@ def colour_code_segmentation(image):
     w = image.shape[0]
     h = image.shape[1]
     x = np.zeros([w,h,3])
+    colour_codes = list(class_dict.values())
     for i in range(0, w):
         for j in range(0, h):
-            x[i, j, :] = colour_dict(image[i, j, 0])
+            x[i, j, :] = colour_codes[int(image[i, j, 0])]
     return x
 
+# class_dict = get_class_dict("CamVid/class_dict.csv")
+# gt = cv2.imread("CamVid/test_labels/0001TP_007170_L.png",-1)
+# gt = reverse_one_hot(one_hot_it(gt, class_dict))
+# gt = colour_code_segmentation(gt, class_dict)
 
+# file_name = "gt_test.png"
+# cv2.imwrite(file_name,np.uint8(gt))

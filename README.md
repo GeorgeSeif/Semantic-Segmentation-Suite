@@ -2,9 +2,9 @@
 
 ## News
 
-- The current version of this repo works with grayscale labels. I.e the labels only have one channel, where each pixel has the value of its class (so for 12 classes, the labels are integers 0 to 11). I'm currently working on extending this to work with colour image labels.
-
 - The DeepLabV3 model is on the way!
+
+- Open up an issue to suggest a new feature or improvement!
 
 ## Description
 This repository serves as a Semantic Segmentation Suite. The goal is to easily be able to implement, train, and test new Semantic Segmentation models! Complete with the following:
@@ -81,12 +81,42 @@ The only thing you have to do to get started is set up the folders in the follow
     |   ├── test
     |   ├── test_labels
 
-Put a text file under the dataset directory called "class_list" which contains the list of classes, one on each line like so:
+Put a text file under the dataset directory called "class_dict.csv" which contains the list of classes along with the R, G, B colour labels to visualize the segmentation results. This kind of dictionairy is usually supplied with the dataset. Here is an example for the CamVid dataset:
 
 ```
-Sky
-Building
-Pole
+name,r,g,b
+Animal,64,128,64
+Archway,192,0,128
+Bicyclist,0,128, 192
+Bridge,0, 128, 64
+Building,128, 0, 0
+Car,64, 0, 128
+CartLuggagePram,64, 0, 192
+Child,192, 128, 64
+Column_Pole,192, 192, 128
+Fence,64, 64, 128
+LaneMkgsDriv,128, 0, 192
+LaneMkgsNonDriv,192, 0, 64
+Misc_Text,128, 128, 64
+MotorcycleScooter,192, 0, 192
+OtherMoving,128, 64, 64
+ParkingBlock,64, 192, 128
+Pedestrian,64, 64, 0
+Road,128, 64, 128
+RoadShoulder,128, 128, 192
+Sidewalk,0, 0, 192
+SignSymbol,192, 128, 128
+Sky,128, 128, 128
+SUVPickupTruck,64, 128,192
+TrafficCone,0, 0, 64
+TrafficLight,0, 64, 64
+Train,192, 64, 128
+Tree,128, 128, 0
+Truck_Bus,192, 128, 192
+Tunnel,64, 0, 64
+VegetationMisc,192, 192, 0
+Void,0, 0, 0
+Wall,64, 192, 0
 ```
 
 Then you can simply run `main.py`! Check out the optional command line arguments:

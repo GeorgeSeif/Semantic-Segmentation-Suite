@@ -41,7 +41,7 @@ parser.add_argument('--num_val_images', type=int, default=10, help='The number o
 parser.add_argument('--h_flip', type=str2bool, default=False, help='Whether to randomly flip the image horizontally for data augmentation')
 parser.add_argument('--v_flip', type=str2bool, default=False, help='Whether to randomly flip the image vertically for data augmentation')
 parser.add_argument('--brightness', type=str2bool, default=False, help='Whether to randomly change the image brightness for data augmentation')
-parser.add_argument('--model', type=str, default="FC-DenseNet103", help='The model you are using. Currently supports:\
+parser.add_argument('--model', type=str, default="FC-DenseNet56", help='The model you are using. Currently supports:\
     FC-DenseNet56, FC-DenseNet67, FC-DenseNet103, Encoder-Decoder, Encoder-Decoder-Skip, RefineNet-Res50, RefineNet-Res101, RefineNet-Res152, \
     FRRN-A, FRRN-B, MobileUNet, MobileUNet-Skip, PSPNet, custom')
 args = parser.parse_args()
@@ -72,6 +72,7 @@ def prepare_data(dataset_dir=args.dataset):
     for file in os.listdir(dataset_dir + "/test_labels"):
         cwd = os.getcwd()
         test_output_names.append(cwd + "/" + dataset_dir + "/test_labels/" + file)
+    train_input_names.sort(),train_output_names.sort(), val_input_names.sort(), val_output_names.sort(), test_input_names.sort(), test_output_names.sort()
     return train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names
 
 
@@ -81,7 +82,8 @@ print("Loading the data ...")
 train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names = prepare_data()
 
 # Get the names of the classes so we can record the evaluation results
-class_names_list = helpers.get_class_list(os.path.join(args.dataset, "class_list.txt"))
+class_dict = helpers.get_class_dict(os.path.join(args.dataset, "class_dict.csv"))
+class_names_list = list(class_dict.keys())
 class_names_string = ""
 for class_name in class_names_list:
     if not class_name == class_names_list[-1]:
@@ -148,7 +150,20 @@ avg_scores_per_epoch = []
 
 if args.is_training:
 
-    print("***** Begin training *****")
+    print("\n***** Begin training *****")
+    print("Dataset -->", args.dataset)
+    print("Model -->", args.model)
+    print("Crop Height -->", args.crop_height)
+    print("Crop Width -->", args.crop_width)
+    print("Num Epochs -->", args.num_epochs)
+    print("Batch Size -->", args.batch_size)
+    print("Num Classes -->", num_classes)
+
+    print("Data Augmentation:")
+    print("\tVertical Flip -->", args.v_flip)
+    print("\tHorizontal Flip -->", args.h_flip)
+    print("\tBrightness Alteration -->", args.brightness)
+    print("")
 
     avg_loss_per_epoch = []
 
@@ -165,7 +180,10 @@ if args.is_training:
         current_losses = []
 
         cnt=0
+
+        # Equivalent to shuffling
         id_list = np.random.permutation(len(train_input_names))
+
         num_iters = int(np.floor(len(id_list) / args.batch_size))
 
         for i in range(num_iters):
@@ -200,7 +218,7 @@ if args.is_training:
 
                 # Prep the data. Make sure the labels are in one-hot format
                 input_image = np.float32(input_image) / 255.0
-                output_image = np.float32(helpers.one_hot_it(label=output_image, num_classes=num_classes))
+                output_image = np.float32(helpers.one_hot_it(label=output_image, class_dict=class_dict))
                 
                 input_image_batch.append(np.expand_dims(input_image, axis=0))
                 output_image_batch.append(np.expand_dims(output_image, axis=0))
@@ -256,6 +274,7 @@ if args.is_training:
             
             input_image = np.expand_dims(np.float32(cv2.imread(val_input_names[ind],-1)[:args.crop_height, :args.crop_width]),axis=0)/255.0
             gt = cv2.imread(val_output_names[ind],-1)[:args.crop_height, :args.crop_width]
+            gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, class_dict))
 
             st = time.time()
 
@@ -264,15 +283,14 @@ if args.is_training:
 
             output_image = np.array(output_image[0,:,:,:])
             output_image = helpers.reverse_one_hot(output_image)
-            out_eval_image = output_image[:,:,0]
-            out_vis_image = helpers.colour_code_segmentation(output_image)
+            out_vis_image = helpers.colour_code_segmentation(output_image, class_dict)
 
-            accuracy = utils.compute_avg_accuracy(out_eval_image, gt)
-            class_accuracies = utils.compute_class_accuracies(out_eval_image, gt)
-            prec = utils.precision(out_eval_image, gt)
-            rec = utils.recall(out_eval_image, gt)
-            f1 = utils.f1score(out_eval_image, gt)
-            iou = utils.compute_mean_iou(out_eval_image, gt)
+            accuracy = utils.compute_avg_accuracy(output_image, gt)
+            class_accuracies = utils.compute_class_accuracies(output_image, gt, num_classes)
+            prec = utils.precision(output_image, gt)
+            rec = utils.recall(output_image, gt)
+            f1 = utils.f1score(output_image, gt)
+            iou = utils.compute_mean_iou(output_image, gt)
         
             file_name = utils.filepath_to_name(val_input_names[ind])
             target.write("%s, %f, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1, iou))
@@ -287,8 +305,7 @@ if args.is_training:
             f1_list.append(f1)
             iou_list.append(iou)
             
-            gt = helpers.reverse_one_hot(helpers.one_hot_it(gt))
-            gt = helpers.colour_code_segmentation(gt)
+            gt = helpers.colour_code_segmentation(gt, class_dict)
  
             file_name = os.path.basename(val_input_names[ind])
             file_name = os.path.splitext(file_name)[0]
@@ -342,7 +359,13 @@ if args.is_training:
     plt.savefig('loss_vs_epochs.png')
 
 else:
-    print("***** Begin testing *****")
+    print("\n***** Begin testing *****")
+    print("Dataset -->", args.dataset)
+    print("Model -->", args.model)
+    print("Crop Height -->", args.crop_height)
+    print("Crop Width -->", args.crop_width)
+    print("Num Classes -->", num_classes)
+    print("")
 
     # Create directories if needed
     if not os.path.isdir("%s"%("Test")):
@@ -368,20 +391,20 @@ else:
         
 
         gt = cv2.imread(test_output_names[ind],-1)[:args.crop_height, :args.crop_width]
+        gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, class_dict))
 
         output_image = np.array(output_image[0,:,:,:])
         output_image = helpers.reverse_one_hot(output_image)
-        out_eval_image = output_image[:,:,0]
-        out_vis_image = helpers.colour_code_segmentation(output_image)
+        out_vis_image = helpers.colour_code_segmentation(output_image, class_dict)
 
-        accuracy = utils.compute_avg_accuracy(out_eval_image, gt)
-        class_accuracies = utils.compute_class_accuracies(out_eval_image, gt)
-        prec = utils.precision(out_eval_image, gt)
-        rec = utils.recall(out_eval_image, gt)
-        f1 = utils.f1score(out_eval_image, gt)
-        iou = utils.compute_mean_iou(out_eval_image, gt)
+        accuracy = utils.compute_avg_accuracy(output_image, gt)
+        class_accuracies = utils.compute_class_accuracies(output_image, gt, num_classes)
+        prec = utils.precision(output_image, gt)
+        rec = utils.recall(output_image, gt)
+        f1 = utils.f1score(output_image, gt)
+        iou = utils.compute_mean_iou(output_image, gt)
     
-        file_name = utils.filepath_to_name(test_input_names[ind])
+        file_name = utils.filepath_to_name(val_input_names[ind])
         target.write("%s, %f, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1, iou))
         for item in class_accuracies:
             target.write(", %f"%(item))
@@ -393,9 +416,8 @@ else:
         recall_list.append(rec)
         f1_list.append(f1)
         iou_list.append(iou)
-    
-        gt = helpers.reverse_one_hot(helpers.one_hot_it(gt))
-        gt = helpers.colour_code_segmentation(gt)
+        
+        gt = helpers.colour_code_segmentation(gt, class_dict)
 
         cv2.imwrite("%s/%s_pred.png"%("Test", file_name),np.uint8(out_vis_image))
         cv2.imwrite("%s/%s_gt.png"%("Test", file_name),np.uint8(gt))

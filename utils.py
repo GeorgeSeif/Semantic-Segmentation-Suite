@@ -47,6 +47,7 @@ def count_params():
         total_parameters += variable_parameters
     print("This model has %d trainable parameters"% (total_parameters))
 
+# Subtracts the mean images from ImageNet
 def mean_image_subtraction(inputs, means=[123.68, 116.78, 103.94]):
     inputs=tf.to_float(inputs)
     num_channels = inputs.get_shape().as_list()[-1]
@@ -66,7 +67,10 @@ def random_crop(image, label, crop_height, crop_width):
         x = random.randint(0, image.shape[1]-crop_width)
         y = random.randint(0, image.shape[0]-crop_height)
         
-        return image[y:y+crop_height, x:x+crop_width, :], label[y:y+crop_height, x:x+crop_width]
+        if len(label.shape) == 3:
+            return image[y:y+crop_height, x:x+crop_width, :], label[y:y+crop_height, x:x+crop_width, :]
+        else:
+            return image[y:y+crop_height, x:x+crop_width, :], label[y:y+crop_height, x:x+crop_width]
     else:
         raise Exception('Crop shape exceeds image dimensions!')
 
@@ -83,7 +87,7 @@ def compute_avg_accuracy(y_pred, y_true):
     return count / total
 
 # Compute the class-specific segmentation accuracy
-def compute_class_accuracies(y_pred, y_true, num_classes=12):
+def compute_class_accuracies(y_pred, y_true, num_classes):
     w = y_true.shape[0]
     h = y_true.shape[1]
     flat_image = np.reshape(y_true, w*h)
@@ -91,7 +95,7 @@ def compute_class_accuracies(y_pred, y_true, num_classes=12):
     for val in range(num_classes):
         total.append((flat_image == val).sum())
 
-    count = [0.0] * 12
+    count = [0.0] * num_classes
     for i in range(w):
         for j in range(h):
             if y_pred[i, j] == y_true[i, j]:
@@ -150,7 +154,7 @@ def compute_mean_iou(pred, label):
     mean_iou = np.mean(iou_list)
     return mean_iou
 
-def median_frequency_balancing(labels_dir, num_classes=12):
+def median_frequency_balancing(labels_dir, num_classes):
     '''
     Perform median frequency balancing on the image files, given by the formula:
     f = Median_freq_c / total_freq_c
@@ -213,5 +217,5 @@ def memory():
     pid = os.getpid()
     py = psutil.Process(pid)
     memoryUse = py.memory_info()[0]/2.**30  # Memory use in GB
-    print('memory use:', memoryUse)
+    print('Memory usage in GBs:', memoryUse)
 
