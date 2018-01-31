@@ -20,6 +20,7 @@ from RefineNet import build_refinenet
 from FRRN import build_frrn
 from MobileUNet import build_mobile_unet
 from PSPNet import build_pspnet
+from GCN import build_gcn
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -43,7 +44,7 @@ parser.add_argument('--v_flip', type=str2bool, default=False, help='Whether to r
 parser.add_argument('--brightness', type=str2bool, default=False, help='Whether to randomly change the image brightness for data augmentation')
 parser.add_argument('--model', type=str, default="FC-DenseNet56", help='The model you are using. Currently supports:\
     FC-DenseNet56, FC-DenseNet67, FC-DenseNet103, Encoder-Decoder, Encoder-Decoder-Skip, RefineNet-Res50, RefineNet-Res101, RefineNet-Res152, \
-    FRRN-A, FRRN-B, MobileUNet, MobileUNet-Skip, PSPNet, custom')
+    FRRN-A, FRRN-B, MobileUNet, MobileUNet-Skip, PSPNet-Res50, PSPNet-Res101, PSPNet-Res152, GCN-Res50, GCN-Res101, GCN-Res152, custom')
 args = parser.parse_args()
 
 # Get a list of the training, validation, and testing file paths
@@ -116,10 +117,12 @@ elif args.model == "Encoder-Decoder" or args.model == "Encoder-Decoder-Skip":
     network = build_encoder_decoder(input, preset_model = args.model, num_classes=num_classes)
 elif args.model == "MobileUNet" or args.model == "MobileUNet-Skip":
     network = build_mobile_unet(input, preset_model = args.model, num_classes=num_classes)
-elif args.model == "PSPNet-Res50" or args.model == "PSPNet-Res101" or args.model == "PSPNet-Res151":
+elif args.model == "PSPNet-Res50" or args.model == "PSPNet-Res101" or args.model == "PSPNet-Res152":
     # Image size is required for PSPNet
     # PSPNet requires pre-trained ResNet weights
     network, init_fn = build_pspnet(input, label_size=[args.crop_height, args.crop_width], preset_model = args.model, num_classes=num_classes)
+elif args.model == "GCN-Res50" or args.model == "GCN-Res101" or args.model == "GCN-Res152":
+    network, init_fn = build_gcn(input, preset_model = args.model, num_classes=num_classes)
 elif args.model == "custom":
     network = build_custom(input, num_classes)
 else:
@@ -258,7 +261,7 @@ if args.is_training:
         saver.save(sess,"%s/%04d/model.ckpt"%("checkpoints",epoch))
 
 
-        target=open("%s/%04d/val_scores.txt"%("checkpoints",epoch),'w')
+        target=open("%s/%04d/val_scores.csv"%("checkpoints",epoch),'w')
         target.write("val_name, avg_accuracy, precision, recall, f1 score, mean iou %s\n" % (class_names_string))
 
         scores_list = []
@@ -371,7 +374,7 @@ else:
     if not os.path.isdir("%s"%("Test")):
             os.makedirs("%s"%("Test"))
 
-    target=open("%s/test_scores.txt"%("Test"),'w')
+    target=open("%s/test_scores.csv"%("Test"),'w')
     target.write("test_name, avg_accuracy, precision, recall, f1 score, mean iou %s\n" % (class_names_string))
     scores_list = []
     class_scores_list = []

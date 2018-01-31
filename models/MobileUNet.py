@@ -38,7 +38,7 @@ def conv_transpose_block(inputs, n_filters, kernel_size=[3, 3]):
 	net = tf.nn.relu(slim.batch_norm(net))
 	return net
 
-def build_mobile_unet(inputs, preset_model, num_classes=12):
+def build_mobile_unet(inputs, preset_model, num_classes):
 
 	has_skip = False
 	if preset_model == "MobileUNet":

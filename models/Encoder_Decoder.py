@@ -28,7 +28,7 @@ def conv_transpose_block(inputs, n_filters, kernel_size=[3, 3], dropout_p=0.0):
 	  out = slim.dropout(out, keep_prob=(1.0-dropout_p))
 	return out
 
-def build_encoder_decoder(inputs, preset_model = "Encoder-Decoder", num_classes=12, dropout_p=0.5, scope=None):
+def build_encoder_decoder(inputs, num_classes, preset_model = "Encoder-Decoder", dropout_p=0.5, scope=None):
 	"""
 	Builds the Encoder-Decoder model. Inspired by SegNet with some modifications
 	Optionally includes skip connections

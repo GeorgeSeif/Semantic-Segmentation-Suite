@@ -2,8 +2,6 @@
 
 ## News
 
-- The DeepLabV3 model is on the way!
-
 - Open up an issue to suggest a new feature or improvement!
 
 ## Description
@@ -35,6 +33,8 @@ The following models are currently made available:
 
 - [Full-Resolution Residual Networks for Semantic Segmentation in Street Scenes](https://arxiv.org/abs/1611.08323). Combines multi-scale context with pixel-level accuracy by using two processing streams within the network. The residual stream carries information at the full image resolution, enabling precise adherence to segment boundaries. The pooling stream undergoes a sequence of pooling operations
 to obtain robust features for recognition. The two streams are coupled at the full image resolution using residuals. In the code, this is the FRRN model.
+
+- [Large Kernel Matters -- Improve Semantic Segmentation by Global Convolutional Network](https://arxiv.org/abs/1703.02719). Proposes a Global Convolutional Network to address both the classification and localization issues for the semantic segmentation. Uses large separable kernals to expand the receptive field, plus a boundary refinement block to further improve localization performance near boundaries. 
 
 - Or make your own and plug and play!
 
@@ -122,6 +122,13 @@ Wall,64, 192, 0
 Then you can simply run `main.py`! Check out the optional command line arguments:
 
 ```
+usage: main.py [-h] [--num_epochs NUM_EPOCHS] [--is_training IS_TRAINING]
+               [--continue_training CONTINUE_TRAINING] [--dataset DATASET]
+               [--crop_height CROP_HEIGHT] [--crop_width CROP_WIDTH]
+               [--batch_size BATCH_SIZE] [--num_val_images NUM_VAL_IMAGES]
+               [--h_flip H_FLIP] [--v_flip V_FLIP] [--brightness BRIGHTNESS]
+               [--model MODEL]
+
 optional arguments:
   -h, --help            show this help message and exit
   --num_epochs NUM_EPOCHS
@@ -148,10 +155,11 @@ optional arguments:
                         data augmentation
   --model MODEL         The model you are using. Currently supports: FC-
                         DenseNet56, FC-DenseNet67, FC-DenseNet103, Encoder-
-                        Decoder, Encoder-Decoder-Skip, RefineNet-Res101,
-                        RefineNet-Res152, FRRN-A, FRRN-B, MobileUNet,
-                        MobileUNet-Skip, PSPNet, custom
-
+                        Decoder, Encoder-Decoder-Skip, RefineNet-Res50,
+                        RefineNet-Res101, RefineNet-Res152, FRRN-A, FRRN-B,
+                        MobileUNet, MobileUNet-Skip, PSPNet-Res50, PSPNet-
+                        Res101, PSPNet-Res152, GCN-Res50, GCN-Res101, GCN-
+                        Res152, custom
 
 ```
     

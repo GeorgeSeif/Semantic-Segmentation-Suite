@@ -63,7 +63,7 @@ def FullResolutionResidualUnit(pool_stream, res_stream, n_filters_3, n_filters_1
 
 
 
-def build_frrn(inputs, preset_model='FRRN-A', num_classes=12):
+def build_frrn(inputs, num_classes, preset_model='FRRN-A'):
     """
     Builds the Full Resolution Residual Network model. 
 

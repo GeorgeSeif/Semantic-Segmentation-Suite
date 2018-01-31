@@ -56,7 +56,7 @@ def PyramidPoolingModule(inputs, feature_map_shape, pooling_type):
 
 
 
-def build_pspnet(inputs, label_size, preset_model='PSPNet-Res50', pooling_type = "MAX", num_classes=12, 
+def build_pspnet(inputs, label_size, num_classes, preset_model='PSPNet-Res50', pooling_type = "MAX",
     weight_decay=1e-5, upscaling_method="bilinear", is_training=True, pretrained_dir="models"):
     """
     Builds the PSPNet model. 
