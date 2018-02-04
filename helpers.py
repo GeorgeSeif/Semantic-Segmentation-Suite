@@ -25,8 +25,7 @@ def get_class_dict(csv_path):
         file_reader = csv.reader(csvfile, delimiter=',')
         header = next(file_reader)
         for row in file_reader:
-            # Class dictionairy MUST be in BGR format for OpenCV
-            class_dict[row[0]] = (int(row[3]), int(row[2]), int(row[1]))
+            class_dict[row[0]] = (int(row[1]), int(row[2]), int(row[3]))
         # print(class_dict)
     return class_dict
 

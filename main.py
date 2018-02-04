@@ -42,6 +42,8 @@ parser.add_argument('--num_val_images', type=int, default=10, help='The number o
 parser.add_argument('--h_flip', type=str2bool, default=False, help='Whether to randomly flip the image horizontally for data augmentation')
 parser.add_argument('--v_flip', type=str2bool, default=False, help='Whether to randomly flip the image vertically for data augmentation')
 parser.add_argument('--brightness', type=str2bool, default=False, help='Whether to randomly change the image brightness for data augmentation')
+parser.add_argument('--rotation', type=str2bool, default=False, help='Whether to randomly rotate the image for data augmentation')
+parser.add_argument('--zoom', type=str2bool, default=False, help='Whether to randomly zoom in for data augmentation')
 parser.add_argument('--model', type=str, default="FC-DenseNet56", help='The model you are using. Currently supports:\
     FC-DenseNet56, FC-DenseNet67, FC-DenseNet103, Encoder-Decoder, Encoder-Decoder-Skip, RefineNet-Res50, RefineNet-Res101, RefineNet-Res152, \
     FRRN-A, FRRN-B, MobileUNet, MobileUNet-Skip, PSPNet-Res50, PSPNet-Res101, PSPNet-Res152, GCN-Res50, GCN-Res101, GCN-Res152, custom')
@@ -166,6 +168,8 @@ if args.is_training:
     print("\tVertical Flip -->", args.v_flip)
     print("\tHorizontal Flip -->", args.h_flip)
     print("\tBrightness Alteration -->", args.brightness)
+    print("\tRotation -->", args.rotation)
+    print("\tZooming -->", args.zoom)
     print("")
 
     avg_loss_per_epoch = []
@@ -199,8 +203,8 @@ if args.is_training:
             for j in range(args.batch_size):
                 index = i*args.batch_size + j
                 id = id_list[index]
-                input_image = cv2.imread(train_input_names[id],-1)
-                output_image = cv2.imread(train_output_names[id],-1)
+                input_image = cv2.cvtColor(cv2.imread(train_input_names[id],-1), cv2.COLOR_BGR2RGB)
+                output_image = cv2.cvtColor(cv2.imread(train_output_names[id],-1), cv2.COLOR_BGR2RGB)
 
                 # Data augmentation
                 input_image, output_image = utils.random_crop(input_image, output_image, args.crop_height, args.crop_width)
@@ -212,11 +216,23 @@ if args.is_training:
                     input_image = cv2.flip(input_image, 0)
                     output_image = cv2.flip(output_image, 0)
                 if args.brightness:
-                    factor = 1.0 + abs(random.gauss(mu=0.0, sigma=self.brightness))
+                    factor = 1.0 + abs(random.gauss(mu=0.0, sigma=args.brightness))
                     if random.randint(0,1):
                         factor = 1.0/factor
                     table = np.array([((i / 255.0) ** factor) * 255 for i in np.arange(0, 256)]).astype(np.uint8)
-                    image = cv2.LUT(image, table)
+                    input_image = cv2.LUT(input_image, table)
+                if args.rotation:
+                    angle = random.gauss(mu=0.0, sigma=args.rotation)
+                else:
+                    angle = 0.0
+                if args.zoom:
+                    scale = random.gauss(mu=1.0, sigma=args.zoom)
+                else:
+                    scale = 1.0
+                if args.rotation or args.zoom:
+                    M = cv2.getRotationMatrix2D((input_image.shape[1]//2, input_image.shape[0]//2), angle, scale)
+                    input_image = cv2.warpAffine(input_image, M, (input_image.shape[1], input_image.shape[0]))
+                    output_image = cv2.warpAffine(output_image, M, (output_image.shape[1], output_image.shape[0]))
 
 
                 # Prep the data. Make sure the labels are in one-hot format
@@ -275,8 +291,8 @@ if args.is_training:
         # Do the validation on a small set of validation images
         for ind in val_indices:
             
-            input_image = np.expand_dims(np.float32(cv2.imread(val_input_names[ind],-1)[:args.crop_height, :args.crop_width]),axis=0)/255.0
-            gt = cv2.imread(val_output_names[ind],-1)[:args.crop_height, :args.crop_width]
+            input_image = np.expand_dims(np.float32(cv2.cvtColor(cv2.imread(val_input_names[ind],-1), cv2.COLOR_BGR2RGB)[:args.crop_height, :args.crop_width]),axis=0)/255.0
+            gt = cv2.cvtColor(cv2.imread(val_output_names[ind],-1), cv2.COLOR_BGR2RGB)[:args.crop_height, :args.crop_width]
             gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, class_dict))
 
             st = time.time()
@@ -388,13 +404,13 @@ else:
         sys.stdout.write("\rRunning test image %d / %d"%(ind+1, len(test_input_names)))
         sys.stdout.flush()
 
-        input_image = np.expand_dims(np.float32(cv2.imread(test_input_names[ind],-1)[:args.crop_height, :args.crop_width]),axis=0)/255.0
+        input_image = np.expand_dims(np.float32(cv2.cvtColor(cv2.imread(test_input_names[ind],-1), cv2.COLOR_BGR2RGB)[:args.crop_height, :args.crop_width]),axis=0)/255.0
+        gt = cv2.cvtColor(cv2.imread(test_output_names[ind],-1), cv2.COLOR_BGR2RGB)[:args.crop_height, :args.crop_width]
+        gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, class_dict))
+
         st = time.time()
         output_image = sess.run(network,feed_dict={input:input_image})
         
-
-        gt = cv2.imread(test_output_names[ind],-1)[:args.crop_height, :args.crop_width]
-        gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, class_dict))
 
         output_image = np.array(output_image[0,:,:,:])
         output_image = helpers.reverse_one_hot(output_image)
