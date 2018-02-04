@@ -41,9 +41,9 @@ parser.add_argument('--batch_size', type=int, default=1, help='Number of images 
 parser.add_argument('--num_val_images', type=int, default=10, help='The number of images to used for validations')
 parser.add_argument('--h_flip', type=str2bool, default=False, help='Whether to randomly flip the image horizontally for data augmentation')
 parser.add_argument('--v_flip', type=str2bool, default=False, help='Whether to randomly flip the image vertically for data augmentation')
-parser.add_argument('--brightness', type=str2bool, default=False, help='Whether to randomly change the image brightness for data augmentation')
-parser.add_argument('--rotation', type=str2bool, default=False, help='Whether to randomly rotate the image for data augmentation')
-parser.add_argument('--zoom', type=str2bool, default=False, help='Whether to randomly zoom in for data augmentation')
+parser.add_argument('--brightness', type=float, default=None, help='Whether to randomly change the image brightness for data augmentation')
+parser.add_argument('--rotation', type=float, default=None, help='Whether to randomly rotate the image for data augmentation')
+parser.add_argument('--zoom', type=float, default=None, help='Whether to randomly zoom in for data augmentation')
 parser.add_argument('--model', type=str, default="FC-DenseNet56", help='The model you are using. Currently supports:\
     FC-DenseNet56, FC-DenseNet67, FC-DenseNet103, Encoder-Decoder, Encoder-Decoder-Skip, RefineNet-Res50, RefineNet-Res101, RefineNet-Res152, \
     FRRN-A, FRRN-B, MobileUNet, MobileUNet-Skip, PSPNet-Res50, PSPNet-Res101, PSPNet-Res152, GCN-Res50, GCN-Res101, GCN-Res152, custom')
@@ -222,11 +222,11 @@ if args.is_training:
                     table = np.array([((i / 255.0) ** factor) * 255 for i in np.arange(0, 256)]).astype(np.uint8)
                     input_image = cv2.LUT(input_image, table)
                 if args.rotation:
-                    angle = random.gauss(mu=0.0, sigma=args.rotation)
+                    angle = args.rotation
                 else:
                     angle = 0.0
                 if args.zoom:
-                    scale = random.gauss(mu=1.0, sigma=args.zoom)
+                    scale = args.zoom
                 else:
                     scale = 1.0
                 if args.rotation or args.zoom:
