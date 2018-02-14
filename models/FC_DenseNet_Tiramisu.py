@@ -10,7 +10,7 @@ def preact_conv(inputs, n_filters, kernel_size=[3, 3], dropout_p=0.2):
     Apply successivly BatchNormalization, ReLU nonlinearity, Convolution and
     Dropout (if dropout_p > 0) on the inputs
     """
-    preact = tf.nn.relu(slim.batch_norm(inputs))
+    preact = tf.nn.relu(slim.batch_norm(inputs, fused=True))
     conv = slim.conv2d(preact, n_filters, kernel_size, activation_fn=None, normalizer_fn=None)
     if dropout_p != 0.0:
       conv = slim.dropout(conv, keep_prob=(1.0-dropout_p))

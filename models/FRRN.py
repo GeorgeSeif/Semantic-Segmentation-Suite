@@ -22,10 +22,10 @@ def ResidualUnit(inputs, n_filters=48, filter_size=3):
     """
 
     net = slim.conv2d(inputs, n_filters, filter_size, activation_fn=None)
-    net = slim.batch_norm(net)
+    net = slim.batch_norm(net, fused=True)
     net = tf.nn.relu(net)
     net = slim.conv2d(net, n_filters, filter_size, activation_fn=None)
-    net = slim.batch_norm(net)
+    net = slim.batch_norm(net, fused=True)
 
     return net
 
@@ -49,10 +49,10 @@ def FullResolutionResidualUnit(pool_stream, res_stream, n_filters_3, n_filters_1
     
 
     net = slim.conv2d(G, n_filters_3, kernel_size=3, activation_fn=None)
-    net = slim.batch_norm(net)
+    net = slim.batch_norm(net, fused=True)
     net = tf.nn.relu(net)
     net = slim.conv2d(net, n_filters_3, kernel_size=3, activation_fn=None)
-    net = slim.batch_norm(net)
+    net = slim.batch_norm(net, fused=True)
     pool_stream_out = tf.nn.relu(net)
 
     net = slim.conv2d(pool_stream_out, n_filters_1, kernel_size=1, activation_fn=None)
@@ -82,7 +82,7 @@ def build_frrn(inputs, num_classes, preset_model='FRRN-A'):
         # Initial Stage   
         #####################
         net = slim.conv2d(inputs, 48, kernel_size=5, activation_fn=None)
-        net = slim.batch_norm(net)
+        net = slim.batch_norm(net, fused=True)
         net = tf.nn.relu(net)
 
         net = ResidualUnit(net, n_filters=48, filter_size=3)
@@ -148,7 +148,7 @@ def build_frrn(inputs, num_classes, preset_model='FRRN-A'):
         # Initial Stage   
         #####################
         net = slim.conv2d(inputs, 48, kernel_size=5, activation_fn=None)
-        net = slim.batch_norm(net)
+        net = slim.batch_norm(net, fused=True)
         net = tf.nn.relu(net)
 
         net = ResidualUnit(net, n_filters=48, filter_size=3)

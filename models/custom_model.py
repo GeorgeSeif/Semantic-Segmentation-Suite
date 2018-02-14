@@ -11,7 +11,7 @@ def conv_block(inputs, n_filters, filter_size=[3, 3], dropout_p=0.0):
 	Dropout (if dropout_p > 0) on the inputs
 	"""
 	conv = slim.conv2d(inputs, n_filters, filter_size, activation_fn=None, normalizer_fn=None)
-	out = tf.nn.relu(slim.batch_norm(conv))
+	out = tf.nn.relu(slim.batch_norm(conv, fused=True))
 	if dropout_p != 0.0:
 	  out = slim.dropout(out, keep_prob=(1.0-dropout_p))
 	return out
@@ -23,7 +23,7 @@ def conv_transpose_block(inputs, n_filters, filter_size=[3, 3], dropout_p=0.0):
 	Dropout (if dropout_p > 0) on the inputs
 	"""
 	conv = slim.conv2d_transpose(inputs, n_filters, kernel_size=[3, 3], stride=[2, 2])
-	out = tf.nn.relu(slim.batch_norm(conv))
+	out = tf.nn.relu(slim.batch_norm(conv, fused=True))
 	if dropout_p != 0.0:
 	  out = slim.dropout(out, keep_prob=(1.0-dropout_p))
 	return out

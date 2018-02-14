@@ -22,19 +22,6 @@ def LOG(X, f=None):
 	else:
 		f.write(time_stamp + " " + X)
 
-# Replaces a select value in an array with a new value
-def replace_val_in_array(input_array, original_val, replace_val = sys.maxsize - 1):
-    for index, item in enumerate(input_array):
-        if item == original_val:
-            input_array[index] = replace_val
-    return input_array
-
-# Replace NaNs with a value
-def replaces_nan_in_array(input_array, replace_val=1.0):
-    for index, item in enumerate(input_array):
-        if math.isnan(item):
-            input_array[index] = replace_val
-    return input_array
 
 # Count total number of parameters in the model
 def count_params():

@@ -13,7 +13,7 @@ def ConvUpscaleBlock(inputs, n_filters, kernel_size=[3, 3], scale=2):
     Apply successivly Transposed Convolution, BatchNormalization, ReLU nonlinearity
     """
     net = slim.conv2d_transpose(inputs, n_filters, kernel_size=[3, 3], stride=[2, 2], activation_fn=None)
-    net = tf.nn.relu(slim.batch_norm(net))
+    net = tf.nn.relu(slim.batch_norm(net, fused=True))
     return net
 
 def ConvBlock(inputs, n_filters, kernel_size=[3, 3]):
@@ -22,7 +22,7 @@ def ConvBlock(inputs, n_filters, kernel_size=[3, 3]):
     Apply successivly Convolution, BatchNormalization, ReLU nonlinearity
     """
     net = slim.conv2d(inputs, n_filters, kernel_size, activation_fn=None, normalizer_fn=None)
-    net = tf.nn.relu(slim.batch_norm(net))
+    net = tf.nn.relu(slim.batch_norm(net, fused=True))
     return net
 
 def InterpBlock(net, level, feature_map_shape, pooling_type):
@@ -36,7 +36,7 @@ def InterpBlock(net, level, feature_map_shape, pooling_type):
 
     net = slim.pool(net, kernel_size, stride=stride_size, pooling_type='MAX')
     net = slim.conv2d(net, 512, [1, 1], activation_fn=None)
-    net = slim.batch_norm(net)
+    net = slim.batch_norm(net, fused=True)
     net = tf.nn.relu(net)
     net = Upsampling(net, feature_map_shape)
     return net
@@ -103,7 +103,7 @@ def build_pspnet(inputs, label_size, num_classes, preset_model='PSPNet-Res50', p
     psp = PyramidPoolingModule(f[2], feature_map_shape=feature_map_shape, pooling_type=pooling_type)
 
     net = slim.conv2d(psp, 512, [3, 3], activation_fn=None)
-    net = slim.batch_norm(net)
+    net = slim.batch_norm(net, fused=True)
     net = tf.nn.relu(net)
 
     if upscaling_method.lower() == "conv":

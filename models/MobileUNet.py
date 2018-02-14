@@ -10,7 +10,7 @@ def ConvBlock(inputs, n_filters, kernel_size=[3, 3]):
 	"""
 	# Skip pointwise by setting num_outputs=Non
 	net = slim.conv2d(inputs, n_filters, kernel_size=[1, 1], activation_fn=None)
-	net = slim.batch_norm(net)
+	net = slim.batch_norm(net, fused=True)
 	net = tf.nn.relu(net)
 	return net
 
@@ -22,10 +22,10 @@ def DepthwiseSeparableConvBlock(inputs, n_filters, kernel_size=[3, 3]):
 	# Skip pointwise by setting num_outputs=None
 	net = slim.separable_convolution2d(inputs, num_outputs=None, depth_multiplier=1, kernel_size=[3, 3], activation_fn=None)
 
-	net = slim.batch_norm(net)
+	net = slim.batch_norm(net, fused=True)
 	net = tf.nn.relu(net)
 	net = slim.conv2d(net, n_filters, kernel_size=[1, 1], activation_fn=None)
-	net = slim.batch_norm(net)
+	net = slim.batch_norm(net, fused=True)
 	net = tf.nn.relu(net)
 	return net
 
