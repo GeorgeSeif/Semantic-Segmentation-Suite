@@ -44,17 +44,17 @@ to obtain robust features for recognition. The two streams are coupled at the fu
 ## Files and Directories
 
 
-- **main.py:** Training and Testing
+- **main.py:** Training, Testing on dataset, and Prediction on a single image
 
 - **helper.py:** Quick helper functions for data preparation and visualization
 
 - **utils.py:** Utilities for printing, debugging, testing, and evaluation
 
-- **get_pretrained_checkpoints.py:** Downloads the pre-trained ResNet weights for ResNet50, ResNet101, and ResNet152
+- **get_pretrained_checkpoints.py:** Downloads the pre-trained ResNet V2 weights for ResNet50, ResNet101, and ResNet152
 
 - **models:** Folder containing all model files. Use this to build your models, or use a pre-built one
 
-- **CamVid:** The CamVid datatset for Semantic Segmentation as a test bed. This is the 11 class version
+- **CamVid:** The CamVid datatset for Semantic Segmentation as a test bed. This is the 32 class version
 
 - **checkpoints:** Checkpoint files for each epoch during training
 
@@ -122,19 +122,22 @@ Wall,64, 192, 0
 Then you can simply run `main.py`! Check out the optional command line arguments:
 
 ```
-usage: main.py [-h] [--num_epochs NUM_EPOCHS] [--is_training IS_TRAINING]
+usage: main.py [-h] [--num_epochs NUM_EPOCHS] [--mode MODE] [--image IMAGE]
                [--continue_training CONTINUE_TRAINING] [--dataset DATASET]
                [--crop_height CROP_HEIGHT] [--crop_width CROP_WIDTH]
                [--batch_size BATCH_SIZE] [--num_val_images NUM_VAL_IMAGES]
                [--h_flip H_FLIP] [--v_flip V_FLIP] [--brightness BRIGHTNESS]
-               [--model MODEL]
+               [--rotation ROTATION] [--zoom ZOOM] [--model MODEL]
 
 optional arguments:
   -h, --help            show this help message and exit
   --num_epochs NUM_EPOCHS
                         Number of epochs to train for
-  --is_training IS_TRAINING
-                        Whether we are training or testing
+  --mode MODE           Select "train", "test", or "predict" mode. Note that
+                        for prediction mode you have to specify an image to
+                        run the model on.
+  --image IMAGE         The image you want to predict on. Only valid in
+                        "predict" mode.
   --continue_training CONTINUE_TRAINING
                         Whether to continue training from a checkpoint
   --dataset DATASET     Dataset you are using.
@@ -153,6 +156,9 @@ optional arguments:
   --brightness BRIGHTNESS
                         Whether to randomly change the image brightness for
                         data augmentation
+  --rotation ROTATION   Whether to randomly rotate the image for data
+                        augmentation
+  --zoom ZOOM           Whether to randomly zoom in for data augmentation
   --model MODEL         The model you are using. Currently supports: FC-
                         DenseNet56, FC-DenseNet67, FC-DenseNet103, Encoder-
                         Decoder, Encoder-Decoder-Skip, RefineNet-Res50,
@@ -166,7 +172,7 @@ optional arguments:
 
 ## Results
 
-These are some **sample results**.
+These are some **sample results** for the CamVid dataset with 11 classes (previous research version).
 
 In training, I used a batch size of 1 and image size of 352x480. The following results are for the FC-DenseNet103 model trained for 300 epochs. I used RMSProp with learning rate 0.001 and decay 0.995. I **did not** use any data augmentation like in the paper.
 
