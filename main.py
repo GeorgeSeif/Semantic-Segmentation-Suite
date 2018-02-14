@@ -32,7 +32,9 @@ def str2bool(v):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_epochs', type=int, default=300, help='Number of epochs to train for')
-parser.add_argument('--is_training', type=str2bool, default=True, help='Whether we are training or testing')
+parser.add_argument('--mode', type=str, default="train", help='Select "train", "test", or "predict" mode. \
+    Note that for prediction mode you have to specify an image to run the model on.')
+parser.add_argument('--image', type=str, default=None, help='The image you want to predict on. Only valid in "predict" mode.')
 parser.add_argument('--continue_training', type=str2bool, default=False, help='Whether to continue training from a checkpoint')
 parser.add_argument('--dataset', type=str, default="CamVid", help='Dataset you are using.')
 parser.add_argument('--crop_height', type=int, default=352, help='Height of cropped input image to network')
@@ -115,10 +117,6 @@ def data_augmentation(input_image, output_image):
     return input_image, output_image
 
 
-# Load the data
-print("Loading the data ...")
-train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names = prepare_data()
-
 # Get the names of the classes so we can record the evaluation results
 class_dict = helpers.get_class_dict(os.path.join(args.dataset, "class_dict.csv"))
 class_names_list = list(class_dict.keys())
@@ -182,13 +180,13 @@ if init_fn is not None:
 
 # Load a previous checkpoint if desired
 model_checkpoint_name = "checkpoints/latest_model_" + args.model + "_" + args.dataset + ".ckpt"
-if args.continue_training or not args.is_training:
+if args.continue_training or not args.mode == "train":
     print('Loaded latest model checkpoint')
     saver.restore(sess, model_checkpoint_name)
 
 avg_scores_per_epoch = []
 
-if args.is_training:
+if args.mode == "train":
 
     print("\n***** Begin training *****")
     print("Dataset -->", args.dataset)
@@ -206,6 +204,10 @@ if args.is_training:
     print("\tRotation -->", args.rotation)
     print("\tZooming -->", args.zoom)
     print("")
+
+    # Load the data
+    print("Loading the data ...")
+    train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names = prepare_data()
 
     avg_loss_per_epoch = []
 
@@ -381,7 +383,7 @@ if args.is_training:
 
     plt.savefig('loss_vs_epochs.png')
 
-else:
+elif args.mode == "test":
     print("\n***** Begin testing *****")
     print("Dataset -->", args.dataset)
     print("Model -->", args.model)
@@ -402,6 +404,7 @@ else:
     recall_list = []
     f1_list = []
     iou_list = []
+    run_times_list = []
 
     # Run testing on ALL test images
     for ind in range(len(test_input_names)):
@@ -414,7 +417,8 @@ else:
 
         st = time.time()
         output_image = sess.run(network,feed_dict={input:input_image})
-        
+
+        run_times_list.append(time.time()-st)
 
         output_image = np.array(output_image[0,:,:,:])
         output_image = helpers.reverse_one_hot(output_image)
@@ -449,6 +453,7 @@ else:
     avg_recall = np.mean(recall_list)
     avg_f1 = np.mean(f1_list)
     avg_iou = np.mean(iou_list)
+    avg_time = np.mean(run_times_list)
     print("Average test accuracy = ", avg_score)
     print("Average per class test accuracies = \n")
     for index, item in enumerate(class_avg_scores):
@@ -457,5 +462,34 @@ else:
     print("Average recall = ", avg_recall)
     print("Average F1 score = ", avg_f1)
     print("Average mean IoU score = ", avg_iou)
+    print("Average run time = ", avg_time)
 
 
+elif args.mode == "predict":
+
+    if args.image is None:
+        ValueError("You must pass an image path when using prediction mode.")
+
+    print("\n***** Begin prediction *****")
+    print("Dataset -->", args.dataset)
+    print("Model -->", args.model)
+    print("Crop Height -->", args.crop_height)
+    print("Crop Width -->", args.crop_width)
+    print("Num Classes -->", num_classes)
+    print("Image -->", args.image)
+    print("")
+
+    input_image = np.expand_dims(np.float32(load_image(test_input_names[ind])[:args.crop_height, :args.crop_width]),axis=0)/255.0
+
+    st = time.time()
+    output_image = sess.run(network,feed_dict={input:input_image})
+
+    run_time = time.time()-st
+
+    output_image = np.array(output_image[0,:,:,:])
+    output_image = helpers.reverse_one_hot(output_image)
+    out_vis_image = helpers.colour_code_segmentation(output_image, class_dict)
+    cv2.imwrite("%s/%s_pred.png"%("Test", file_name),np.uint8(out_vis_image))
+
+else:
+    ValueError("Invalid mode selected.")
