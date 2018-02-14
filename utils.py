@@ -141,6 +141,16 @@ def compute_mean_iou(pred, label):
     mean_iou = np.mean(iou_list)
     return mean_iou
 
+
+def evaluate_segmentation(pred, gt, num_classes):
+    accuracy = compute_avg_accuracy(pred, gt)
+    class_accuracies = compute_class_accuracies(pred, gt, num_classes)
+    prec = precision(pred, gt)
+    rec = recall(pred, gt)
+    f1 = f1score(pred, gt)
+    iou = compute_mean_iou(pred, gt)
+    return accuracy, class_accuracies, prec, rec, f1, iou
+
 def median_frequency_balancing(labels_dir, num_classes):
     '''
     Perform median frequency balancing on the image files, given by the formula:

@@ -79,6 +79,41 @@ def prepare_data(dataset_dir=args.dataset):
     return train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names
 
 
+def load_image(path):
+    image = cv2.cvtColor(cv2.imread(path,-1), cv2.COLOR_BGR2RGB)
+    return image
+
+def data_augmentation(input_image, output_image):
+    # Data augmentation
+    input_image, output_image = utils.random_crop(input_image, output_image, args.crop_height, args.crop_width)
+
+    if args.h_flip and random.randint(0,1):
+        input_image = cv2.flip(input_image, 1)
+        output_image = cv2.flip(output_image, 1)
+    if args.v_flip and random.randint(0,1):
+        input_image = cv2.flip(input_image, 0)
+        output_image = cv2.flip(output_image, 0)
+    if args.brightness:
+        factor = 1.0 + abs(random.gauss(mu=0.0, sigma=args.brightness))
+        if random.randint(0,1):
+            factor = 1.0/factor
+        table = np.array([((i / 255.0) ** factor) * 255 for i in np.arange(0, 256)]).astype(np.uint8)
+        input_image = cv2.LUT(input_image, table)
+    if args.rotation:
+        angle = args.rotation
+    else:
+        angle = 0.0
+    if args.zoom:
+        scale = args.zoom
+    else:
+        scale = 1.0
+    if args.rotation or args.zoom:
+        M = cv2.getRotationMatrix2D((input_image.shape[1]//2, input_image.shape[0]//2), angle, scale)
+        input_image = cv2.warpAffine(input_image, M, (input_image.shape[1], input_image.shape[0]))
+        output_image = cv2.warpAffine(output_image, M, (output_image.shape[1], output_image.shape[0]))
+
+    return input_image, output_image
+
 
 # Load the data
 print("Loading the data ...")
@@ -203,36 +238,10 @@ if args.is_training:
             for j in range(args.batch_size):
                 index = i*args.batch_size + j
                 id = id_list[index]
-                input_image = cv2.cvtColor(cv2.imread(train_input_names[id],-1), cv2.COLOR_BGR2RGB)
-                output_image = cv2.cvtColor(cv2.imread(train_output_names[id],-1), cv2.COLOR_BGR2RGB)
+                input_image = load_image(train_input_names[id])
+                output_image = load_image(train_output_names[id])
 
-                # Data augmentation
-                input_image, output_image = utils.random_crop(input_image, output_image, args.crop_height, args.crop_width)
-
-                if args.h_flip and random.randint(0,1):
-                    input_image = cv2.flip(input_image, 1)
-                    output_image = cv2.flip(output_image, 1)
-                if args.v_flip and random.randint(0,1):
-                    input_image = cv2.flip(input_image, 0)
-                    output_image = cv2.flip(output_image, 0)
-                if args.brightness:
-                    factor = 1.0 + abs(random.gauss(mu=0.0, sigma=args.brightness))
-                    if random.randint(0,1):
-                        factor = 1.0/factor
-                    table = np.array([((i / 255.0) ** factor) * 255 for i in np.arange(0, 256)]).astype(np.uint8)
-                    input_image = cv2.LUT(input_image, table)
-                if args.rotation:
-                    angle = args.rotation
-                else:
-                    angle = 0.0
-                if args.zoom:
-                    scale = args.zoom
-                else:
-                    scale = 1.0
-                if args.rotation or args.zoom:
-                    M = cv2.getRotationMatrix2D((input_image.shape[1]//2, input_image.shape[0]//2), angle, scale)
-                    input_image = cv2.warpAffine(input_image, M, (input_image.shape[1], input_image.shape[0]))
-                    output_image = cv2.warpAffine(output_image, M, (output_image.shape[1], output_image.shape[0]))
+                input_image, output_image = data_augmentation(input_image, output_image)
 
 
                 # Prep the data. Make sure the labels are in one-hot format
@@ -291,8 +300,8 @@ if args.is_training:
         # Do the validation on a small set of validation images
         for ind in val_indices:
             
-            input_image = np.expand_dims(np.float32(cv2.cvtColor(cv2.imread(val_input_names[ind],-1), cv2.COLOR_BGR2RGB)[:args.crop_height, :args.crop_width]),axis=0)/255.0
-            gt = cv2.cvtColor(cv2.imread(val_output_names[ind],-1), cv2.COLOR_BGR2RGB)[:args.crop_height, :args.crop_width]
+            input_image = np.expand_dims(np.float32(load_image(val_input_names[ind])[:args.crop_height, :args.crop_width]),axis=0)/255.0
+            gt = load_image(val_output_names[ind])[:args.crop_height, :args.crop_width]
             gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, class_dict))
 
             st = time.time()
@@ -304,12 +313,7 @@ if args.is_training:
             output_image = helpers.reverse_one_hot(output_image)
             out_vis_image = helpers.colour_code_segmentation(output_image, class_dict)
 
-            accuracy = utils.compute_avg_accuracy(output_image, gt)
-            class_accuracies = utils.compute_class_accuracies(output_image, gt, num_classes)
-            prec = utils.precision(output_image, gt)
-            rec = utils.recall(output_image, gt)
-            f1 = utils.f1score(output_image, gt)
-            iou = utils.compute_mean_iou(output_image, gt)
+            accuracy, class_accuracies, prec, rec, f1, iou = utils.evaluate_segmentation(pred=output_image, gt=gt, num_classes=num_classes)
         
             file_name = utils.filepath_to_name(val_input_names[ind])
             target.write("%s, %f, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1, iou))
@@ -404,8 +408,8 @@ else:
         sys.stdout.write("\rRunning test image %d / %d"%(ind+1, len(test_input_names)))
         sys.stdout.flush()
 
-        input_image = np.expand_dims(np.float32(cv2.cvtColor(cv2.imread(test_input_names[ind],-1), cv2.COLOR_BGR2RGB)[:args.crop_height, :args.crop_width]),axis=0)/255.0
-        gt = cv2.cvtColor(cv2.imread(test_output_names[ind],-1), cv2.COLOR_BGR2RGB)[:args.crop_height, :args.crop_width]
+        input_image = np.expand_dims(np.float32(load_image(test_input_names[ind])[:args.crop_height, :args.crop_width]),axis=0)/255.0
+        gt = load_image(test_output_names[ind])[:args.crop_height, :args.crop_width]
         gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, class_dict))
 
         st = time.time()
@@ -416,12 +420,7 @@ else:
         output_image = helpers.reverse_one_hot(output_image)
         out_vis_image = helpers.colour_code_segmentation(output_image, class_dict)
 
-        accuracy = utils.compute_avg_accuracy(output_image, gt)
-        class_accuracies = utils.compute_class_accuracies(output_image, gt, num_classes)
-        prec = utils.precision(output_image, gt)
-        rec = utils.recall(output_image, gt)
-        f1 = utils.f1score(output_image, gt)
-        iou = utils.compute_mean_iou(output_image, gt)
+        accuracy, class_accuracies, prec, rec, f1, iou = utils.evaluate_segmentation(pred=output_image, gt=gt, num_classes=num_classes)
     
         file_name = utils.filepath_to_name(val_input_names[ind])
         target.write("%s, %f, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1, iou))
