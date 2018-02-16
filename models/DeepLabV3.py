@@ -60,7 +60,7 @@ def AtrousSpatialPyramidPoolingModule(inputs, depth=256):
 
 
 
-def build_deeplabv3(inputs, num_classes, preset_model='DeepLabV3-Res50', weight_decay=1e-5, is_training=True, pretrained_dir="models"):
+def build_deeplabv3(inputs, num_classes, preset_model='DeepLabV3-Res50', upscaling_method="bilinear", weight_decay=1e-5, is_training=True, pretrained_dir="models"):
     """
     Builds the DeepLabV3 model. 
 
@@ -102,7 +102,15 @@ def build_deeplabv3(inputs, num_classes, preset_model='DeepLabV3-Res50', weight_
 
     net = AtrousSpatialPyramidPoolingModule(end_points['pool5'])
 
-    net = Upsampling(net, label_size)
+    if upscaling_method.lower() == "conv":
+        net = ConvUpscaleBlock(net, 256, kernel_size=[3, 3], scale=2)
+        net = ConvBlock(net, 256)
+        net = ConvUpscaleBlock(net, 128, kernel_size=[3, 3], scale=2)
+        net = ConvBlock(net, 128)
+        net = ConvUpscaleBlock(net, 64, kernel_size=[3, 3], scale=2)
+        net = ConvBlock(net, 64)
+    elif upscaling_method.lower() == "bilinear":
+        net = Upsampling(net, label_size)
     
     net = slim.conv2d(net, num_classes, [1, 1], activation_fn=None, scope='logits')
 
