@@ -447,8 +447,8 @@ elif args.mode == "test":
         
         gt = helpers.colour_code_segmentation(gt, class_dict)
 
-        cv2.imwrite("%s/%s_pred.png"%("Test", file_name),np.uint8(out_vis_image))
-        cv2.imwrite("%s/%s_gt.png"%("Test", file_name),np.uint8(gt))
+        cv2.imwrite("%s/%s_pred.png"%("Test", file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
+        cv2.imwrite("%s/%s_gt.png"%("Test", file_name),cv2.cvtColor(np.uint8(gt), cv2.COLOR_RGB2BGR))
 
 
     target.close()
@@ -495,7 +495,7 @@ elif args.mode == "predict":
     output_image = np.array(output_image[0,:,:,:])
     output_image = helpers.reverse_one_hot(output_image)
     out_vis_image = helpers.colour_code_segmentation(output_image, class_dict)
-    cv2.imwrite("%s/%s_pred.png"%("Test", file_name),np.uint8(out_vis_image))
+    cv2.imwrite("%s/%s_pred.png"%("Test", file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
 
 else:
     ValueError("Invalid mode selected.")
