@@ -234,9 +234,9 @@ if args.mode == "train":
         id_list = np.random.permutation(len(train_input_names))
 
         num_iters = int(np.floor(len(id_list) / args.batch_size))
-
+        st = time.time()
         for i in range(num_iters):
-            st=time.time()
+            # st=time.time()
             
             input_image_batch = []
             output_image_batch = [] 
@@ -279,8 +279,9 @@ if args.mode == "train":
             current_losses.append(current)
             cnt = cnt + args.batch_size
             if cnt % 20 == 0:
-                string_print = "Epoch = %d Count = %d Current = %.2f Time = %.2f"%(epoch,cnt,current,time.time()-st)
+                string_print = "Epoch = %d Count = %d Current_Loss = %.2f Time = %.2f"%(epoch,cnt,current,time.time()-st)
                 utils.LOG(string_print)
+                st = time.time()
 
         mean_loss = np.mean(current_losses)
         avg_loss_per_epoch.append(mean_loss)
@@ -294,7 +295,7 @@ if args.mode == "train":
 
 
         target=open("%s/%04d/val_scores.csv"%("checkpoints",epoch),'w')
-        target.write("val_name, avg_accuracy, precision, recall, f1 score, mean iou %s\n" % (class_names_string))
+        target.write("val_name, avg_accuracy, precision, recall, f1 score, mean iou, %s\n" % (class_names_string))
 
         scores_list = []
         class_scores_list = []
@@ -339,8 +340,8 @@ if args.mode == "train":
  
             file_name = os.path.basename(val_input_names[ind])
             file_name = os.path.splitext(file_name)[0]
-            cv2.imwrite("%s/%04d/%s_pred.png"%("checkpoints",epoch, file_name),np.uint8(out_vis_image))
-            cv2.imwrite("%s/%04d/%s_gt.png"%("checkpoints",epoch, file_name),np.uint8(gt))
+            cv2.imwrite("%s/%04d/%s_pred.png"%("checkpoints",epoch, file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
+            cv2.imwrite("%s/%04d/%s_gt.png"%("checkpoints",epoch, file_name),cv2.cvtColor(np.uint8(gt), cv2.COLOR_RGB2BGR))
 
 
         target.close()
@@ -368,7 +369,7 @@ if args.mode == "train":
     ax1 = fig.add_subplot(111)
 
     
-    ax1.plot(range(num_epochs), avg_scores_per_epoch)
+    ax1.plot(range(args.num_epochs), avg_scores_per_epoch)
     ax1.set_title("Average validation accuracy vs epochs")
     ax1.set_xlabel("Epoch")
     ax1.set_ylabel("Avg. val. accuracy")
@@ -381,7 +382,7 @@ if args.mode == "train":
     ax1 = fig.add_subplot(111)
 
     
-    ax1.plot(range(num_epochs), avg_loss_per_epoch)
+    ax1.plot(range(args.num_epochs), avg_loss_per_epoch)
     ax1.set_title("Average loss vs epochs")
     ax1.set_xlabel("Epoch")
     ax1.set_ylabel("Current loss")
