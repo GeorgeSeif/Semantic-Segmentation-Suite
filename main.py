@@ -220,7 +220,7 @@ if args.mode == "train":
     val_indices = []
     num_vals = min(args.num_val_images, len(val_input_names))
 
-    # Set random seed to make sure the model is validated on the same validation images.
+    # Set random seed to make sure models are validated on the same validation images.
     # So you can compare the results of different models more intuitively.
     np.random.seed(10)
     ind=np.random.randint(len(val_input_names),size=num_vals)
