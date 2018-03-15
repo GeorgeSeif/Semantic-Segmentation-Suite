@@ -216,12 +216,15 @@ if args.mode == "train":
 
     avg_loss_per_epoch = []
 
-    # Which validation images doe we want
+    # Which validation images do we want
     val_indices = []
     num_vals = min(args.num_val_images, len(val_input_names))
-    for i in range(num_vals):
-        ind = random.randint(0, len(val_input_names) - 1)
-        val_indices.append(ind)
+
+    # Set random seed to make sure the model is validated on the same validation images.
+    # So you can compare the results of different models more intuitively.
+    np.random.seed(10)
+    ind=np.random.randint(len(val_input_names),size=num_vals)
+    val_indices.extend(list(ind))
 
     # Do the training here
     for epoch in range(0, args.num_epochs):
@@ -312,7 +315,7 @@ if args.mode == "train":
             gt = load_image(val_output_names[ind])[:args.crop_height, :args.crop_width]
             gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, class_dict))
 
-            st = time.time()
+            # st = time.time()
 
             output_image = sess.run(network,feed_dict={input:input_image})
             
