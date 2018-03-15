@@ -68,7 +68,7 @@ def ChainedResidualPooling(inputs,n_filters=256):
     net=slim.conv2d(net,n_filters,3, activation_fn=None)
     net_sum_1=tf.add(net,net_relu)
 
-    net = slim.max_pool2d(net_relu, [5, 5], stride=1, padding='SAME')
+    net = slim.max_pool2d(net, [5, 5], stride=1, padding='SAME')
     net = slim.conv2d(net, n_filters, 3, activation_fn=None)
     net_sum_2=tf.add(net,net_sum_1)
 
@@ -92,33 +92,20 @@ def MultiResolutionFusion(high_inputs=None,low_inputs=None,n_filters=256):
     
     """
 
-    if high_inputs is None:#refineNet block 4
-        rcu_low_1 = low_inputs[0]
-        rcu_low_2 = low_inputs[1]
+    if high_inputs is None: # RefineNet block 4
 
-        rcu_low_1 = slim.conv2d(rcu_low_1, n_filters, 3, activation_fn=None)
-        rcu_low_2 = slim.conv2d(rcu_low_2, n_filters, 3, activation_fn=None)
+        fuse = slim.conv2d(low_inputs, n_filters, 3, activation_fn=None)
 
-        return tf.add(rcu_low_1,rcu_low_2)
+        return fuse
 
     else:
-        rcu_low_1 = low_inputs[0]
-        rcu_low_2 = low_inputs[1]
 
-        rcu_low_1 = slim.conv2d(rcu_low_1, n_filters, 3, activation_fn=None)
-        rcu_low_2 = slim.conv2d(rcu_low_2, n_filters, 3, activation_fn=None)
+        conv_low = slim.conv2d(low_inputs, n_filters, 3, activation_fn=None)
+        conv_high = slim.conv2d(high_inputs, n_filters, 3, activation_fn=None)
 
-        rcu_low = tf.add(rcu_low_1,rcu_low_2)
+        conv_low_up = Upsampling(conv_low,2)
 
-        rcu_high_1 = high_inputs[0]
-        rcu_high_2 = high_inputs[1]
-
-        rcu_high_1 = Upsampling(slim.conv2d(rcu_high_1, n_filters, 3, activation_fn=None),2)
-        rcu_high_2 = Upsampling(slim.conv2d(rcu_high_2, n_filters, 3, activation_fn=None),2)
-
-        rcu_high = tf.add(rcu_high_1,rcu_high_2)
-
-        return tf.add(rcu_low, rcu_high)
+        return tf.add(conv_low_up, conv_high)
 
 
 def RefineBlock(high_inputs=None,low_inputs=None):
@@ -136,25 +123,19 @@ def RefineBlock(high_inputs=None,low_inputs=None):
     
     """
 
-    if high_inputs is None: # block 4
-        rcu_low_1= ResidualConvUnit(low_inputs, n_filters=256)
-        rcu_low_2 = ResidualConvUnit(low_inputs, n_filters=256)
-        rcu_low = [rcu_low_1, rcu_low_2]
+    if low_inputs is None: # block 4
+        rcu_new_low= ResidualConvUnit(high_inputs, n_filters=512)
+        rcu_new_low = ResidualConvUnit(rcu_new_low, n_filters=512)
 
-        fuse = MultiResolutionFusion(high_inputs=None, low_inputs=rcu_low, n_filters=256)
-        fuse_pooling = ChainedResidualPooling(fuse, n_filters=256)
-        output = ResidualConvUnit(fuse_pooling, n_filters=256)
+        fuse = MultiResolutionFusion(high_inputs=None, low_inputs=rcu_new_low, n_filters=512)
+        fuse_pooling = ChainedResidualPooling(fuse, n_filters=512)
+        output = ResidualConvUnit(fuse_pooling, n_filters=512)
         return output
     else:
-        rcu_low_1 = ResidualConvUnit(low_inputs, n_filters=256)
-        rcu_low_2 = ResidualConvUnit(low_inputs, n_filters=256)
-        rcu_low = [rcu_low_1, rcu_low_2]
+        rcu_high= ResidualConvUnit(high_inputs, n_filters=256)
+        rcu_high = ResidualConvUnit(rcu_high, n_filters=256)
 
-        rcu_high_1 = ResidualConvUnit(high_inputs, n_filters=256)
-        rcu_high_2 = ResidualConvUnit(high_inputs, n_filters=256)
-        rcu_high = [rcu_high_1, rcu_high_2]
-
-        fuse = MultiResolutionFusion(rcu_high, rcu_low,n_filters=256)
+        fuse = MultiResolutionFusion(rcu_high, low_inputs,n_filters=256)
         fuse_pooling = ChainedResidualPooling(fuse, n_filters=256)
         output = ResidualConvUnit(fuse_pooling, n_filters=256)
         return output
@@ -197,23 +178,26 @@ def build_refinenet(inputs, num_classes, preset_model='RefineNet-Res101', weight
     
 
 
-    f = [end_points['pool5'], end_points['pool4'],
+    high = [end_points['pool5'], end_points['pool4'],
          end_points['pool3'], end_points['pool2']]
 
-    g = [None, None, None, None]
-    h = [None, None, None, None]
+    low = [None, None, None, None]
 
-    for i in range(4):
-        h[i]=slim.conv2d(f[i], 256, 1)
+    # Get the feature maps to the proper size with bottleneck
+    high[0]=slim.conv2d(high[0], 512, 1)
+    high[1]=slim.conv2d(high[1], 256, 1)
+    high[2]=slim.conv2d(high[2], 256, 1)
+    high[3]=slim.conv2d(high[3], 256, 1)
 
-    g[0]=RefineBlock(high_inputs=None,low_inputs=h[0])
-    g[1]=RefineBlock(g[0],h[1])
-    g[2]=RefineBlock(g[1],h[2])
-    g[3]=RefineBlock(g[2],h[3])
+    # RefineNet
+    low[0]=RefineBlock(high_inputs=high[0],low_inputs=None) # Only input ResNet 1/32
+    low[1]=RefineBlock(high[1],low[0]) # High input = ResNet 1/16, Low input = Previous 1/16
+    low[2]=RefineBlock(high[2],low[1]) # High input = ResNet 1/8, Low input = Previous 1/8
+    low[3]=RefineBlock(high[3],low[2]) # High input = ResNet 1/4, Low input = Previous 1/4
 
     # g[3]=Upsampling(g[3],scale=4)
 
-    net = g[3]
+    net = low[3]
 
     if upscaling_method.lower() == "conv":
         net = ConvUpscaleBlock(net, 256, kernel_size=[3, 3], scale=2)
