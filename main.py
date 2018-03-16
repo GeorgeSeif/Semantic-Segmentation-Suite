@@ -294,11 +294,14 @@ if args.mode == "train":
             os.makedirs("%s/%04d"%("checkpoints",epoch))
 
         saver.save(sess,model_checkpoint_name)
-        saver.save(sess,"%s/%04d/model.ckpt"%("checkpoints",epoch))
+
+        if val_indices != 0:
+            saver.save(sess,"%s/%04d/model.ckpt"%("checkpoints",epoch))
 
 
         target=open("%s/%04d/val_scores.csv"%("checkpoints",epoch),'w')
         target.write("val_name, avg_accuracy, precision, recall, f1 score, mean iou, %s\n" % (class_names_string))
+
 
         scores_list = []
         class_scores_list = []
