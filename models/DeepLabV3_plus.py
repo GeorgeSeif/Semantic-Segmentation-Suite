@@ -60,7 +60,7 @@ def AtrousSpatialPyramidPoolingModule(inputs, depth=256):
 
 
 
-def build_deeplabv3(inputs, num_classes, preset_model='DeepLabV3-Res50', weight_decay=1e-5, is_training=True, pretrained_dir="models"):
+def build_deeplabv3_plus(inputs, num_classes, preset_model='DeepLabV3+-Res50', weight_decay=1e-5, is_training=True, pretrained_dir="models"):
     """
     Builds the DeepLabV3 model. 
 
@@ -73,19 +73,19 @@ def build_deeplabv3(inputs, num_classes, preset_model='DeepLabV3-Res50', weight_
       DeepLabV3 model
     """
 
-    if preset_model == 'DeepLabV3-Res50':
+    if preset_model == 'DeepLabV3_plus-Res50':
         with slim.arg_scope(resnet_v2.resnet_arg_scope(weight_decay=weight_decay)):
             logits, end_points = resnet_v2.resnet_v2_50(inputs, is_training=is_training, scope='resnet_v2_50')
             resnet_scope='resnet_v2_50'
             # DeepLabV3 requires pre-trained ResNet weights
             init_fn = slim.assign_from_checkpoint_fn(os.path.join(pretrained_dir, 'resnet_v2_50.ckpt'), slim.get_model_variables('resnet_v2_50'))
-    elif preset_model == 'DeepLabV3-Res101':
+    elif preset_model == 'DeepLabV3_plus-Res101':
         with slim.arg_scope(resnet_v2.resnet_arg_scope(weight_decay=weight_decay)):
             logits, end_points = resnet_v2.resnet_v2_101(inputs, is_training=is_training, scope='resnet_v2_101')
             resnet_scope='resnet_v2_101'
             # DeepLabV3 requires pre-trained ResNet weights
             init_fn = slim.assign_from_checkpoint_fn(os.path.join(pretrained_dir, 'resnet_v2_101.ckpt'), slim.get_model_variables('resnet_v2_101'))
-    elif preset_model == 'DeepLabV3-Res152':
+    elif preset_model == 'DeepLabV3_plus-Res152':
         with slim.arg_scope(resnet_v2.resnet_arg_scope(weight_decay=weight_decay)):
             logits, end_points = resnet_v2.resnet_v2_152(inputs, is_training=is_training, scope='resnet_v2_152')
             resnet_scope='resnet_v2_152'
@@ -97,7 +97,18 @@ def build_deeplabv3(inputs, num_classes, preset_model='DeepLabV3-Res50', weight_
 
     label_size = tf.shape(inputs)[1:3]
 
+    encoder_features = end_points['pool2']
+
     net = AtrousSpatialPyramidPoolingModule(end_points['pool4'])
+
+    decoder_features = Upsampling(net, label_size / 4)
+
+    encoder_features = slim.conv2d(encoder_features, 48, [1, 1], activation_fn=None, normalizer_fn=None)
+
+    net = tf.concat((encoder_features, decoder_features), axis=3)
+
+    net = slim.conv2d(encoder_features, 256, [3, 3], activation_fn=None, normalizer_fn=None)
+    net = slim.conv2d(encoder_features, 256, [3, 3], activation_fn=None, normalizer_fn=None)
 
     net = Upsampling(net, label_size)
     
