@@ -421,7 +421,7 @@ elif args.mode == "test":
         sys.stdout.flush()
 
         input_image = np.expand_dims(np.float32(load_image(val_input_names[ind])[:args.crop_height, :args.crop_width]),axis=0)/255.0
-        gt = load_image(test_output_names[ind])[:args.crop_height, :args.crop_width]
+        gt = load_image(val_output_names[ind])[:args.crop_height, :args.crop_width]
         gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, class_dict))
 
         st = time.time()
