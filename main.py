@@ -402,11 +402,11 @@ elif args.mode == "test":
     print("")
 
     # Create directories if needed
-    if not os.path.isdir("%s"%("Test")):
-            os.makedirs("%s"%("Test"))
+    if not os.path.isdir("%s"%("Val")):
+            os.makedirs("%s"%("Val"))
 
-    target=open("%s/test_scores.csv"%("Test"),'w')
-    target.write("test_name, avg_accuracy, precision, recall, f1 score, mean iou %s\n" % (class_names_string))
+    target=open("%s/val_scores.csv"%("Val"),'w')
+    target.write("val_name, avg_accuracy, precision, recall, f1 score, mean iou %s\n" % (class_names_string))
     scores_list = []
     class_scores_list = []
     precision_list = []
