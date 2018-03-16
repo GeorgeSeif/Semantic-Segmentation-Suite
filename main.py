@@ -171,7 +171,7 @@ else:
 # Compute your (unweighted) softmax cross entropy loss
 loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=output))
 
-opt = tf.train.RMSPropOptimizer(learning_rate=0.001, decay=0.995).minimize(loss, var_list=[var for var in tf.trainable_variables()])
+opt = tf.train.RMSPropOptimizer(learning_rate=0.0001, decay=0.995).minimize(loss, var_list=[var for var in tf.trainable_variables()])
 
 saver=tf.train.Saver(max_to_keep=1000)
 sess.run(tf.global_variables_initializer())
@@ -450,8 +450,8 @@ elif args.mode == "test":
         
         gt = helpers.colour_code_segmentation(gt, class_dict)
 
-        cv2.imwrite("%s/%s_pred.png"%("Test", file_name),np.uint8(out_vis_image))
-        cv2.imwrite("%s/%s_gt.png"%("Test", file_name),np.uint8(gt))
+        cv2.imwrite("%s/%s_pred.png"%("Test", file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
+        cv2.imwrite("%s/%s_gt.png"%("Test", file_name),cv2.cvtColor(np.uint8(gt), cv2.COLOR_RGB2BGR))
 
 
     target.close()
@@ -498,7 +498,7 @@ elif args.mode == "predict":
     output_image = np.array(output_image[0,:,:,:])
     output_image = helpers.reverse_one_hot(output_image)
     out_vis_image = helpers.colour_code_segmentation(output_image, class_dict)
-    cv2.imwrite("%s/%s_pred.png"%("Test", file_name),np.uint8(out_vis_image))
+    cv2.imwrite("%s/%s_pred.png"%("Test", file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
 
 else:
     ValueError("Invalid mode selected.")
