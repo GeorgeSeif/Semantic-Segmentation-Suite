@@ -38,8 +38,8 @@ parser.add_argument('--mode', type=str, default="train", help='Select "train", "
 parser.add_argument('--image', type=str, default=None, help='The image you want to predict on. Only valid in "predict" mode.')
 parser.add_argument('--continue_training', type=str2bool, default=False, help='Whether to continue training from a checkpoint')
 parser.add_argument('--dataset', type=str, default="CamVid", help='Dataset you are using.')
-parser.add_argument('--crop_height', type=int, default=352, help='Height of cropped input image to network')
-parser.add_argument('--crop_width', type=int, default=480, help='Width of cropped input image to network')
+parser.add_argument('--crop_height', type=int, default=256, help='Height of cropped input image to network')
+parser.add_argument('--crop_width', type=int, default=256, help='Width of cropped input image to network')
 parser.add_argument('--batch_size', type=int, default=1, help='Number of images in each batch')
 parser.add_argument('--num_val_images', type=int, default=10, help='The number of images to used for validations')
 parser.add_argument('--h_flip', type=str2bool, default=False, help='Whether to randomly flip the image horizontally for data augmentation')
@@ -321,7 +321,7 @@ if args.mode == "train":
             output_image = helpers.reverse_one_hot(output_image)
             out_vis_image = helpers.colour_code_segmentation(output_image, class_dict)
 
-            accuracy, class_accuracies, prec, rec, f1, iou = utils.evaluate_segmentation(pred=output_image, gt=gt, num_classes=num_classes)
+            accuracy, class_accuracies, prec, rec, f1, iou = utils.evaluate_segmentation(pred=output_image, label=gt, num_classes=num_classes)
         
             file_name = utils.filepath_to_name(val_input_names[ind])
             target.write("%s, %f, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1, iou))
@@ -430,7 +430,7 @@ elif args.mode == "test":
         output_image = helpers.reverse_one_hot(output_image)
         out_vis_image = helpers.colour_code_segmentation(output_image, class_dict)
 
-        accuracy, class_accuracies, prec, rec, f1, iou = utils.evaluate_segmentation(pred=output_image, gt=gt, num_classes=num_classes)
+        accuracy, class_accuracies, prec, rec, f1, iou = utils.evaluate_segmentation(pred=output_image, label=gt, num_classes=num_classes)
     
         file_name = utils.filepath_to_name(val_input_names[ind])
         target.write("%s, %f, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1, iou))

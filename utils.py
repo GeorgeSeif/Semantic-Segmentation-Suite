@@ -7,6 +7,10 @@ import time, datetime
 import os, random
 from scipy.misc import imread
 import ast
+from sklearn.metrics import precision_score, \
+    recall_score, confusion_matrix, classification_report, \
+    accuracy_score, f1_score
+
 
 # Takes an absolute file path and returns the name of the file without th extension
 def filepath_to_name(full_name):
@@ -16,11 +20,11 @@ def filepath_to_name(full_name):
 
 # Print with time. To console or file
 def LOG(X, f=None):
-	time_stamp = datetime.datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
-	if not f:
-		print(time_stamp + " " + X)
-	else:
-		f.write(time_stamp + " " + X)
+    time_stamp = datetime.datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
+    if not f:
+        print(time_stamp + " " + X)
+    else:
+        f.write(time_stamp + " " + X)
 
 
 # Count total number of parameters in the model
@@ -62,31 +66,24 @@ def random_crop(image, label, crop_height, crop_width):
         raise Exception('Crop shape exceeds image dimensions!')
 
 # Compute the average segmentation accuracy across all classes
-def compute_avg_accuracy(y_pred, y_true):
-    w = y_true.shape[0]
-    h = y_true.shape[1]
-    total = w*h
+def compute_global_accuracy(pred, label):
+    total = len(label)
     count = 0.0
-    for i in range(w):
-        for j in range(h):
-            if y_pred[i, j] == y_true[i, j]:
-                count = count + 1.0
-    return count / total
+    for i in range(total):
+        if pred[i] == label[i]:
+            count = count + 1.0
+    return float(count) / float(total)
 
 # Compute the class-specific segmentation accuracy
-def compute_class_accuracies(y_pred, y_true, num_classes):
-    w = y_true.shape[0]
-    h = y_true.shape[1]
-    flat_image = np.reshape(y_true, w*h)
+def compute_class_accuracies(pred, label, num_classes):
     total = []
     for val in range(num_classes):
-        total.append((flat_image == val).sum())
+        total.append((label == val).sum())
 
     count = [0.0] * num_classes
-    for i in range(w):
-        for j in range(h):
-            if y_pred[i, j] == y_true[i, j]:
-                count[int(y_pred[i, j])] = count[int(y_pred[i, j])] + 1.0
+    for i in range(len(label)):
+        if pred[i] == label[i]:
+            count[int(pred[i])] = count[int(pred[i])] + 1.0
 
     # If there are no pixels from a certain class in the GT, 
     # it returns NAN because of divide by zero
@@ -100,57 +97,42 @@ def compute_class_accuracies(y_pred, y_true, num_classes):
 
     return accuracies
 
-# Compute precision
-def precision(pred, label):
-    TP = np.float(np.count_nonzero(pred * label))
-    FP = np.float(np.count_nonzero(pred * (label - 1)))
-    prec = TP / (TP + FP)
-    return prec
-
-# Compute recall
-def recall(pred, label):
-    TP = np.float(np.count_nonzero(pred * label))
-    FN = np.float(np.count_nonzero((pred - 1) * label))
-    rec = TP / (TP + FN)
-    return rec
-
-# Compute f1 score
-def f1score(pred, label):
-    prec = precision(pred, label)
-    rec = recall(pred, label)
-    f1 = np.divide(2 * prec * rec, (prec + rec))
-    return f1
 
 def compute_mean_iou(pred, label):
-    w = label.shape[0]
-    h = label.shape[1]
-    unique_classes = np.unique(label)
-    iou_list = list([0]) * len(unique_classes)
 
-    for index, curr_class in enumerate(unique_classes):
-        pred_mask = pred[:, :] == curr_class
-        label_mask = label[:, :] == curr_class
+    unique_labels = np.unique(label)
+    num_unique_labels = len(unique_labels);
 
-        # TP = np.float(np.count_nonzero(pred_mask * label_mask))
-        # FP = np.float(np.count_nonzero(pred_mask * (label_mask - 1)))
-        # FN = np.float(np.count_nonzero((pred_mask - 1) * label_mask))
-        iou_and = np.float(np.sum(np.logical_and(pred_mask, label_mask)))
-        iou_or = np.float(np.sum(np.logical_or(pred_mask, label_mask)))
-        iou_list[index] = iou_and / iou_or
+    I = np.zeros(num_unique_labels)
+    U = np.zeros(num_unique_labels)
 
-    mean_iou = np.mean(iou_list)
+    for index, val in enumerate(unique_labels):
+        pred_i = pred == val
+        label_i = label == val
+
+        I[index] = float(np.sum(np.logical_and(label_i, pred_i)))
+        U[index] = float(np.sum(np.logical_or(label_i, pred_i)))
+
+
+    mean_iou = np.mean(I / U)
     return mean_iou
 
 
-def evaluate_segmentation(pred, gt, num_classes):
-    accuracy = compute_avg_accuracy(pred, gt)
-    class_accuracies = compute_class_accuracies(pred, gt, num_classes)
-    prec = precision(pred, gt)
-    rec = recall(pred, gt)
-    f1 = f1score(pred, gt)
-    iou = compute_mean_iou(pred, gt)
-    return accuracy, class_accuracies, prec, rec, f1, iou
+def evaluate_segmentation(pred, label, num_classes, score_averaging="weighted"):
+    flat_pred = pred.flatten()
+    flat_label = label.flatten()
 
+    global_accuracy = compute_global_accuracy(flat_pred, flat_label)
+    class_accuracies = compute_class_accuracies(flat_pred, flat_label, num_classes)
+
+    prec = precision_score(flat_pred, flat_label, average=score_averaging)
+    rec = recall_score(flat_pred, flat_label, average=score_averaging)
+    f1 = f1_score(flat_pred, flat_label, average=score_averaging)
+
+    iou = compute_mean_iou(flat_pred, flat_label)
+
+    return global_accuracy, class_accuracies, prec, rec, f1, iou
+    
 def median_frequency_balancing(labels_dir, num_classes):
     '''
     Perform median frequency balancing on the image files, given by the formula:
