@@ -191,6 +191,10 @@ if args.continue_training or not args.mode == "train":
 
 avg_scores_per_epoch = []
 
+# Load the data
+print("Loading the data ...")
+train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names = prepare_data()
+
 if args.mode == "train":
 
     print("\n***** Begin training *****")
@@ -209,10 +213,6 @@ if args.mode == "train":
     print("\tRotation -->", args.rotation)
     print("\tZooming -->", args.zoom)
     print("")
-
-    # Load the data
-    print("Loading the data ...")
-    train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names = prepare_data()
 
     avg_loss_per_epoch = []
 
@@ -416,11 +416,11 @@ elif args.mode == "test":
     run_times_list = []
 
     # Run testing on ALL test images
-    for ind in range(len(test_input_names)):
-        sys.stdout.write("\rRunning test image %d / %d"%(ind+1, len(test_input_names)))
+    for ind in range(len(val_input_names)):
+        sys.stdout.write("\rRunning test image %d / %d"%(ind+1, len(val_input_names)))
         sys.stdout.flush()
 
-        input_image = np.expand_dims(np.float32(load_image(test_input_names[ind])[:args.crop_height, :args.crop_width]),axis=0)/255.0
+        input_image = np.expand_dims(np.float32(load_image(val_input_names[ind])[:args.crop_height, :args.crop_width]),axis=0)/255.0
         gt = load_image(test_output_names[ind])[:args.crop_height, :args.crop_width]
         gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, class_dict))
 
@@ -450,8 +450,8 @@ elif args.mode == "test":
         
         gt = helpers.colour_code_segmentation(gt, class_dict)
 
-        cv2.imwrite("%s/%s_pred.png"%("Test", file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
-        cv2.imwrite("%s/%s_gt.png"%("Test", file_name),cv2.cvtColor(np.uint8(gt), cv2.COLOR_RGB2BGR))
+        cv2.imwrite("%s/%s_pred.png"%("Val", file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
+        cv2.imwrite("%s/%s_gt.png"%("Val", file_name),cv2.cvtColor(np.uint8(gt), cv2.COLOR_RGB2BGR))
 
 
     target.close()
