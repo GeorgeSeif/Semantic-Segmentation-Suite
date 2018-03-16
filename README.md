@@ -2,11 +2,15 @@
 
 ## News
 
-- Recently added the DeepLabV3 model!
+**Coming Soon:**
 
-- Recently converted to using ResNet V2 instead of V1 for better performance!
+- Pre-trained model weights for the provided networks
 
-- Open up an issue to suggest a new feature or improvement!
+- ICNet, DeepLabV3+, ResNet-DUC models
+
+- Optional mean IoU calculations: "micro", "macro", "weighted"
+
+Open up an issue to suggest a new feature or improvement!
 
 ## Description
 This repository serves as a Semantic Segmentation Suite. The goal is to easily be able to implement, train, and test new Semantic Segmentation models! Complete with the following:
