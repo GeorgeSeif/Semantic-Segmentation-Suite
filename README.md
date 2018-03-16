@@ -10,7 +10,7 @@
 
 - Pre-trained model weights for the provided networks
 
-- ICNet, ResNet-DUC, ResNet-HDC models
+- ICNet, ResNet-DUC, ResNet-HDC, AdapNet models
 
 - Optional mean IoU calculations: "micro", "macro", "weighted"
 
@@ -190,7 +190,7 @@ optional arguments:
 
 These are some **sample results** for the CamVid dataset with 11 classes (previous research version).
 
-In training, I used a batch size of 1 and image size of 352x480. The following results are for the FC-DenseNet103 model trained for 300 epochs. I used RMSProp with learning rate 0.001 and decay 0.995. I **did not** use any data augmentation like in the paper.
+In training, I used a batch size of 1 and image size of 352x480. The following results are for the FC-DenseNet103 model trained for 300 epochs. I used RMSProp with learning rate 0.001 and decay 0.995. I **did not** use any data augmentation like in the paper. I also didn't use any class balancing. These are just some quick and dirty example results.
 
 **Note that the checkpoint files are not uploaded to this repository since they are too big for GitHub (greater than 100 MB)**
 
@@ -209,7 +209,7 @@ In training, I used a batch size of 1 and image size of 352x480. The following r
 | Pedestrian 		| 59.6  | 60.3  |
 | Bicyclist  		| 50.5  | 75.3  |
 | Unlabelled 		| N/A  | 40.9  |
-| Global  		| 91.5 | 86.0  |
+| Global  		| 91.5 | 89.6  |
 
 
 Loss vs Epochs            |  Val. Acc. vs Epochs
