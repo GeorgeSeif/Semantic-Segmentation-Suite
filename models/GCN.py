@@ -54,8 +54,6 @@ def build_gcn(inputs, num_classes, preset_model='GCN-Res101', weight_decay=1e-5,
       GCN model
     """
 
-    inputs = mean_image_subtraction(inputs)
-
     if preset_model == 'GCN-Res50':
         with slim.arg_scope(resnet_v2.resnet_arg_scope(weight_decay=weight_decay)):
             logits, end_points = resnet_v2.resnet_v2_50(inputs, is_training=is_training, scope='resnet_v2_50')

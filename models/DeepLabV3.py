@@ -73,8 +73,6 @@ def build_deeplabv3(inputs, num_classes, preset_model='DeepLabV3-Res50', upscali
       DeepLabV3 model
     """
 
-    inputs = mean_image_subtraction(inputs)
-
     if preset_model == 'DeepLabV3-Res50':
         with slim.arg_scope(resnet_v2.resnet_arg_scope(weight_decay=weight_decay)):
             logits, end_points = resnet_v2.resnet_v2_50(inputs, is_training=is_training, scope='resnet_v2_50')
