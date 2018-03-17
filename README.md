@@ -4,6 +4,8 @@
 
 **Coming Soon:**
 
+- Speed optimizations
+
 - Multi-GPU support
 
 - Class balancing options

@@ -242,15 +242,16 @@ if args.mode == "train":
                 input_image = load_image(train_input_names[id])
                 output_image = load_image(train_output_names[id])
 
-                input_image, output_image = data_augmentation(input_image, output_image)
+                with tf.device('/cpu:0'):
+                    input_image, output_image = data_augmentation(input_image, output_image)
 
 
-                # Prep the data. Make sure the labels are in one-hot format
-                input_image = np.float32(input_image) / 255.0
-                output_image = np.float32(helpers.one_hot_it(label=output_image, class_dict=class_dict))
-                
-                input_image_batch.append(np.expand_dims(input_image, axis=0))
-                output_image_batch.append(np.expand_dims(output_image, axis=0))
+                    # Prep the data. Make sure the labels are in one-hot format
+                    input_image = np.float32(input_image) / 255.0
+                    output_image = np.float32(helpers.one_hot_it(label=output_image, class_dict=class_dict))
+                    
+                    input_image_batch.append(np.expand_dims(input_image, axis=0))
+                    output_image_batch.append(np.expand_dims(output_image, axis=0))
 
             # ***** THIS CAUSES A MEMORY LEAK AS NEW TENSORS KEEP GETTING CREATED *****
             # input_image = tf.image.crop_to_bounding_box(input_image, offset_height=0, offset_width=0, 
