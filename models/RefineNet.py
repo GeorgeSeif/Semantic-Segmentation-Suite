@@ -198,8 +198,6 @@ def build_refinenet(inputs, num_classes, preset_model='RefineNet-Res101', weight
     net = low[3]
 
     if upscaling_method.lower() == "conv":
-        net = ConvUpscaleBlock(net, 256, kernel_size=[3, 3], scale=2)
-        net = ConvBlock(net, 256)
         net = ConvUpscaleBlock(net, 128, kernel_size=[3, 3], scale=2)
         net = ConvBlock(net, 128)
         net = ConvUpscaleBlock(net, 64, kernel_size=[3, 3], scale=2)

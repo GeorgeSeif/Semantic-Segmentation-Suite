@@ -22,6 +22,7 @@ from MobileUNet import build_mobile_unet
 from PSPNet import build_pspnet
 from GCN import build_gcn
 from DeepLabV3 import build_deeplabv3
+from DeepLabV3_plus import build_deeplabv3_plus
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -163,6 +164,9 @@ elif args.model == "GCN-Res50" or args.model == "GCN-Res101" or args.model == "G
 elif args.model == "DeepLabV3-Res50" or args.model == "DeepLabV3-Res101" or args.model == "DeepLabV3-Res152":
     # RefineNet requires pre-trained ResNet weights
     network, init_fn = build_deeplabv3(input, preset_model = args.model, num_classes=num_classes)
+elif args.model == "DeepLabV3_plus-Res50" or args.model == "DeepLabV3_plus-Res101" or args.model == "DeepLabV3_plus-Res152":
+    # RefineNet requires pre-trained ResNet weights
+    network, init_fn = build_deeplabv3_plus(input, preset_model = args.model, num_classes=num_classes)
 elif args.model == "custom":
     network = build_custom(input, num_classes)
 else:
