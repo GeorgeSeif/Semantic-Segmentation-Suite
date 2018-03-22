@@ -216,9 +216,8 @@ if args.mode == "train":
 
     # Set random seed to make sure models are validated on the same validation images.
     # So you can compare the results of different models more intuitively.
-    np.random.seed(10)
-    ind=np.random.randint(len(val_input_names),size=num_vals)
-    val_indices.extend(list(ind))
+    random.seed(10)
+    val_indices=random.sample(range(0,len(val_input_names)),num_vals)
 
     # Do the training here
     for epoch in range(0, args.num_epochs):
