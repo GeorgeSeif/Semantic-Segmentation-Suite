@@ -42,7 +42,7 @@ parser.add_argument('--dataset', type=str, default="CamVid", help='Dataset you a
 parser.add_argument('--crop_height', type=int, default=256, help='Height of cropped input image to network')
 parser.add_argument('--crop_width', type=int, default=256, help='Width of cropped input image to network')
 parser.add_argument('--batch_size', type=int, default=1, help='Number of images in each batch')
-parser.add_argument('--num_val_images', type=int, default=20, help='The number of images to used for validations')
+parser.add_argument('--num_val_images', type=int, default=10, help='The number of images to used for validations')
 parser.add_argument('--h_flip', type=str2bool, default=False, help='Whether to randomly flip the image horizontally for data augmentation')
 parser.add_argument('--v_flip', type=str2bool, default=False, help='Whether to randomly flip the image vertically for data augmentation')
 parser.add_argument('--brightness', type=float, default=None, help='Whether to randomly change the image brightness for data augmentation. Specifies the max bightness change.')
