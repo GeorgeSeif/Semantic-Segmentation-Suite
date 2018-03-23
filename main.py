@@ -231,6 +231,7 @@ if args.mode == "train":
 
         num_iters = int(np.floor(len(id_list) / args.batch_size))
         st = time.time()
+        epoch_st=time.time()
         for i in range(num_iters):
             # st=time.time()
             
@@ -363,6 +364,15 @@ if args.mode == "train":
         print("Validation F1 score = ", avg_f1)
         print("Validation IoU score = ", avg_iou)
 
+        epoch_time=time.time()-epoch_st
+        remain_time=epoch_time*(args.num_epochs-1-epoch)
+        m, s = divmod(remain_time, 60)
+        h, m = divmod(m, 60)
+        if s!=0:
+            train_time="Remaining training time = %d hours %d minutes %d seconds\n"%(h,m,s)
+        else:
+            train_time="Remaining training time : Training completed.\n"
+        utils.LOG(train_time)
         scores_list = []
 
     fig = plt.figure(figsize=(11,8))
