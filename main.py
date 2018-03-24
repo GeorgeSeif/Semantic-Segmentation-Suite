@@ -50,7 +50,7 @@ parser.add_argument('--rotation', type=float, default=None, help='Whether to ran
 parser.add_argument('--model', type=str, default="FC-DenseNet56", help='The model you are using. Currently supports:\
     FC-DenseNet56, FC-DenseNet67, FC-DenseNet103, Encoder-Decoder, Encoder-Decoder-Skip, RefineNet-Res50, RefineNet-Res101, RefineNet-Res152, \
     FRRN-A, FRRN-B, MobileUNet, MobileUNet-Skip, PSPNet-Res50, PSPNet-Res101, PSPNet-Res152, GCN-Res50, GCN-Res101, GCN-Res152, DeepLabV3-Res50 \
-    DeepLabV3-Res101, DeepLabV3-Res152, custom')
+    DeepLabV3-Res101, DeepLabV3-Res152, DeepLabV3_plus-Res50, DeepLabV3_plus-Res101, DeepLabV3_plus-Res152, custom')
 args = parser.parse_args()
 
 # Get a list of the training, validation, and testing file paths
@@ -186,6 +186,10 @@ if args.continue_training or not args.mode == "train":
 
 avg_scores_per_epoch = []
 
+# Load the data
+print("Loading the data ...")
+train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names = prepare_data()
+
 if args.mode == "train":
 
     print("\n***** Begin training *****")
@@ -204,18 +208,16 @@ if args.mode == "train":
     print("\tRotation -->", args.rotation)
     print("")
 
-    # Load the data
-    print("Loading the data ...")
-    train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names = prepare_data()
-
     avg_loss_per_epoch = []
 
-    # Which validation images doe we want
+    # Which validation images do we want
     val_indices = []
     num_vals = min(args.num_val_images, len(val_input_names))
-    for i in range(num_vals):
-        ind = random.randint(0, len(val_input_names) - 1)
-        val_indices.append(ind)
+
+    # Set random seed to make sure models are validated on the same validation images.
+    # So you can compare the results of different models more intuitively.
+    random.seed(10)
+    val_indices=random.sample(range(0,len(val_input_names)),num_vals)
 
     # Do the training here
     for epoch in range(0, args.num_epochs):
@@ -229,6 +231,7 @@ if args.mode == "train":
 
         num_iters = int(np.floor(len(id_list) / args.batch_size))
         st = time.time()
+        epoch_st=time.time()
         for i in range(num_iters):
             # st=time.time()
             
@@ -310,7 +313,7 @@ if args.mode == "train":
             gt = load_image(val_output_names[ind])[:args.crop_height, :args.crop_width]
             gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, class_dict))
 
-            st = time.time()
+            # st = time.time()
 
             output_image = sess.run(network,feed_dict={input:input_image})
             
@@ -361,6 +364,15 @@ if args.mode == "train":
         print("Validation F1 score = ", avg_f1)
         print("Validation IoU score = ", avg_iou)
 
+        epoch_time=time.time()-epoch_st
+        remain_time=epoch_time*(args.num_epochs-1-epoch)
+        m, s = divmod(remain_time, 60)
+        h, m = divmod(m, 60)
+        if s!=0:
+            train_time="Remaining training time = %d hours %d minutes %d seconds\n"%(h,m,s)
+        else:
+            train_time="Remaining training time : Training completed.\n"
+        utils.LOG(train_time)
         scores_list = []
 
     fig = plt.figure(figsize=(11,8))
@@ -397,11 +409,11 @@ elif args.mode == "test":
     print("")
 
     # Create directories if needed
-    if not os.path.isdir("%s"%("Test")):
-            os.makedirs("%s"%("Test"))
+    if not os.path.isdir("%s"%("Val")):
+            os.makedirs("%s"%("Val"))
 
-    target=open("%s/test_scores.csv"%("Test"),'w')
-    target.write("test_name, avg_accuracy, precision, recall, f1 score, mean iou %s\n" % (class_names_string))
+    target=open("%s/val_scores.csv"%("Val"),'w')
+    target.write("val_name, avg_accuracy, precision, recall, f1 score, mean iou %s\n" % (class_names_string))
     scores_list = []
     class_scores_list = []
     precision_list = []
@@ -411,12 +423,12 @@ elif args.mode == "test":
     run_times_list = []
 
     # Run testing on ALL test images
-    for ind in range(len(test_input_names)):
-        sys.stdout.write("\rRunning test image %d / %d"%(ind+1, len(test_input_names)))
+    for ind in range(len(val_input_names)):
+        sys.stdout.write("\rRunning test image %d / %d"%(ind+1, len(val_input_names)))
         sys.stdout.flush()
 
-        input_image = np.expand_dims(np.float32(load_image(test_input_names[ind])[:args.crop_height, :args.crop_width]),axis=0)/255.0
-        gt = load_image(test_output_names[ind])[:args.crop_height, :args.crop_width]
+        input_image = np.expand_dims(np.float32(load_image(val_input_names[ind])[:args.crop_height, :args.crop_width]),axis=0)/255.0
+        gt = load_image(val_output_names[ind])[:args.crop_height, :args.crop_width]
         gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, class_dict))
 
         st = time.time()
@@ -445,8 +457,8 @@ elif args.mode == "test":
         
         gt = helpers.colour_code_segmentation(gt, class_dict)
 
-        cv2.imwrite("%s/%s_pred.png"%("Test", file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
-        cv2.imwrite("%s/%s_gt.png"%("Test", file_name),cv2.cvtColor(np.uint8(gt), cv2.COLOR_RGB2BGR))
+        cv2.imwrite("%s/%s_pred.png"%("Val", file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
+        cv2.imwrite("%s/%s_gt.png"%("Val", file_name),cv2.cvtColor(np.uint8(gt), cv2.COLOR_RGB2BGR))
 
 
     target.close()
@@ -482,18 +494,22 @@ elif args.mode == "predict":
     print("Num Classes -->", num_classes)
     print("Image -->", args.image)
     print("")
+    for ind in range(len(test_input_names)):
+        sys.stdout.write("\rRunning prediction image %d / %d"%(ind+1, len(test_input_names)))
+        sys.stdout.flush()
 
-    input_image = np.expand_dims(np.float32(load_image(test_input_names[ind])[:args.crop_height, :args.crop_width]),axis=0)/255.0
+        input_image = np.expand_dims(np.float32(load_image(test_input_names[ind])[:args.crop_height, :args.crop_width]),axis=0)/255.0
 
-    st = time.time()
-    output_image = sess.run(network,feed_dict={input:input_image})
+        st = time.time()
+        output_image = sess.run(network,feed_dict={input:input_image})
 
-    run_time = time.time()-st
+        run_time = time.time()-st
 
-    output_image = np.array(output_image[0,:,:,:])
-    output_image = helpers.reverse_one_hot(output_image)
-    out_vis_image = helpers.colour_code_segmentation(output_image, class_dict)
-    cv2.imwrite("%s/%s_pred.png"%("Test", file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
+        output_image = np.array(output_image[0,:,:,:])
+        output_image = helpers.reverse_one_hot(output_image)
+        out_vis_image = helpers.colour_code_segmentation(output_image, class_dict)
+        file_name = utils.filepath_to_name(test_input_names[ind])
+        cv2.imwrite("%s/%s_pred.png"%("Test", file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
 
 else:
     ValueError("Invalid mode selected.")
