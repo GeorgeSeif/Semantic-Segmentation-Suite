@@ -216,7 +216,7 @@ if args.mode == "train":
 
     # Set random seed to make sure models are validated on the same validation images.
     # So you can compare the results of different models more intuitively.
-    random.seed(10)
+    random.seed(12)
     val_indices=random.sample(range(0,len(val_input_names)),num_vals)
 
     # Do the training here

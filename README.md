@@ -2,6 +2,10 @@
 
 ## News
 
+**What's New:**
+
+- Optimized the one_hot and reverse_one_hot conversions for the label, getting almost a x10 speedup.
+
 **Coming Soon:**
 
 - Speed optimizations
