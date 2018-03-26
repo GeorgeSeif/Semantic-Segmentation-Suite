@@ -103,12 +103,12 @@ def build_deeplabv3_plus(inputs, num_classes, preset_model='DeepLabV3+-Res50', w
 
     decoder_features = Upsampling(net, label_size / 4)
 
-    encoder_features = slim.conv2d(encoder_features, 48, [1, 1], activation_fn=None, normalizer_fn=None)
+    encoder_features = slim.conv2d(encoder_features, 48, [1, 1], activation_fn=tf.nn.relu, normalizer_fn=None)
 
     net = tf.concat((encoder_features, decoder_features), axis=3)
 
-    net = slim.conv2d(encoder_features, 256, [3, 3], activation_fn=None, normalizer_fn=None)
-    net = slim.conv2d(encoder_features, 256, [3, 3], activation_fn=None, normalizer_fn=None)
+    net = slim.conv2d(encoder_features, 256, [3, 3], activation_fn=tf.nn.relu, normalizer_fn=None)
+    net = slim.conv2d(encoder_features, 256, [3, 3], activation_fn=tf.nn.relu, normalizer_fn=None)
 
     net = Upsampling(net, label_size)
     
