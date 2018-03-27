@@ -7,40 +7,41 @@ import tensorflow as tf
 
 import time, datetime
 
-def get_class_dict(csv_path):
+def get_label_info(csv_path):
     """
-    Retrieve the class dictionairy for the selected dataset.
+    Retrieve the class names and label values for the selected dataset.
     Must be in CSV format!
 
     # Arguments
         csv_path: The file path of the class dictionairy
         
     # Returns
-        A python dictionairy where the key is the class name 
-        and the value is the class's pixel value
+        Two lists: one for the class names and the other for the label values
     """
     filename, file_extension = os.path.splitext(csv_path)
     if not file_extension == ".csv":
         return ValueError("File is not a CSV!")
 
-    class_dict = {}
+    class_names = []
+    label_values = []
     with open(csv_path, 'rb') as csvfile:
         file_reader = csv.reader(csvfile, delimiter=',')
         header = next(file_reader)
         for row in file_reader:
-            class_dict[row[0]] = [int(row[1]), int(row[2]), int(row[3])]
+            class_names.append(row[0])
+            label_values.append([int(row[1]), int(row[2]), int(row[3])])
         # print(class_dict)
-    return class_dict
+    return class_names, label_values
 
 
-def one_hot_it(label, class_dict):
+def one_hot_it(label, label_values):
     """
     Convert a segmentation image label array to one-hot format
     by replacing each pixel value with a vector of length num_classes
 
     # Arguments
         label: The 2D array segmentation image label
-        class_dict: A dictionairy of class--> pixel values
+        label_values
         
     # Returns
         A 2D array with the same width and hieght as the input, but
@@ -62,8 +63,7 @@ def one_hot_it(label, class_dict):
     # https://stackoverflow.com/questions/46903885/map-rgb-semantic-maps-to-one-hot-encodings-and-vice-versa-in-tensorflow
     # https://stackoverflow.com/questions/14859458/how-to-check-if-all-values-in-the-columns-of-a-numpy-matrix-are-the-same
     semantic_map = []
-    unique_labels = np.array(class_dict.values())
-    for colour in unique_labels:
+    for colour in label_values:
         # colour_map = np.full((label.shape[0], label.shape[1], label.shape[2]), colour, dtype=int)
         equality = np.equal(label, colour)
         class_map = np.all(equality, axis = -1)
@@ -100,13 +100,13 @@ def reverse_one_hot(image):
     return x
 
 
-def colour_code_segmentation(image, class_dict):
+def colour_code_segmentation(image, label_values):
     """
     Given a 1-channel array of class keys, colour code the segmentation results.
 
     # Arguments
         image: single channel array where each value represents the class key.
-        class_dict: A dictionairy of class--> pixel values
+        label_values
         
     # Returns
         Colour coded image for segmentation visualization
@@ -115,7 +115,7 @@ def colour_code_segmentation(image, class_dict):
     w = image.shape[0]
     h = image.shape[1]
     x = np.zeros([w,h,3])
-    colour_codes = list(class_dict.values())
+    colour_codes = label_values
     for i in range(0, w):
         for j in range(0, h):
             x[i, j, :] = colour_codes[int(image[i, j])]

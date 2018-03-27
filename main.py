@@ -36,6 +36,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--num_epochs', type=int, default=300, help='Number of epochs to train for')
 parser.add_argument('--mode', type=str, default="train", help='Select "train", "test", or "predict" mode. \
     Note that for prediction mode you have to specify an image to run the model on.')
+parser.add_argument('--class_balancing', type=str2bool, default=False, help='Whether to use median frequency class weights to balance the classes in the loss')
 parser.add_argument('--image', type=str, default=None, help='The image you want to predict on. Only valid in "predict" mode.')
 parser.add_argument('--continue_training', type=str2bool, default=False, help='Whether to continue training from a checkpoint')
 parser.add_argument('--dataset', type=str, default="CamVid", help='Dataset you are using.')
@@ -112,8 +113,7 @@ def data_augmentation(input_image, output_image):
 
 
 # Get the names of the classes so we can record the evaluation results
-class_dict = helpers.get_class_dict(os.path.join(args.dataset, "class_dict.csv"))
-class_names_list = list(class_dict.keys())
+class_names_list, label_values = helpers.get_label_info(os.path.join(args.dataset, "class_dict.csv"))
 class_names_string = ""
 for class_name in class_names_list:
     if not class_name == class_names_list[-1]:
@@ -121,7 +121,7 @@ for class_name in class_names_list:
     else:
         class_names_string = class_names_string + class_name
 
-num_classes = len(class_names_list)
+num_classes = len(label_values)
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -163,8 +163,15 @@ elif args.model == "custom":
 else:
     raise ValueError("Error: the model %d is not available. Try checking which models are available using the command python main.py --help")
 
-# Compute your (unweighted) softmax cross entropy loss
-loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=output))
+# Compute your softmax cross entropy loss
+loss = None
+if args.class_balancing:
+    print("Computing class weights for", args.dataset, "...")
+    class_weights = utils.compute_class_weights(labels_dir=args.dataset + "/train_labels", label_values=label_values)
+    unweighted_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=output))
+    loss = tf.reduce_mean(unweighted_loss * class_weights)
+else:
+    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=output))
 
 opt = tf.train.AdamOptimizer(0.0001).minimize(loss, var_list=[var for var in tf.trainable_variables()])
 
@@ -216,7 +223,7 @@ if args.mode == "train":
 
     # Set random seed to make sure models are validated on the same validation images.
     # So you can compare the results of different models more intuitively.
-    random.seed(12)
+    random.seed(16)
     val_indices=random.sample(range(0,len(val_input_names)),num_vals)
 
     # Do the training here
@@ -251,7 +258,7 @@ if args.mode == "train":
 
                     # Prep the data. Make sure the labels are in one-hot format
                     input_image = np.float32(input_image) / 255.0
-                    output_image = np.float32(helpers.one_hot_it(label=output_image, class_dict=class_dict))
+                    output_image = np.float32(helpers.one_hot_it(label=output_image, label_values=label_values))
                     
                     input_image_batch.append(np.expand_dims(input_image, axis=0))
                     output_image_batch.append(np.expand_dims(output_image, axis=0))
@@ -277,7 +284,7 @@ if args.mode == "train":
             current_losses.append(current)
             cnt = cnt + args.batch_size
             if cnt % 20 == 0:
-                string_print = "Epoch = %d Count = %d Current_Loss = %.2f Time = %.2f"%(epoch,cnt,current,time.time()-st)
+                string_print = "Epoch = %d Count = %d Current_Loss = %.4f Time = %.2f"%(epoch,cnt,current,time.time()-st)
                 utils.LOG(string_print)
                 st = time.time()
 
@@ -311,7 +318,7 @@ if args.mode == "train":
             
             input_image = np.expand_dims(np.float32(load_image(val_input_names[ind])[:args.crop_height, :args.crop_width]),axis=0)/255.0
             gt = load_image(val_output_names[ind])[:args.crop_height, :args.crop_width]
-            gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, class_dict))
+            gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, label_values))
 
             # st = time.time()
 
@@ -320,7 +327,7 @@ if args.mode == "train":
 
             output_image = np.array(output_image[0,:,:,:])
             output_image = helpers.reverse_one_hot(output_image)
-            out_vis_image = helpers.colour_code_segmentation(output_image, class_dict)
+            out_vis_image = helpers.colour_code_segmentation(output_image, label_values)
 
             accuracy, class_accuracies, prec, rec, f1, iou = utils.evaluate_segmentation(pred=output_image, label=gt, num_classes=num_classes)
         
@@ -337,7 +344,7 @@ if args.mode == "train":
             f1_list.append(f1)
             iou_list.append(iou)
             
-            gt = helpers.colour_code_segmentation(gt, class_dict)
+            gt = helpers.colour_code_segmentation(gt, label_values)
  
             file_name = os.path.basename(val_input_names[ind])
             file_name = os.path.splitext(file_name)[0]
@@ -429,7 +436,7 @@ elif args.mode == "test":
 
         input_image = np.expand_dims(np.float32(load_image(val_input_names[ind])[:args.crop_height, :args.crop_width]),axis=0)/255.0
         gt = load_image(val_output_names[ind])[:args.crop_height, :args.crop_width]
-        gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, class_dict))
+        gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, label_values))
 
         st = time.time()
         output_image = sess.run(network,feed_dict={input:input_image})
@@ -438,7 +445,7 @@ elif args.mode == "test":
 
         output_image = np.array(output_image[0,:,:,:])
         output_image = helpers.reverse_one_hot(output_image)
-        out_vis_image = helpers.colour_code_segmentation(output_image, class_dict)
+        out_vis_image = helpers.colour_code_segmentation(output_image, label_values)
 
         accuracy, class_accuracies, prec, rec, f1, iou = utils.evaluate_segmentation(pred=output_image, label=gt, num_classes=num_classes)
     
@@ -455,7 +462,7 @@ elif args.mode == "test":
         f1_list.append(f1)
         iou_list.append(iou)
         
-        gt = helpers.colour_code_segmentation(gt, class_dict)
+        gt = helpers.colour_code_segmentation(gt, label_values)
 
         cv2.imwrite("%s/%s_pred.png"%("Val", file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
         cv2.imwrite("%s/%s_gt.png"%("Val", file_name),cv2.cvtColor(np.uint8(gt), cv2.COLOR_RGB2BGR))

@@ -1,4 +1,5 @@
 from __future__ import print_function
+from __future__ import division
 import os,time,cv2, sys, math
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
@@ -132,15 +133,10 @@ def evaluate_segmentation(pred, label, num_classes, score_averaging="weighted"):
     iou = compute_mean_iou(flat_pred, flat_label)
 
     return global_accuracy, class_accuracies, prec, rec, f1, iou
+
     
-def median_frequency_balancing(labels_dir, num_classes):
+def compute_class_weights(labels_dir, label_values):
     '''
-    Perform median frequency balancing on the image files, given by the formula:
-    f = Median_freq_c / total_freq_c
-
-    Where median_freq_c is the median frequency of the class for all pixels of C that appeared in images
-    and total_freq_c is the total number of pixels of c in the total pixels of the images where c appeared.
-
     Arguments:
         labels_dir(list): Directory where the image segmentation labels are
         num_classes(int): the number of classes of pixels in all images
@@ -149,44 +145,37 @@ def median_frequency_balancing(labels_dir, num_classes):
         class_weights(list): a list of class weights where each index represents each class label and the element is the class weight for that label.
 
     '''
-    #Initialize all the labels key with a list value
     image_files = [os.path.join(labels_dir, file) for file in os.listdir(labels_dir) if file.endswith('.png')]
 
-    label_to_frequency_dict = {}
-    for i in range(num_classes):
-        label_to_frequency_dict[i] = []
+    num_classes = len(label_values)
+
+    class_pixels = np.zeros(num_classes) 
+
+    total_pixels = 0.0
 
     for n in range(len(image_files)):
         image = imread(image_files[n])
-        unique_labels = list(np.unique(image))
 
-        #For each image sum up the frequency of each label in that image and append to the dictionary if frequency is positive.
-        for i in unique_labels:
-            class_mask = np.equal(image, i)
-            class_mask = class_mask.astype(np.float32)
-            class_frequency = np.sum(class_mask)
+        for index, colour in enumerate(label_values):
+            class_map = np.all(np.equal(image, colour), axis = -1)
+            class_map = class_map.astype(np.float32)
+            class_pixels[index] += np.sum(class_map)
 
-            if class_frequency != 0.0:
-                index = unique_labels.index(i)
-                label_to_frequency_dict[index].append(class_frequency)
+            
+        print("\rProcessing image: " + str(n) + " / " + str(len(image_files)), end="")
+        sys.stdout.flush()
 
-    class_weights = []
-    print(class_frequency)
-
-    #Get the total pixels to calculate total_frequency later
-    total_pixels = 0
-    for frequencies in label_to_frequency_dict.values():
-        total_pixels += sum(frequencies)
-
-    for i, j in label_to_frequency_dict.items():
-        j = sorted(j) #To obtain the median, we've got to sort the frequencies
-
-        median_frequency = np.median(j) / sum(j)
-        total_frequency = sum(j) / total_pixels
-        median_frequency_balanced = median_frequency / total_frequency
-        class_weights.append(median_frequency_balanced)
+    total_pixels = float(np.sum(class_pixels))
+    print(class_pixels)
+    print(total_pixels)
+    index_to_delete = np.argwhere(class_pixels==0.0)
+    class_pixels = np.delete(class_pixels, index_to_delete)
+    class_weights = total_pixels / class_pixels
+    class_weights = class_weights / np.sum(class_weights)
 
 
+    print(class_weights)
+    print(np.sum(class_weights))
     return class_weights
 
 # Compute the memory usage, for debugging
