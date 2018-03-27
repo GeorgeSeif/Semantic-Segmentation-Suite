@@ -4,7 +4,7 @@
 
 **What's New:**
 
-- Optimized the one_hot and reverse_one_hot conversions for the label, getting almost a x10 speedup.
+- Optimized the `one_hot` and `reverse_one_hot` conversions for the label, getting a x10 speedup.
 
 **Coming Soon:**
 
@@ -16,7 +16,7 @@
 
 - Pre-trained model weights for the provided networks
 
-- ICNet, ResNet-DUC, ResNet-HDC, AdapNet models
+- ICNet, ResNet-DUC, ResNet-HDC, AdapNet models. Plus anything that comes out at CVPR 2018!
 
 - Optional mean IoU calculations: "micro", "macro", "weighted"
 
@@ -140,6 +140,8 @@ VegetationMisc,192, 192, 0
 Void,0, 0, 0
 Wall,64, 192, 0
 ```
+
+**Note:** If you are using any of the networks that rely on a pre-trained ResNet, then you will need to download the pre-trained weights using the provided script. These are currently: PSPNet, RefineNet.
 
 Then you can simply run `main.py`! Check out the optional command line arguments:
 
