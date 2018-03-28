@@ -7,6 +7,8 @@ import time, datetime
 import argparse
 import random
 import os, sys
+import subprocess
+
 
 import helpers 
 import utils 
@@ -112,6 +114,9 @@ def data_augmentation(input_image, output_image):
 
     return input_image, output_image
 
+def download_checkpoints(model_name):
+    subprocess.check_output(["python", "get_pretrained_checkpoints.py", "--model=" + model_name])
+
 
 # Get the names of the classes so we can record the evaluation results
 class_names_list, label_values = helpers.get_label_info(os.path.join(args.dataset, "class_dict.csv"))
@@ -132,7 +137,15 @@ sess=tf.Session(config=config)
 # Some of they require pre-trained ResNet
 print("Preparing the model ...")
 input = tf.placeholder(tf.float32,shape=[None,None,None,3])
-output = tf.placeholder(tf.float32,shape=[None,None,None,num_classes])
+output = tf.placeholder(tf.float32,shape=[None,None,None,num_classes]) 
+
+if "Res50" in args.model and not os.path.isfile("models/resnet_v2_50.ckpt"):
+    download_checkpoints("Res50")
+if "Res101" in args.model and not os.path.isfile("models/resnet_v2_101.ckpt"):
+    download_checkpoints("Res101")
+if "Res152" in args.model and not os.path.isfile("models/resnet_v2_152.ckpt"):
+    download_checkpoints("Res152")
+
 
 network = None
 init_fn = None

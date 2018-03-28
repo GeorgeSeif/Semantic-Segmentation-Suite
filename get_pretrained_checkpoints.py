@@ -1,4 +1,9 @@
 import subprocess
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--model', type=str, default="ALL", help='Which model weights to download')
+args = parser.parse_args()
 
 ###############################
 # VGG Net
@@ -64,17 +69,23 @@ import subprocess
 ###############################
 # ResNet V2
 ###############################
-subprocess.check_output(['wget','http://download.tensorflow.org/models/resnet_v2_50_2017_04_14.tar.gz'])
-subprocess.check_output(['tar', '-xvf', 'resnet_v2_50_2017_04_14.tar.gz'])
-subprocess.check_output(['mv', 'resnet_v2_50.ckpt', 'models'])
-subprocess.check_output(['rm', 'resnet_v2_50_2017_04_14.tar.gz'])
+if args.model == "Res50" or args.model == "ALL":
+	subprocess.check_output(['wget','http://download.tensorflow.org/models/resnet_v2_50_2017_04_14.tar.gz'])
+	subprocess.check_output(['tar', '-xvf', 'resnet_v2_50_2017_04_14.tar.gz'])
+	subprocess.check_output(['mv', 'resnet_v2_50.ckpt', 'models'])
+	subprocess.check_output(['rm', 'resnet_v2_50_2017_04_14.tar.gz'])
 
-subprocess.check_output(['wget','http://download.tensorflow.org/models/resnet_v2_101_2017_04_14.tar.gz'])
-subprocess.check_output(['tar', '-xvf', 'resnet_v2_101_2017_04_14.tar.gz'])
-subprocess.check_output(['mv', 'resnet_v2_101.ckpt', 'models'])
-subprocess.check_output(['rm', 'resnet_v2_101_2017_04_14.tar.gz'])
+if args.model == "Res101" or args.model == "ALL":
+	subprocess.check_output(['wget','http://download.tensorflow.org/models/resnet_v2_101_2017_04_14.tar.gz'])
+	subprocess.check_output(['tar', '-xvf', 'resnet_v2_101_2017_04_14.tar.gz'])
+	subprocess.check_output(['mv', 'resnet_v2_101.ckpt', 'models'])
+	subprocess.check_output(['rm', 'resnet_v2_101_2017_04_14.tar.gz'])
 
-subprocess.check_output(['wget','http://download.tensorflow.org/models/resnet_v2_152_2017_04_14.tar.gz'])
-subprocess.check_output(['tar', '-xvf', 'resnet_v2_152_2017_04_14.tar.gz'])
-subprocess.check_output(['mv', 'resnet_v2_152.ckpt', 'models'])
-subprocess.check_output(['rm', 'resnet_v2_152_2017_04_14.tar.gz'])
+if args.model == "Res152" or args.model == "ALL":
+	subprocess.check_output(['wget','http://download.tensorflow.org/models/resnet_v2_152_2017_04_14.tar.gz'])
+	subprocess.check_output(['tar', '-xvf', 'resnet_v2_152_2017_04_14.tar.gz'])
+	subprocess.check_output(['mv', 'resnet_v2_152.ckpt', 'models'])
+	subprocess.check_output(['rm', 'resnet_v2_152_2017_04_14.tar.gz'])
+
+subprocess.check_output(['rm', 'train.graph'])
+subprocess.check_output(['rm', 'eval.graph'])
