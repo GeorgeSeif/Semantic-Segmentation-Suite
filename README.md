@@ -12,10 +12,6 @@
 
 - Multi-GPU support
 
-- Class balancing options
-
-- Pre-trained model weights for the provided networks
-
 - ICNet, ResNet-DUC, ResNet-HDC, AdapNet models. Plus anything that comes out at CVPR 2018!
 
 - Optional mean IoU calculations: "micro", "macro", "weighted"

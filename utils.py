@@ -166,16 +166,12 @@ def compute_class_weights(labels_dir, label_values):
         sys.stdout.flush()
 
     total_pixels = float(np.sum(class_pixels))
-    print(class_pixels)
-    print(total_pixels)
     index_to_delete = np.argwhere(class_pixels==0.0)
     class_pixels = np.delete(class_pixels, index_to_delete)
+
     class_weights = total_pixels / class_pixels
     class_weights = class_weights / np.sum(class_weights)
 
-
-    print(class_weights)
-    print(np.sum(class_weights))
     return class_weights
 
 # Compute the memory usage, for debugging
