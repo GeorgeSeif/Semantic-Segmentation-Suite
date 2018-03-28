@@ -6,13 +6,15 @@
 
 - Optimized the `one_hot` and `reverse_one_hot` conversions for the label, getting a x10 speedup.
 
+- Added the AdapNet model
+
 **Coming Soon:**
 
 - Speed optimizations
 
 - Multi-GPU support
 
-- ICNet, ResNet-DUC, ResNet-HDC, AdapNet models. Plus anything that comes out at CVPR 2018!
+- ICNet, ResNet-DUC, ResNet-HDC models. Plus anything that comes out at CVPR 2018!
 
 - Optional mean IoU calculations: "micro", "macro", "weighted"
 
@@ -51,6 +53,8 @@ The following models are currently made available:
 to obtain robust features for recognition. The two streams are coupled at the full image resolution using residuals. In the code, this is the FRRN model.
 
 - [Large Kernel Matters -- Improve Semantic Segmentation by Global Convolutional Network](https://arxiv.org/abs/1703.02719). Proposes a Global Convolutional Network to address both the classification and localization issues for the semantic segmentation. Uses large separable kernals to expand the receptive field, plus a boundary refinement block to further improve localization performance near boundaries. 
+
+- [AdapNet: Adaptive Semantic Segmentation in Adverse Environmental Conditions](http://ais.informatik.uni-freiburg.de/publications/papers/valada17icra.pdf) Modifies the ResNet50 architecture by performing the lower resolution processing using a multi-scale strategy with atrous convolutions.
 
 - [Encoder-Decoder with Atrous Separable Convolution for Semantic Image Segmentation](https://arxiv.org/abs/1802.02611). This is the DeepLabV3+ network which adds a Decoder module on top of the regular DeepLabV3 model.
 
