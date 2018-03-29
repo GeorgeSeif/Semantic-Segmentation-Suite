@@ -60,7 +60,7 @@ to obtain robust features for recognition. The two streams are coupled at the fu
 
 - Or make your own and plug and play!
 
-**Note:** If you are using any of the networks that rely on a pre-trained ResNet, then you will need to download the pre-trained weights using the provided script. These are currently: PSPNet, RefineNet.
+**Note:** If you are using any of the networks that rely on a pre-trained ResNet, then you will need to download the pre-trained weights using the provided script. These are currently: PSPNet, RefineNet, DeepLabV3, DeepLabV3+, GCN.
 
 
 ## Files and Directories
@@ -141,7 +141,7 @@ Void,0, 0, 0
 Wall,64, 192, 0
 ```
 
-**Note:** If you are using any of the networks that rely on a pre-trained ResNet, then you will need to download the pre-trained weights using the provided script. These are currently: PSPNet, RefineNet.
+**Note:** If you are using any of the networks that rely on a pre-trained ResNet, then you will need to download the pre-trained weights using the provided script. These are currently: PSPNet, RefineNet, DeepLabV3, DeepLabV3+, GCN.
 
 Then you can simply run `main.py`! Check out the optional command line arguments:
 
