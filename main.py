@@ -518,22 +518,36 @@ elif args.mode == "predict":
     print("Num Classes -->", num_classes)
     print("Image -->", args.image)
     print("")
-    for ind in range(len(test_input_names)):
-        sys.stdout.write("\rRunning prediction image %d / %d"%(ind+1, len(test_input_names)))
-        sys.stdout.flush()
+    
+    sys.stdout.write("Testing image " + args.image)
+    sys.stdout.flush()
 
-        input_image = np.expand_dims(np.float32(load_image(test_input_names[ind])[:args.crop_height, :args.crop_width]),axis=0)/255.0
+    # to get the right aspect ratio of the output
+    loaded_image = load_image(args.image)
+    height, width, channels = loaded_image.shape
+    resize_height = int(height / (width / args.crop_width))
 
-        st = time.time()
-        output_image = sess.run(network,feed_dict={input:input_image})
+    resized_image =cv2.resize(loaded_image, (args.crop_width, resize_height))
+    input_image = np.expand_dims(np.float32(resized_image[:args.crop_height, :args.crop_width]),axis=0)/255.0
 
-        run_time = time.time()-st
+    st = time.time()
+    output_image = sess.run(network,feed_dict={input:input_image})
 
-        output_image = np.array(output_image[0,:,:,:])
-        output_image = helpers.reverse_one_hot(output_image)
-        out_vis_image = helpers.colour_code_segmentation(output_image, class_dict)
-        file_name = utils.filepath_to_name(test_input_names[ind])
-        cv2.imwrite("%s/%s_pred.png"%("Test", file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
+    run_time = time.time()-st
+
+    output_image = np.array(output_image[0,:,:,:])
+    output_image = helpers.reverse_one_hot(output_image)
+
+    # this needs to get generalized
+    class_names_list, label_values = helpers.get_label_info(os.path.join("CamVid", "class_dict.csv"))
+
+    out_vis_image = helpers.colour_code_segmentation(output_image, label_values)
+    file_name = utils.filepath_to_name(args.image)
+    cv2.imwrite("%s/%s_pred.png"%("Test", file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
+
+    print("")
+    print("Finished!")
+    print("Wrote image " + "%s/%s_pred.png"%("Test", file_name))
 
 else:
     ValueError("Invalid mode selected.")
