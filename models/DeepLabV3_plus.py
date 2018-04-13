@@ -52,7 +52,6 @@ def AtrousSpatialPyramidPoolingModule(inputs, depth=256):
     atrous_pool_block_18 = slim.conv2d(inputs, depth, [3, 3], rate=18, activation_fn=None)
 
     net = tf.concat((image_features, atrous_pool_block_1, atrous_pool_block_6, atrous_pool_block_12, atrous_pool_block_18), axis=3)
-    net = slim.conv2d(net, depth, [1, 1], scope="conv_1x1_output", activation_fn=None)
 
     return net
 
@@ -100,15 +99,15 @@ def build_deeplabv3_plus(inputs, num_classes, preset_model='DeepLabV3+-Res50', w
     encoder_features = end_points['pool2']
 
     net = AtrousSpatialPyramidPoolingModule(end_points['pool4'])
-
+    net = slim.conv2d(net, 256, [1, 1], scope="conv_1x1_output", activation_fn=None)
     decoder_features = Upsampling(net, label_size / 4)
 
     encoder_features = slim.conv2d(encoder_features, 48, [1, 1], activation_fn=tf.nn.relu, normalizer_fn=None)
 
     net = tf.concat((encoder_features, decoder_features), axis=3)
 
-    net = slim.conv2d(encoder_features, 256, [3, 3], activation_fn=tf.nn.relu, normalizer_fn=None)
-    net = slim.conv2d(encoder_features, 256, [3, 3], activation_fn=tf.nn.relu, normalizer_fn=None)
+    net = slim.conv2d(net, 256, [3, 3], activation_fn=tf.nn.relu, normalizer_fn=None)
+    net = slim.conv2d(net, 256, [3, 3], activation_fn=tf.nn.relu, normalizer_fn=None)
 
     net = Upsampling(net, label_size)
     
