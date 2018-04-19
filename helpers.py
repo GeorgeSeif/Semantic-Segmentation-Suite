@@ -24,7 +24,7 @@ def get_label_info(csv_path):
 
     class_names = []
     label_values = []
-    with open(csv_path, 'rb') as csvfile:
+    with open(csv_path, 'r') as csvfile:
         file_reader = csv.reader(csvfile, delimiter=',')
         header = next(file_reader)
         for row in file_reader:
