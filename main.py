@@ -136,10 +136,7 @@ config.gpu_options.allow_growth = True
 sess=tf.Session(config=config)
 
 # Get the selected model. 
-# Some of they require pre-trained ResNet
-print("Preparing the model ...")
-input = tf.placeholder(tf.float32,shape=[None,None,None,3])
-output = tf.placeholder(tf.float32,shape=[None,None,None,num_classes]) 
+# Some of them require pre-trained ResNet
 
 if "Res50" in args.model and not os.path.isfile("models/resnet_v2_50.ckpt"):
     download_checkpoints("Res50")
@@ -183,6 +180,10 @@ else:
     raise ValueError("Error: the model %d is not available. Try checking which models are available using the command python main.py --help")
 
 # Compute your softmax cross entropy loss
+print("Preparing the model ...")
+input = tf.placeholder(tf.float32,shape=[None,None,None,3])
+output = tf.placeholder(tf.float32,shape=[None,None,None,num_classes]) 
+
 loss = None
 if args.class_balancing:
     print("Computing class weights for", args.dataset, "...")
