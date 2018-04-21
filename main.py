@@ -39,6 +39,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--num_epochs', type=int, default=300, help='Number of epochs to train for')
 parser.add_argument('--mode', type=str, default="train", help='Select "train", "test", or "predict" mode. \
     Note that for prediction mode you have to specify an image to run the model on.')
+parser.add_argument('--checkpoint_step', type=int, default=10, help='How often to save checkpoints (epochs)')
+parser.add_argument('--validation_step', type=int, default=1, help='How often to perform validation (epochs)')
 parser.add_argument('--class_balancing', type=str2bool, default=False, help='Whether to use median frequency class weights to balance the classes in the loss')
 parser.add_argument('--image', type=str, default=None, help='The image you want to predict on. Only valid in "predict" mode.')
 parser.add_argument('--continue_training', type=str2bool, default=False, help='Whether to continue training from a checkpoint')
@@ -312,81 +314,86 @@ if args.mode == "train":
         if not os.path.isdir("%s/%04d"%("checkpoints",epoch)):
             os.makedirs("%s/%04d"%("checkpoints",epoch))
 
+        # Save latest checkpoint to same file name
+        print("Saving latest checkpoint")
         saver.save(sess,model_checkpoint_name)
 
-        if val_indices != 0:
+        if val_indices != 0 and epoch % args.checkpoint_step == 0:
+            print("Saving checkpoint for this epoch")
             saver.save(sess,"%s/%04d/model.ckpt"%("checkpoints",epoch))
 
 
-        target=open("%s/%04d/val_scores.csv"%("checkpoints",epoch),'w')
-        target.write("val_name, avg_accuracy, precision, recall, f1 score, mean iou, %s\n" % (class_names_string))
+        if epoch % args.validation_step == 0:
+            print("Performing validation")
+            target=open("%s/%04d/val_scores.csv"%("checkpoints",epoch),'w')
+            target.write("val_name, avg_accuracy, precision, recall, f1 score, mean iou, %s\n" % (class_names_string))
 
 
-        scores_list = []
-        class_scores_list = []
-        precision_list = []
-        recall_list = []
-        f1_list = []
-        iou_list = []
+            scores_list = []
+            class_scores_list = []
+            precision_list = []
+            recall_list = []
+            f1_list = []
+            iou_list = []
 
 
-        # Do the validation on a small set of validation images
-        for ind in val_indices:
+            # Do the validation on a small set of validation images
+            for ind in val_indices:
+                
+                input_image = np.expand_dims(np.float32(load_image(val_input_names[ind])[:args.crop_height, :args.crop_width]),axis=0)/255.0
+                gt = load_image(val_output_names[ind])[:args.crop_height, :args.crop_width]
+                gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, label_values))
+
+                # st = time.time()
+
+                output_image = sess.run(network,feed_dict={input:input_image})
+                
+
+                output_image = np.array(output_image[0,:,:,:])
+                output_image = helpers.reverse_one_hot(output_image)
+                out_vis_image = helpers.colour_code_segmentation(output_image, label_values)
+
+                accuracy, class_accuracies, prec, rec, f1, iou = utils.evaluate_segmentation(pred=output_image, label=gt, num_classes=num_classes)
             
-            input_image = np.expand_dims(np.float32(load_image(val_input_names[ind])[:args.crop_height, :args.crop_width]),axis=0)/255.0
-            gt = load_image(val_output_names[ind])[:args.crop_height, :args.crop_width]
-            gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, label_values))
+                file_name = utils.filepath_to_name(val_input_names[ind])
+                target.write("%s, %f, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1, iou))
+                for item in class_accuracies:
+                    target.write(", %f"%(item))
+                target.write("\n")
 
-            # st = time.time()
-
-            output_image = sess.run(network,feed_dict={input:input_image})
-            
-
-            output_image = np.array(output_image[0,:,:,:])
-            output_image = helpers.reverse_one_hot(output_image)
-            out_vis_image = helpers.colour_code_segmentation(output_image, label_values)
-
-            accuracy, class_accuracies, prec, rec, f1, iou = utils.evaluate_segmentation(pred=output_image, label=gt, num_classes=num_classes)
-        
-            file_name = utils.filepath_to_name(val_input_names[ind])
-            target.write("%s, %f, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1, iou))
-            for item in class_accuracies:
-                target.write(", %f"%(item))
-            target.write("\n")
-
-            scores_list.append(accuracy)
-            class_scores_list.append(class_accuracies)
-            precision_list.append(prec)
-            recall_list.append(rec)
-            f1_list.append(f1)
-            iou_list.append(iou)
-            
-            gt = helpers.colour_code_segmentation(gt, label_values)
- 
-            file_name = os.path.basename(val_input_names[ind])
-            file_name = os.path.splitext(file_name)[0]
-            cv2.imwrite("%s/%04d/%s_pred.png"%("checkpoints",epoch, file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
-            cv2.imwrite("%s/%04d/%s_gt.png"%("checkpoints",epoch, file_name),cv2.cvtColor(np.uint8(gt), cv2.COLOR_RGB2BGR))
+                scores_list.append(accuracy)
+                class_scores_list.append(class_accuracies)
+                precision_list.append(prec)
+                recall_list.append(rec)
+                f1_list.append(f1)
+                iou_list.append(iou)
+                
+                gt = helpers.colour_code_segmentation(gt, label_values)
+     
+                file_name = os.path.basename(val_input_names[ind])
+                file_name = os.path.splitext(file_name)[0]
+                cv2.imwrite("%s/%04d/%s_pred.png"%("checkpoints",epoch, file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
+                cv2.imwrite("%s/%04d/%s_gt.png"%("checkpoints",epoch, file_name),cv2.cvtColor(np.uint8(gt), cv2.COLOR_RGB2BGR))
 
 
-        target.close()
+            target.close()
 
-        avg_score = np.mean(scores_list)
-        class_avg_scores = np.mean(class_scores_list, axis=0)
-        avg_scores_per_epoch.append(avg_score)
-        avg_precision = np.mean(precision_list)
-        avg_recall = np.mean(recall_list)
-        avg_f1 = np.mean(f1_list)
-        avg_iou = np.mean(iou_list)
+            avg_score = np.mean(scores_list)
+            class_avg_scores = np.mean(class_scores_list, axis=0)
+            avg_scores_per_epoch.append(avg_score)
+            avg_precision = np.mean(precision_list)
+            avg_recall = np.mean(recall_list)
+            avg_f1 = np.mean(f1_list)
+            avg_iou = np.mean(iou_list)
 
-        print("\nAverage validation accuracy for epoch # %04d = %f"% (epoch, avg_score))
-        print("Average per class validation accuracies for epoch # %04d:"% (epoch))
-        for index, item in enumerate(class_avg_scores):
-            print("%s = %f" % (class_names_list[index], item))
-        print("Validation precision = ", avg_precision)
-        print("Validation recall = ", avg_recall)
-        print("Validation F1 score = ", avg_f1)
-        print("Validation IoU score = ", avg_iou)
+            print("\nAverage validation accuracy for epoch # %04d = %f"% (epoch, avg_score))
+            print("Average per class validation accuracies for epoch # %04d:"% (epoch))
+            for index, item in enumerate(class_avg_scores):
+                print("%s = %f" % (class_names_list[index], item))
+            print("Validation precision = ", avg_precision)
+            print("Validation recall = ", avg_recall)
+            print("Validation F1 score = ", avg_f1)
+            print("Validation IoU score = ", avg_iou)
 
         epoch_time=time.time()-epoch_st
         remain_time=epoch_time*(args.num_epochs-1-epoch)
