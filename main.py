@@ -42,11 +42,12 @@ parser.add_argument('--mode', type=str, default="train", help='Select "train", "
 parser.add_argument('--checkpoint_step', type=int, default=10, help='How often to save checkpoints (epochs)')
 parser.add_argument('--validation_step', type=int, default=1, help='How often to perform validation (epochs)')
 parser.add_argument('--class_balancing', type=str2bool, default=False, help='Whether to use median frequency class weights to balance the classes in the loss')
+parser.add_argument('--loss_func', type=str, default="cross_entropy", help='Which loss function to use (cross_entropy or lovasz)')
 parser.add_argument('--image', type=str, default=None, help='The image you want to predict on. Only valid in "predict" mode.')
 parser.add_argument('--continue_training', type=str2bool, default=False, help='Whether to continue training from a checkpoint')
 parser.add_argument('--dataset', type=str, default="CamVid", help='Dataset you are using.')
-parser.add_argument('--crop_height', type=int, default=256, help='Height of cropped input image to network')
-parser.add_argument('--crop_width', type=int, default=256, help='Width of cropped input image to network')
+parser.add_argument('--crop_height', type=int, default=512, help='Height of cropped input image to network')
+parser.add_argument('--crop_width', type=int, default=512, help='Width of cropped input image to network')
 parser.add_argument('--batch_size', type=int, default=1, help='Number of images in each batch')
 parser.add_argument('--num_val_images', type=int, default=10, help='The number of images to used for validations')
 parser.add_argument('--h_flip', type=str2bool, default=False, help='Whether to randomly flip the image horizontally for data augmentation')
@@ -145,53 +146,62 @@ if "Res101" in args.model and not os.path.isfile("models/resnet_v2_101.ckpt"):
 if "Res152" in args.model and not os.path.isfile("models/resnet_v2_152.ckpt"):
     download_checkpoints("Res152")
 
+# Compute your softmax cross entropy loss
+print("Preparing the model ...")
+net_input = tf.placeholder(tf.float32,shape=[None,None,None,3])
+net_output = tf.placeholder(tf.float32,shape=[None,None,None,num_classes]) 
+
 
 network = None
 init_fn = None
 if args.model == "FC-DenseNet56" or args.model == "FC-DenseNet67" or args.model == "FC-DenseNet103":
-    network = build_fc_densenet(input, preset_model = args.model, num_classes=num_classes)
+    network = build_fc_densenet(net_input, preset_model = args.model, num_classes=num_classes)
 elif args.model == "RefineNet-Res50" or args.model == "RefineNet-Res101" or args.model == "RefineNet-Res152":
     # RefineNet requires pre-trained ResNet weights
-    network, init_fn = build_refinenet(input, preset_model = args.model, num_classes=num_classes)
+    network, init_fn = build_refinenet(net_input, preset_model = args.model, num_classes=num_classes)
 elif args.model == "FRRN-A" or args.model == "FRRN-B":
-    network = build_frrn(input, preset_model = args.model, num_classes=num_classes)
+    network = build_frrn(net_input, preset_model = args.model, num_classes=num_classes)
 elif args.model == "Encoder-Decoder" or args.model == "Encoder-Decoder-Skip":
-    network = build_encoder_decoder(input, preset_model = args.model, num_classes=num_classes)
+    network = build_encoder_decoder(net_input, preset_model = args.model, num_classes=num_classes)
 elif args.model == "MobileUNet" or args.model == "MobileUNet-Skip":
-    network = build_mobile_unet(input, preset_model = args.model, num_classes=num_classes)
+    network = build_mobile_unet(net_input, preset_model = args.model, num_classes=num_classes)
 elif args.model == "PSPNet-Res50" or args.model == "PSPNet-Res101" or args.model == "PSPNet-Res152":
     # Image size is required for PSPNet
     # PSPNet requires pre-trained ResNet weights
-    network, init_fn = build_pspnet(input, label_size=[args.crop_height, args.crop_width], preset_model = args.model, num_classes=num_classes)
+    network, init_fn = build_pspnet(net_input, label_size=[args.crop_height, args.crop_width], preset_model = args.model, num_classes=num_classes)
 elif args.model == "GCN-Res50" or args.model == "GCN-Res101" or args.model == "GCN-Res152":
     # GCN requires pre-trained ResNet weights
-    network, init_fn = build_gcn(input, preset_model = args.model, num_classes=num_classes)
+    network, init_fn = build_gcn(net_input, preset_model = args.model, num_classes=num_classes)
 elif args.model == "DeepLabV3-Res50" or args.model == "DeepLabV3-Res101" or args.model == "DeepLabV3-Res152":
     # DeepLabV requires pre-trained ResNet weights
-    network, init_fn = build_deeplabv3(input, preset_model = args.model, num_classes=num_classes)
+    network, init_fn = build_deeplabv3(net_input, preset_model = args.model, num_classes=num_classes)
 elif args.model == "DeepLabV3_plus-Res50" or args.model == "DeepLabV3_plus-Res101" or args.model == "DeepLabV3_plus-Res152":
     # DeepLabV3+ requires pre-trained ResNet weights
-    network, init_fn = build_deeplabv3_plus(input, preset_model = args.model, num_classes=num_classes)
+    network, init_fn = build_deeplabv3_plus(net_input, preset_model = args.model, num_classes=num_classes)
 elif args.model == "AdapNet":
-    network = build_adaptnet(input, num_classes=num_classes)
+    network = build_adaptnet(net_input, num_classes=num_classes)
 elif args.model == "custom":
-    network = build_custom(input, num_classes)
+    network = build_custom(net_input, num_classes)
 else:
     raise ValueError("Error: the model %d is not available. Try checking which models are available using the command python main.py --help")
 
-# Compute your softmax cross entropy loss
-print("Preparing the model ...")
-input = tf.placeholder(tf.float32,shape=[None,None,None,3])
-output = tf.placeholder(tf.float32,shape=[None,None,None,num_classes]) 
 
-loss = None
+losses = None
 if args.class_balancing:
     print("Computing class weights for", args.dataset, "...")
     class_weights = utils.compute_class_weights(labels_dir=args.dataset + "/train_labels", label_values=label_values)
-    unweighted_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=output))
-    loss = tf.reduce_mean(unweighted_loss * class_weights)
+    unweighted_loss = None
+    if args.loss_func == "cross_entropy":
+        unweighted_loss = tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=net_output)
+    elif args.loss_func == "lovasz":
+        unweighted_loss = utils.lovasz_softmax(probas=network, labels=net_output)
+    losses = unweighted_loss * class_weights
 else:
-    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=output))
+    if args.loss_func == "cross_entropy":
+        losses = tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=net_output)
+    elif args.loss_func == "lovasz":
+        losses = utils.lovasz_softmax(probas=network, labels=net_output)
+loss = tf.reduce_mean(losses)
 
 opt = tf.train.AdamOptimizer(0.0001).minimize(loss, var_list=[var for var in tf.trainable_variables()])
 
@@ -300,7 +310,7 @@ if args.mode == "train":
                 output_image_batch = np.squeeze(np.stack(output_image_batch, axis=1))
 
             # Do the training
-            _,current=sess.run([opt,loss],feed_dict={input:input_image_batch,output:output_image_batch})
+            _,current=sess.run([opt,loss],feed_dict={net_input:input_image_batch,net_output:output_image_batch})
             current_losses.append(current)
             cnt = cnt + args.batch_size
             if cnt % 20 == 0:
@@ -347,7 +357,7 @@ if args.mode == "train":
 
                 # st = time.time()
 
-                output_image = sess.run(network,feed_dict={input:input_image})
+                output_image = sess.run(network,feed_dict={net_input:input_image})
                 
 
                 output_image = np.array(output_image[0,:,:,:])
@@ -464,7 +474,7 @@ elif args.mode == "test":
         gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, label_values))
 
         st = time.time()
-        output_image = sess.run(network,feed_dict={input:input_image})
+        output_image = sess.run(network,feed_dict={net_input:input_image})
 
         run_times_list.append(time.time()-st)
 
@@ -539,7 +549,7 @@ elif args.mode == "predict":
     input_image = np.expand_dims(np.float32(resized_image[:args.crop_height, :args.crop_width]),axis=0)/255.0
 
     st = time.time()
-    output_image = sess.run(network,feed_dict={input:input_image})
+    output_image = sess.run(network,feed_dict={net_input:input_image})
 
     run_time = time.time()-st
 

@@ -6,6 +6,8 @@
 
 - Added ICNet. **Note that I have added the ICNet achitecture code, but have not yet integrated it into the main. Still trying to figure out the best way to implement it with the auxillary loss. Suggestions are welcome.**
 
+- Added Lovasz loss. 
+
 **Coming Soon:**
 
 - Speed optimizations

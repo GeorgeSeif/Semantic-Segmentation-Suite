@@ -1,5 +1,4 @@
-from __future__ import print_function
-from __future__ import division
+from __future__ import print_function, division
 import os,time,cv2, sys, math
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
@@ -11,6 +10,8 @@ import ast
 from sklearn.metrics import precision_score, \
     recall_score, confusion_matrix, classification_report, \
     accuracy_score, f1_score
+
+import helpers
 
 
 # Takes an absolute file path and returns the name of the file without th extension
@@ -49,6 +50,88 @@ def mean_image_subtraction(inputs, means=[123.68, 116.78, 103.94]):
     for i in range(num_channels):
         channels[i] -= means[i]
     return tf.concat(axis=3, values=channels)
+
+def _lovasz_grad(gt_sorted):
+    """
+    Computes gradient of the Lovasz extension w.r.t sorted errors
+    See Alg. 1 in paper
+    """
+    gts = tf.reduce_sum(gt_sorted)
+    intersection = gts - tf.cumsum(gt_sorted)
+    union = gts + tf.cumsum(1. - gt_sorted)
+    jaccard = 1. - intersection / union
+    jaccard = tf.concat((jaccard[0:1], jaccard[1:] - jaccard[:-1]), 0)
+    return jaccard
+
+def _flatten_probas(probas, labels, ignore=None, order='BHWC'):
+    """
+    Flattens predictions in the batch
+    """
+    if order == 'BCHW':
+        probas = tf.transpose(probas, (0, 2, 3, 1), name="BCHW_to_BHWC")
+        order = 'BHWC'
+    if order != 'BHWC':
+        raise NotImplementedError('Order {} unknown'.format(order))
+    C = probas.shape[3]
+    probas = tf.reshape(probas, (-1, C))
+    labels = tf.reshape(labels, (-1,))
+    if ignore is None:
+        return probas, labels
+    valid = tf.not_equal(labels, ignore)
+    vprobas = tf.boolean_mask(probas, valid, name='valid_probas')
+    vlabels = tf.boolean_mask(labels, valid, name='valid_labels')
+    return vprobas, vlabels
+
+def _lovasz_softmax_flat(probas, labels, only_present=True):
+    """
+    Multi-class Lovasz-Softmax loss
+      probas: [P, C] Variable, class probabilities at each prediction (between 0 and 1)
+      labels: [P] Tensor, ground truth labels (between 0 and C - 1)
+      only_present: average only on classes present in ground truth
+    """
+    C = probas.shape[1]
+    losses = []
+    present = []
+    for c in range(C):
+        fg = tf.cast(tf.equal(labels, c), probas.dtype) # foreground for class c
+        if only_present:
+            present.append(tf.reduce_sum(fg) > 0)
+        errors = tf.abs(fg - probas[:, c])
+        errors_sorted, perm = tf.nn.top_k(errors, k=tf.shape(errors)[0], name="descending_sort_{}".format(c))
+        fg_sorted = tf.gather(fg, perm)
+        grad = _lovasz_grad(fg_sorted)
+        losses.append(
+            tf.tensordot(errors_sorted, tf.stop_gradient(grad), 1, name="loss_class_{}".format(c))
+                      )
+    losses_tensor = tf.stack(losses)
+    if only_present:
+        present = tf.stack(present)
+        losses_tensor = tf.boolean_mask(losses_tensor, present)
+    return losses_tensor
+
+def lovasz_softmax(probas, labels, only_present=True, per_image=False, ignore=None, order='BHWC'):
+    """
+    Multi-class Lovasz-Softmax loss
+      probas: [B, H, W, C] or [B, C, H, W] Variable, class probabilities at each prediction (between 0 and 1)
+      labels: [B, H, W] Tensor, ground truth labels (between 0 and C - 1)
+      only_present: average only on classes present in ground truth
+      per_image: compute the loss per image instead of per batch
+      ignore: void class labels
+      order: use BHWC or BCHW
+    """
+    probas = tf.nn.softmax(probas, 3)
+    labels = helpers.reverse_one_hot(labels)
+
+    if per_image:
+        def treat_image(prob, lab):
+            prob, lab = tf.expand_dims(prob, 0), tf.expand_dims(lab, 0)
+            prob, lab = _flatten_probas(prob, lab, ignore, order)
+            return _lovasz_softmax_flat(prob, lab, only_present=only_present)
+        losses = tf.map_fn(treat_image, (probas, labels), dtype=tf.float32)
+    else:
+        losses = _lovasz_softmax_flat(*_flatten_probas(probas, labels, ignore, order), only_present=only_present)
+    return losses
+
 
 # Randomly crop the image to a specific size. For data augmentation
 def random_crop(image, label, crop_height, crop_width):
