@@ -4,6 +4,8 @@
 
 **What's New:**
 
+- You can also check out my [Transfer Learning Suite](https://github.com/GeorgeSeif/Transfer-Learning-Suite).
+
 - Added ICNet. **Note that I have added the ICNet achitecture code, but have not yet integrated it into the main. Still trying to figure out the best way to implement it with the auxillary loss. Suggestions are welcome.**
 
 - Added Lovasz loss. 
@@ -31,6 +33,8 @@ This repository serves as a Semantic Segmentation Suite. The goal is to easily b
 - Plotting of loss function and accuracy over epochs
 
 **Any suggestions to improve this repository, including any new segmentation models you would like to see are welcome!**
+
+You can also check out my [Transfer Learning Suite](https://github.com/GeorgeSeif/Transfer-Learning-Suite).
 
 ## Models
 The following models are currently made available:
