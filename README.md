@@ -36,6 +36,10 @@ This repository serves as a Semantic Segmentation Suite. The goal is to easily b
 
 You can also check out my [Transfer Learning Suite](https://github.com/GeorgeSeif/Transfer-Learning-Suite).
 
+## Citing
+
+If you find this repository useful, please consider citing it using a link to the repo :)
+
 ## Models
 The following models are currently made available:
 
