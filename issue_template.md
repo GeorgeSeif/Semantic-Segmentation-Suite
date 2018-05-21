@@ -1,4 +1,4 @@
-Please fill out this issue template before submitting.
+Please fill out this issue template before submitting. **Issues which do not fill out this template, or are already answered in the FAQs will simply be closed.**
 
 Please go to Stack Overflow for help and support. Also check pasted issues as many are repeats. Also check out the Frequently Asked Questions (FAQs) below in case your question has already been answered in an issue!
 
