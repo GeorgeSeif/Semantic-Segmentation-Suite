@@ -7,7 +7,7 @@ import resnet_v2
 import os, sys
 
 def Upsampling(inputs,feature_map_shape):
-    return tf.image.resize_bilinear(inputs, size=feature_map_shape)
+    return tf.image.resize_bilinear(inputs, size=tf.cast(feature_map_shape, tf.int32))
 
 def ConvUpscaleBlock(inputs, n_filters, kernel_size=[3, 3], scale=2):
     """
