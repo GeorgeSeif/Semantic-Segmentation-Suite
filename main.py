@@ -202,8 +202,7 @@ if args.class_balancing:
         # your class weights
         class_weights = utils.compute_class_weights(labels_dir=args.dataset + "/train_labels", label_values=label_values)
         # deduce weights for batch samples based on their true label
-        # TODO: onehot_labels should be defined, right now, this part has issue and not working.
-        # weights = tf.reduce_sum(class_weights * onehot_labels, axis=1)
+        weights = tf.reduce_sum(class_weights * net_output, axis=1)
         unweighted_loss = None
         if args.loss_func == "cross_entropy":
             # compute your (unweighted) softmax cross entropy loss
