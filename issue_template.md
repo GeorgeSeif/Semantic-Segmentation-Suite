@@ -11,8 +11,9 @@ Issues should be one of the following:
 
 ### Information
 ## Please specify the following information when submitting an issue:
-- **What are your command line arguments?**
+- **What are your command line arguments?:**
 - **Have you written any custom code?**:
+- **What have you done to try and solve this issue?:**
 - **TensorFlow version?**:
 
 ### Describe the problem
