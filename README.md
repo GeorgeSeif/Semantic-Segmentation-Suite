@@ -12,9 +12,9 @@
 
 **Coming Soon:**
 
-- Speed optimizations
+- Speed optimizations with TF Records
 
-- Multi-GPU support
+- Support NASNet and MobileNet for segmentation models that use classification network front-ends
 
 - ResNet-DUC, ResNet-HDC models. Plus anything that comes out at CVPR 2018!
 
