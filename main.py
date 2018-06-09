@@ -112,8 +112,8 @@ def data_augmentation(input_image, output_image):
         angle = random.uniform(-1*args.rotation, args.rotation)
     if args.rotation:
         M = cv2.getRotationMatrix2D((input_image.shape[1]//2, input_image.shape[0]//2), angle, 1.0)
-        input_image = cv2.warpAffine(input_image, M, (input_image.shape[1], input_image.shape[0]), flags=INTER_NEAREST)
-        output_image = cv2.warpAffine(output_image, M, (output_image.shape[1], output_image.shape[0]), flags=INTER_NEAREST)
+        input_image = cv2.warpAffine(input_image, M, (input_image.shape[1], input_image.shape[0]), flags=cv2.INTER_NEAREST)
+        output_image = cv2.warpAffine(output_image, M, (output_image.shape[1], output_image.shape[0]), flags=cv2.INTER_NEAREST)
 
     return input_image, output_image
 
