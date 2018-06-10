@@ -9,9 +9,18 @@ import random
 import os, sys
 import subprocess
 
+from termcolor import colored
 
-import helpers 
-import utils 
+
+"""
+Sample usage:
+
+python main.py --num_epochs 50 --mode train --class_balancing True --dataset \
+AerialLane18 --batch_size 5 --num_val_images 50 --h_flip True --v_flip True --rotation 359 --model DeepLabV3_plus-Res50 \
+--validation_step 3 --checkpoint_step 3 --crop_height 1024 --crop_width 1024
+"""
+import helpers
+import utils
 
 import matplotlib.pyplot as plt
 
@@ -136,7 +145,7 @@ config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
 sess=tf.Session(config=config)
 
-# Get the selected model. 
+# Get the selected model.
 # Some of them require pre-trained ResNet
 
 if "Res50" in args.model and not os.path.isfile("models/resnet_v2_50.ckpt"):
@@ -149,7 +158,7 @@ if "Res152" in args.model and not os.path.isfile("models/resnet_v2_152.ckpt"):
 # Compute your softmax cross entropy loss
 print("Preparing the model ...")
 net_input = tf.placeholder(tf.float32,shape=[None,None,None,3])
-net_output = tf.placeholder(tf.float32,shape=[None,None,None,num_classes]) 
+net_output = tf.placeholder(tf.float32,shape=[None,None,None,num_classes])
 
 
 network = None
@@ -186,16 +195,33 @@ else:
     raise ValueError("Error: the model %d is not available. Try checking which models are available using the command python main.py --help")
 
 
-losses = None
 if args.class_balancing:
     print("Computing class weights for", args.dataset, "...")
-    class_weights = utils.compute_class_weights(labels_dir=args.dataset + "/train_labels", label_values=label_values)
-    unweighted_loss = None
-    if args.loss_func == "cross_entropy":
-        unweighted_loss = tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=net_output)
-    elif args.loss_func == "lovasz":
-        unweighted_loss = utils.lovasz_softmax(probas=network, labels=net_output)
-    losses = unweighted_loss * class_weights
+
+losses = None
+if args.class_balancing:
+    print(colored("Number of classes for "+args.dataset+" is: " + str(num_classes), 'green'))
+    if num_classes > 1:
+        print("Computing class weights for", args.dataset, "...")
+        # your class weights
+        class_weights = utils.compute_class_weights(labels_dir=args.dataset + "/train_labels", label_values=label_values)
+        # deduce weights for batch samples based on their true label
+        weights = tf.reduce_sum(class_weights * net_output, axis=-1)
+        unweighted_loss = None
+        if args.loss_func == "cross_entropy":
+            print(colored("Loss is cross_entropy", 'green'))
+            # compute your (unweighted) softmax cross entropy loss
+            unweighted_loss = tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=net_output)
+        elif args.loss_func == "lovasz":
+            # compute your (unweighted) softmax cross entropy loss
+            unweighted_loss = utils.lovasz_softmax(probas=network, labels=net_output)
+        # apply the weights, relying on broadcasting of the multiplication
+        losses = unweighted_loss * weights
+    else: # binary segmentation
+        print(colored("Computing weighted loss for binary segmentation for "+args.dataset+"...", 'green'))
+        if args.loss_func == "cross_entropy":
+            # TODO: pos_weight should be computed by utils.compute_class_weights
+            losses = tf.nn.weighted_cross_entropy_with_logits(logits=network, targets=net_output, pos_weight=40e+2)
 else:
     if args.loss_func == "cross_entropy":
         losses = tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=net_output)
@@ -216,7 +242,7 @@ if init_fn is not None:
     init_fn(sess)
 
 # Load a previous checkpoint if desired
-model_checkpoint_name = "checkpoints/latest_model_" + args.model + "_" + args.dataset + ".ckpt"
+model_checkpoint_name = "checkpoints_"+args.dataset+"/latest_model_" + args.model + "_" + args.dataset + ".ckpt"
 if args.continue_training or not args.mode == "train":
     print('Loaded latest model checkpoint')
     saver.restore(sess, model_checkpoint_name)
@@ -271,9 +297,9 @@ if args.mode == "train":
         epoch_st=time.time()
         for i in range(num_iters):
             # st=time.time()
-            
+
             input_image_batch = []
-            output_image_batch = [] 
+            output_image_batch = []
 
             # Collect a batch of images
             for j in range(args.batch_size):
@@ -289,19 +315,19 @@ if args.mode == "train":
                     # Prep the data. Make sure the labels are in one-hot format
                     input_image = np.float32(input_image) / 255.0
                     output_image = np.float32(helpers.one_hot_it(label=output_image, label_values=label_values))
-                    
+
                     input_image_batch.append(np.expand_dims(input_image, axis=0))
                     output_image_batch.append(np.expand_dims(output_image, axis=0))
 
             # ***** THIS CAUSES A MEMORY LEAK AS NEW TENSORS KEEP GETTING CREATED *****
-            # input_image = tf.image.crop_to_bounding_box(input_image, offset_height=0, offset_width=0, 
+            # input_image = tf.image.crop_to_bounding_box(input_image, offset_height=0, offset_width=0,
             #                                               target_height=args.crop_height, target_width=args.crop_width).eval(session=sess)
-            # output_image = tf.image.crop_to_bounding_box(output_image, offset_height=0, offset_width=0, 
+            # output_image = tf.image.crop_to_bounding_box(output_image, offset_height=0, offset_width=0,
             #                                               target_height=args.crop_height, target_width=args.crop_width).eval(session=sess)
             # ***** THIS CAUSES A MEMORY LEAK AS NEW TENSORS KEEP GETTING CREATED *****
 
             # memory()
-            
+
             if args.batch_size == 1:
                 input_image_batch = input_image_batch[0]
                 output_image_batch = output_image_batch[0]
@@ -314,16 +340,16 @@ if args.mode == "train":
             current_losses.append(current)
             cnt = cnt + args.batch_size
             if cnt % 20 == 0:
-                string_print = "Epoch = %d Count = %d Current_Loss = %.4f Time = %.2f"%(epoch,cnt,current,time.time()-st)
+                string_print = "Epoch = %d Count = %d Current_Loss = %.8f Time = %.2f"%(epoch,cnt,current,time.time()-st)
                 utils.LOG(string_print)
                 st = time.time()
 
         mean_loss = np.mean(current_losses)
         avg_loss_per_epoch.append(mean_loss)
-        
+
         # Create directories if needed
-        if not os.path.isdir("%s/%04d"%("checkpoints",epoch)):
-            os.makedirs("%s/%04d"%("checkpoints",epoch))
+        if not os.path.isdir("%s/%04d"%("checkpoints_"+args.dataset,epoch)):
+            os.makedirs("%s/%04d"%("checkpoints_"+args.dataset,epoch))
 
         # Save latest checkpoint to same file name
         print("Saving latest checkpoint")
@@ -331,12 +357,12 @@ if args.mode == "train":
 
         if val_indices != 0 and epoch % args.checkpoint_step == 0:
             print("Saving checkpoint for this epoch")
-            saver.save(sess,"%s/%04d/model.ckpt"%("checkpoints",epoch))
+            saver.save(sess,"%s/%04d/model.ckpt"%("checkpoints_"+args.dataset,epoch))
 
 
         if epoch % args.validation_step == 0:
             print("Performing validation")
-            target=open("%s/%04d/val_scores.csv"%("checkpoints",epoch),'w')
+            target=open("%s/%04d/val_scores.csv"%("checkpoints_"+args.dataset,epoch),'w')
             target.write("val_name, avg_accuracy, precision, recall, f1 score, mean iou, %s\n" % (class_names_string))
 
 
@@ -350,7 +376,7 @@ if args.mode == "train":
 
             # Do the validation on a small set of validation images
             for ind in val_indices:
-                
+
                 input_image = np.expand_dims(np.float32(load_image(val_input_names[ind])[:args.crop_height, :args.crop_width]),axis=0)/255.0
                 gt = load_image(val_output_names[ind])[:args.crop_height, :args.crop_width]
                 gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, label_values))
@@ -358,14 +384,14 @@ if args.mode == "train":
                 # st = time.time()
 
                 output_image = sess.run(network,feed_dict={net_input:input_image})
-                
+
 
                 output_image = np.array(output_image[0,:,:,:])
                 output_image = helpers.reverse_one_hot(output_image)
                 out_vis_image = helpers.colour_code_segmentation(output_image, label_values)
 
                 accuracy, class_accuracies, prec, rec, f1, iou = utils.evaluate_segmentation(pred=output_image, label=gt, num_classes=num_classes)
-            
+
                 file_name = utils.filepath_to_name(val_input_names[ind])
                 target.write("%s, %f, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1, iou))
                 for item in class_accuracies:
@@ -378,13 +404,13 @@ if args.mode == "train":
                 recall_list.append(rec)
                 f1_list.append(f1)
                 iou_list.append(iou)
-                
+
                 gt = helpers.colour_code_segmentation(gt, label_values)
-     
+
                 file_name = os.path.basename(val_input_names[ind])
                 file_name = os.path.splitext(file_name)[0]
-                cv2.imwrite("%s/%04d/%s_pred.png"%("checkpoints",epoch, file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
-                cv2.imwrite("%s/%04d/%s_gt.png"%("checkpoints",epoch, file_name),cv2.cvtColor(np.uint8(gt), cv2.COLOR_RGB2BGR))
+                cv2.imwrite("%s/%04d/%s_pred.png"%("checkpoints_"+args.dataset,epoch, file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
+                cv2.imwrite("%s/%04d/%s_gt.png"%("checkpoints_"+args.dataset,epoch, file_name),cv2.cvtColor(np.uint8(gt), cv2.COLOR_RGB2BGR))
 
 
             target.close()
@@ -420,7 +446,7 @@ if args.mode == "train":
     fig = plt.figure(figsize=(11,8))
     ax1 = fig.add_subplot(111)
 
-    
+
     ax1.plot(range(args.num_epochs), avg_scores_per_epoch)
     ax1.set_title("Average validation accuracy vs epochs")
     ax1.set_xlabel("Epoch")
@@ -433,7 +459,7 @@ if args.mode == "train":
 
     ax1 = fig.add_subplot(111)
 
-    
+
     ax1.plot(range(args.num_epochs), avg_loss_per_epoch)
     ax1.set_title("Average loss vs epochs")
     ax1.set_xlabel("Epoch")
@@ -483,7 +509,7 @@ elif args.mode == "test":
         out_vis_image = helpers.colour_code_segmentation(output_image, label_values)
 
         accuracy, class_accuracies, prec, rec, f1, iou = utils.evaluate_segmentation(pred=output_image, label=gt, num_classes=num_classes)
-    
+
         file_name = utils.filepath_to_name(val_input_names[ind])
         target.write("%s, %f, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1, iou))
         for item in class_accuracies:
@@ -496,7 +522,7 @@ elif args.mode == "test":
         recall_list.append(rec)
         f1_list.append(f1)
         iou_list.append(iou)
-        
+
         gt = helpers.colour_code_segmentation(gt, label_values)
 
         cv2.imwrite("%s/%s_pred.png"%("Val", file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
@@ -536,7 +562,7 @@ elif args.mode == "predict":
     print("Num Classes -->", num_classes)
     print("Image -->", args.image)
     print("")
-    
+
     sys.stdout.write("Testing image " + args.image)
     sys.stdout.flush()
 
