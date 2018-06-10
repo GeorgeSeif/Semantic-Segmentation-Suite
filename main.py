@@ -201,7 +201,7 @@ if args.class_balancing:
 losses = None
 if args.class_balancing:
     print(colored("Number of classes for "+args.dataset+" is: " + str(num_classes), 'green'))
-    if num_classes > 1:
+    if num_classes > 2: #multi-class segmentation
         print("Computing class weights for", args.dataset, "...")
         # your class weights
         class_weights = utils.compute_class_weights(labels_dir=args.dataset + "/train_labels", label_values=label_values)
@@ -219,9 +219,14 @@ if args.class_balancing:
         losses = unweighted_loss * weights
     else: # binary segmentation
         print(colored("Computing weighted loss for binary segmentation for "+args.dataset+"...", 'green'))
+        print("Computing class weights for", args.dataset, "...")
+        # your class weights
+        class_weights = utils.compute_class_weights(labels_dir=args.dataset + "/train_labels", label_values=label_values)
+        # in case class 1 is the minority class.
+        pos_weight = class_weights[0] / class_weights[1]
         if args.loss_func == "cross_entropy":
             # TODO: pos_weight should be computed by utils.compute_class_weights
-            losses = tf.nn.weighted_cross_entropy_with_logits(logits=network, targets=net_output, pos_weight=40e+2)
+            losses = tf.nn.weighted_cross_entropy_with_logits(logits=network, targets=net_output, pos_weight=pos_weight)
 else:
     if args.loss_func == "cross_entropy":
         losses = tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=net_output)
