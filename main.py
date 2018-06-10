@@ -201,7 +201,7 @@ if args.class_balancing:
 losses = None
 if args.class_balancing:
     print(colored("Number of classes for "+args.dataset+" is: " + str(num_classes), 'green'))
-    if num_classes > 1:
+    if num_classes > 2: #multi-class segmentation
         print("Computing class weights for", args.dataset, "...")
         # your class weights
         class_weights = utils.compute_class_weights(labels_dir=args.dataset + "/train_labels", label_values=label_values)
