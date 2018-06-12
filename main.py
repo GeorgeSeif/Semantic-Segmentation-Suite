@@ -190,6 +190,7 @@ losses = None
 if args.class_balancing:
     print("Computing class weights for", args.dataset, "...")
     class_weights = utils.compute_class_weights(labels_dir=args.dataset + "/train_labels", label_values=label_values)
+    weights = tf.reduce_sum(class_weights * net_output, axis=-1)
     unweighted_loss = None
     if args.loss_func == "cross_entropy":
         unweighted_loss = tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=net_output)
