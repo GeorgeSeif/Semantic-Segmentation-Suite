@@ -8,15 +8,15 @@
 
 - Added ICNet. **Note that I have added the ICNet achitecture code, but have not yet integrated it into the main. Still trying to figure out the best way to implement it with the auxillary loss. Suggestions are welcome.**
 
-- Added Lovasz loss. 
-
 **Coming Soon:**
 
 - Speed optimizations with TF Records
 
 - Support NASNet and MobileNet for segmentation models that use classification network front-ends
 
-- ResNet-DUC, ResNet-HDC models. Plus anything that comes out at CVPR 2018!
+- Anything that comes out at CVPR 2018!
+
+- Support for exporting inference graph.
 
 - Optional mean IoU calculations: "micro", "macro", "weighted"
 
@@ -49,7 +49,7 @@ The following models are currently made available:
 
 - [Mobile UNet for Semantic Segmentation](https://arxiv.org/abs/1704.04861). Combining the ideas of MobileNets Depthwise Separable Convolutions with UNet to build a high speed, low parameter Semantic Segmentation model.
 
-- [Pyramid Scene Parsing Network](https://arxiv.org/abs/1612.01105). In this paper, the capability of global context information by different-region based context aggregation is applied through a pyramid pooling module together with the proposed pyramid scene parsing network (PSPNet).
+- [Pyramid Scene Parsing Network](https://arxiv.org/abs/1612.01105). In this paper, the capability of global context information by different-region based context aggregation is applied through a pyramid pooling module together with the proposed pyramid scene parsing network (PSPNet). **Note that the original PSPNet uses a ResNet with dilated convolutions, but the one is this respository has only a regular ResNet.**
 
 - [The One Hundred Layers Tiramisu: Fully Convolutional DenseNets for Semantic Segmentation](https://arxiv.org/abs/1611.09326). Uses a downsampling-upsampling style encoder-decoder network. Each stage i.e between the pooling layers uses dense blocks. In addition, it concatenated skip connections from the encoder to the decoder. In the code, this is the FC-DenseNet model.
 
