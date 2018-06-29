@@ -105,7 +105,7 @@ def data_augmentation(input_image, output_image):
         input_image = cv2.flip(input_image, 0)
         output_image = cv2.flip(output_image, 0)
     if args.brightness:
-        factor = 1.0 + random.uniform(-1.0*self.brightness, self.brightness)
+        factor = 1.0 + random.uniform(-1.0*args.brightness, args.brightness)
         table = np.array([((i / 255.0) * factor) * 255 for i in np.arange(0, 256)]).astype(np.uint8)
         input_image = cv2.LUT(input_image, table)
     if args.rotation:
