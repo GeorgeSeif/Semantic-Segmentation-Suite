@@ -42,7 +42,6 @@ parser.add_argument('--mode', type=str, default="train", help='Select "train", "
 parser.add_argument('--checkpoint_step', type=int, default=10, help='How often to save checkpoints (epochs)')
 parser.add_argument('--validation_step', type=int, default=1, help='How often to perform validation (epochs)')
 parser.add_argument('--class_balancing', type=str2bool, default=False, help='Whether to use median frequency class weights to balance the classes in the loss')
-parser.add_argument('--loss_func', type=str, default="cross_entropy", help='Which loss function to use (cross_entropy or lovasz)')
 parser.add_argument('--image', type=str, default=None, help='The image you want to predict on. Only valid in "predict" mode.')
 parser.add_argument('--continue_training', type=str2bool, default=False, help='Whether to continue training from a checkpoint')
 parser.add_argument('--dataset', type=str, default="CamVid", help='Dataset you are using.')
@@ -192,16 +191,10 @@ if args.class_balancing:
     class_weights = utils.compute_class_weights(labels_dir=args.dataset + "/train_labels", label_values=label_values)
     weights = tf.reduce_sum(class_weights * net_output, axis=-1)
     unweighted_loss = None
-    if args.loss_func == "cross_entropy":
-        unweighted_loss = tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=net_output)
-    elif args.loss_func == "lovasz":
-        unweighted_loss = utils.lovasz_softmax(probas=network, labels=net_output)
+    unweighted_loss = tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=net_output)
     losses = unweighted_loss * class_weights
 else:
-    if args.loss_func == "cross_entropy":
-        losses = tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=net_output)
-    elif args.loss_func == "lovasz":
-        losses = utils.lovasz_softmax(probas=network, labels=net_output)
+    losses = tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=net_output)
 loss = tf.reduce_mean(losses)
 
 opt = tf.train.AdamOptimizer(0.0001).minimize(loss, var_list=[var for var in tf.trainable_variables()])
