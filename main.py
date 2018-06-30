@@ -456,7 +456,7 @@ elif args.mode == "test":
             os.makedirs("%s"%("Val"))
 
     target=open("%s/val_scores.csv"%("Val"),'w')
-    target.write("val_name, avg_accuracy, precision, recall, f1 score, mean iou %s\n" % (class_names_string))
+    target.write("val_name, avg_accuracy, precision, recall, f1 score, mean iou, %s\n" % (class_names_string))
     scores_list = []
     class_scores_list = []
     precision_list = []
