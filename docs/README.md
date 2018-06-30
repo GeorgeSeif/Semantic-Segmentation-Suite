@@ -12,7 +12,7 @@
 
 - Speed optimizations with TF Records
 
-- Support NASNet and MobileNet for segmentation models that use classification network front-ends
+- Support NASNet, MobileNet, Dilated ResNet for segmentation models that use classification network front-ends
 
 - Anything that comes out at CVPR 2018!
 
