@@ -44,7 +44,7 @@ parser.add_argument('--validation_step', type=int, default=1, help='How often to
 parser.add_argument('--class_balancing', type=str2bool, default=False, help='Whether to use median frequency class weights to balance the classes in the loss')
 parser.add_argument('--image', type=str, default=None, help='The image you want to predict on. Only valid in "predict" mode.')
 parser.add_argument('--continue_training', type=str2bool, default=False, help='Whether to continue training from a checkpoint')
-parser.add_argument('--dataset', type=str, default="CamVid", help='Dataset you are using.')
+parser.add_argument('--dataset', type=str, default="datasets/CamVid", help='Dataset you are using.')
 parser.add_argument('--crop_height', type=int, default=512, help='Height of cropped input image to network')
 parser.add_argument('--crop_width', type=int, default=512, help='Width of cropped input image to network')
 parser.add_argument('--batch_size', type=int, default=1, help='Number of images in each batch')
@@ -58,6 +58,18 @@ parser.add_argument('--model', type=str, default="FC-DenseNet56", help='The mode
     FRRN-A, FRRN-B, MobileUNet, MobileUNet-Skip, PSPNet-Res50, PSPNet-Res101, PSPNet-Res152, GCN-Res50, GCN-Res101, GCN-Res152, DeepLabV3-Res50 \
     DeepLabV3-Res101, DeepLabV3-Res152, DeepLabV3_plus-Res50, DeepLabV3_plus-Res101, DeepLabV3_plus-Res152, AdapNet, custom')
 args = parser.parse_args()
+
+def validate_arguments(args):
+    #don't waste time on invalid inputs
+    if args.mode == "predict":
+        if args.image is None:
+            print("Error: --image is a required parameter for prediction")
+            return False
+        elif not os.path.isfile(args.image):
+            print("Error: image file does not exist at path %s" % args.image)
+            return False
+    return True
+
 
 # Get a list of the training, validation, and testing file paths
 def prepare_data(dataset_dir=args.dataset):
@@ -119,9 +131,7 @@ def data_augmentation(input_image, output_image):
 def download_checkpoints(model_name):
     subprocess.check_output(["python", "get_pretrained_checkpoints.py", "--model=" + model_name])
 
-
-if args.mode == "predict" and args.image is None:
-    print("Error: --image is a required parameter for prediction")
+if not validate_arguments(args):
     exit()
 
 # Get the names of the classes so we can record the evaluation results
@@ -214,7 +224,7 @@ if init_fn is not None:
     init_fn(sess)
 
 # Load a previous checkpoint if desired
-model_checkpoint_name = "checkpoints/latest_model_" + args.model + "_" + args.dataset + ".ckpt"
+model_checkpoint_name = "checkpoints/latest_model_" + args.model + "_" + os.path.basename(args.dataset) + ".ckpt"
 if args.continue_training or not args.mode == "train":
     print('Loaded latest model checkpoint')
     saver.restore(sess, model_checkpoint_name)
@@ -555,7 +565,7 @@ elif args.mode == "predict":
     output_image = helpers.reverse_one_hot(output_image)
 
     # this needs to get generalized
-    class_names_list, label_values = helpers.get_label_info(os.path.join("CamVid", "class_dict.csv"))
+    class_names_list, label_values = helpers.get_label_info(os.path.join(args.dataset, "class_dict.csv"))
 
     out_vis_image = helpers.colour_code_segmentation(output_image, label_values)
     file_name = utils.filepath_to_name(args.image)
