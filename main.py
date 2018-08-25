@@ -120,6 +120,10 @@ def download_checkpoints(model_name):
     subprocess.check_output(["python", "get_pretrained_checkpoints.py", "--model=" + model_name])
 
 
+if args.mode == "predict" and args.image is None:
+    print("Error: --image is a required parameter for prediction")
+    exit()
+
 # Get the names of the classes so we can record the evaluation results
 class_names_list, label_values = helpers.get_label_info(os.path.join(args.dataset, "class_dict.csv"))
 class_names_string = ""
