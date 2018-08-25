@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.contrib import slim
-import resnet_v2
+import frontend_builder
 import os, sys
 
 def Upsampling(inputs,scale):
@@ -142,7 +142,7 @@ def RefineBlock(high_inputs=None,low_inputs=None):
 
 
 
-def build_refinenet(inputs, num_classes, preset_model='RefineNet-Res101', weight_decay=1e-5, is_training=True, upscaling_method="bilinear", pretrained_dir="models"):
+def build_refinenet(inputs, num_classes, preset_model='RefineNet', frontend="Res101", weight_decay=1e-5, upscaling_method="bilinear", pretrained_dir="models"):
     """
     Builds the RefineNet model. 
 
@@ -155,23 +155,7 @@ def build_refinenet(inputs, num_classes, preset_model='RefineNet-Res101', weight
       RefineNet model
     """
 
-    if preset_model == 'RefineNet-Res50':
-        with slim.arg_scope(resnet_v2.resnet_arg_scope(weight_decay=weight_decay)):
-            logits, end_points = resnet_v2.resnet_v2_50(inputs, is_training=is_training, scope='resnet_v2_50')
-            # RefineNet requires pre-trained ResNet weights
-            init_fn = slim.assign_from_checkpoint_fn(os.path.join(pretrained_dir, 'resnet_v2_50.ckpt'), slim.get_model_variables('resnet_v2_50'))
-    elif preset_model == 'RefineNet-Res101':
-        with slim.arg_scope(resnet_v2.resnet_arg_scope(weight_decay=weight_decay)):
-            logits, end_points = resnet_v2.resnet_v2_101(inputs, is_training=is_training, scope='resnet_v2_101')
-            # RefineNet requires pre-trained ResNet weights
-            init_fn = slim.assign_from_checkpoint_fn(os.path.join(pretrained_dir, 'resnet_v2_101.ckpt'), slim.get_model_variables('resnet_v2_101'))
-    elif preset_model == 'RefineNet-Res152':
-        with slim.arg_scope(resnet_v2.resnet_arg_scope(weight_decay=weight_decay)):
-            logits, end_points = resnet_v2.resnet_v2_152(inputs, is_training=is_training, scope='resnet_v2_152')
-            # RefineNet requires pre-trained ResNet weights
-            init_fn = slim.assign_from_checkpoint_fn(os.path.join(pretrained_dir, 'resnet_v2_152.ckpt'), slim.get_model_variables('resnet_v2_152'))
-    else:
-    	raise ValueError("Unsupported ResNet model '%s'. This function only supports ResNet 101 and ResNet 152" % (preset_model))
+    logits, end_points, frontend_scope, init_fn  = frontend_builder.build_frontend(inputs, frontend, is_training=is_training)
 
     
 

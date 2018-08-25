@@ -4,21 +4,21 @@
 
 **What's New:**
 
+- Plotting for every epoch, similar to Tensorboard
+
+- Code restructuring. Much easier to expand and debug **You can now set the segmentation model and frontend to use (ResNet50, ResNet101, etc) separately as command line arguments. See the updated usage section below**
+
 - You can also check out my [Transfer Learning Suite](https://github.com/GeorgeSeif/Transfer-Learning-Suite).
 
 - Added ICNet. **Note that I have added the ICNet achitecture code, but have not yet integrated it into the main. Still trying to figure out the best way to implement it with the auxillary loss. Suggestions are welcome.**
 
 **Coming Soon:**
 
-- Speed optimizations with TF Records
-
 - Support NASNet, MobileNet, Dilated ResNet for segmentation models that use classification network front-ends
 
 - Anything that comes out at CVPR 2018!
 
 - Support for exporting inference graph.
-
-- Optional mean IoU calculations: "micro", "macro", "weighted"
 
 Open up an issue to suggest a new feature or improvement!
 
@@ -82,8 +82,6 @@ to obtain robust features for recognition. The two streams are coupled at the fu
 - **helper.py:** Quick helper functions for data preparation and visualization
 
 - **utils.py:** Utilities for printing, debugging, testing, and evaluation
-
-- **get_pretrained_checkpoints.py:** Downloads the pre-trained ResNet V2 weights for ResNet50, ResNet101, and ResNet152
 
 - **models:** Folder containing all model files. Use this to build your models, or use a pre-built one
 
@@ -154,23 +152,26 @@ Wall,64, 192, 0
 
 **Note:** If you are using any of the networks that rely on a pre-trained ResNet, then you will need to download the pre-trained weights using the provided script. These are currently: PSPNet, RefineNet, DeepLabV3, DeepLabV3+, GCN.
 
-Then you can simply run `main.py`! Check out the optional command line arguments:
+Then you can simply run `train.py`! Check out the optional command line arguments:
 
 ```
-usage: main.py [-h] [--num_epochs NUM_EPOCHS] [--mode MODE] [--image IMAGE]
-               [--continue_training CONTINUE_TRAINING] [--dataset DATASET]
-               [--crop_height CROP_HEIGHT] [--crop_width CROP_WIDTH]
-               [--batch_size BATCH_SIZE] [--num_val_images NUM_VAL_IMAGES]
-               [--h_flip H_FLIP] [--v_flip V_FLIP] [--brightness BRIGHTNESS]
-               [--rotation ROTATION] [--zoom ZOOM] [--model MODEL]
+usage: train.py [-h] [--num_epochs NUM_EPOCHS]
+                [--checkpoint_step CHECKPOINT_STEP]
+                [--validation_step VALIDATION_STEP] [--image IMAGE]
+                [--continue_training CONTINUE_TRAINING] [--dataset DATASET]
+                [--crop_height CROP_HEIGHT] [--crop_width CROP_WIDTH]
+                [--batch_size BATCH_SIZE] [--num_val_images NUM_VAL_IMAGES]
+                [--h_flip H_FLIP] [--v_flip V_FLIP] [--brightness BRIGHTNESS]
+                [--rotation ROTATION] [--model MODEL] [--frontend FRONTEND]
 
 optional arguments:
   -h, --help            show this help message and exit
   --num_epochs NUM_EPOCHS
                         Number of epochs to train for
-  --mode MODE           Select "train", "test", or "predict" mode. Note that
-                        for prediction mode you have to specify an image to
-                        run the model on.
+  --checkpoint_step CHECKPOINT_STEP
+                        How often to save checkpoints (epochs)
+  --validation_step VALIDATION_STEP
+                        How often to perform validation (epochs)
   --image IMAGE         The image you want to predict on. Only valid in
                         "predict" mode.
   --continue_training CONTINUE_TRAINING
@@ -190,17 +191,16 @@ optional arguments:
                         augmentation
   --brightness BRIGHTNESS
                         Whether to randomly change the image brightness for
-                        data augmentation
+                        data augmentation. Specifies the max bightness change
+                        as a factor between 0.0 and 1.0. For example, 0.1
+                        represents a max brightness change of 10% (+-).
   --rotation ROTATION   Whether to randomly rotate the image for data
-                        augmentation
-  --zoom ZOOM           Whether to randomly zoom in for data augmentation
-  --model MODEL         The model you are using. Currently supports: FC-
-                        DenseNet56, FC-DenseNet67, FC-DenseNet103, Encoder-
-                        Decoder, Encoder-Decoder-Skip, RefineNet-Res50,
-                        RefineNet-Res101, RefineNet-Res152, FRRN-A, FRRN-B,
-                        MobileUNet, MobileUNet-Skip, PSPNet-Res50, PSPNet-
-                        Res101, PSPNet-Res152, GCN-Res50, GCN-Res101, GCN-
-                        Res152, custom
+                        augmentation. Specifies the max rotation angle in
+                        degrees.
+  --model MODEL         The model you are using. See model_builder.py for
+                        supported models
+  --frontend FRONTEND   The frontend you are using. See frontend_builder.py
+                        for supported models
 
 ```
     

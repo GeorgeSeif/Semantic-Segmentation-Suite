@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow.contrib import slim
 import numpy as np
-import resnet_v2
+import frontend_builder
 import os, sys
 
 def Upsampling_by_shape(inputs, feature_map_shape):
@@ -74,7 +74,7 @@ def CFFBlock(F1, F2, num_classes):
 
 
 def build_icnet(inputs, label_size, num_classes, preset_model='ICNet-Res50', pooling_type = "MAX",
-    weight_decay=1e-5, is_training=True, pretrained_dir="models"):
+    frontend="Res101", weight_decay=1e-5, is_training=True, pretrained_dir="models"):
     """
     Builds the ICNet model. 
 
@@ -93,7 +93,7 @@ def build_icnet(inputs, label_size, num_classes, preset_model='ICNet-Res50', poo
     inputs_2 = tf.image.resize_bilinear(inputs, size=[tf.shape(inputs)[1]*2,  tf.shape(inputs)[2]*2])
     inputs_1 = inputs
 
-    if preset_model == 'ICNet-Res50':
+    if frontend == 'Res50':
         with slim.arg_scope(resnet_v2.resnet_arg_scope(weight_decay=weight_decay)):
             logits_32, end_points_32 = resnet_v2.resnet_v2_50(inputs_4, is_training=is_training, scope='resnet_v2_50')
             logits_16, end_points_16 = resnet_v2.resnet_v2_50(inputs_2, is_training=is_training, scope='resnet_v2_50')
@@ -101,7 +101,7 @@ def build_icnet(inputs, label_size, num_classes, preset_model='ICNet-Res50', poo
             resnet_scope='resnet_v2_50'
             # ICNet requires pre-trained ResNet weights
             init_fn = slim.assign_from_checkpoint_fn(os.path.join(pretrained_dir, 'resnet_v2_50.ckpt'), slim.get_model_variables('resnet_v2_50'))
-    elif preset_model == 'ICNet-Res101':
+    elif frontend == 'Res101':
         with slim.arg_scope(resnet_v2.resnet_arg_scope(weight_decay=weight_decay)):
             logits_32, end_points_32 = resnet_v2.resnet_v2_101(inputs_4, is_training=is_training, scope='resnet_v2_101')
             logits_16, end_points_16 = resnet_v2.resnet_v2_101(inputs_2, is_training=is_training, scope='resnet_v2_101')
@@ -109,7 +109,7 @@ def build_icnet(inputs, label_size, num_classes, preset_model='ICNet-Res50', poo
             resnet_scope='resnet_v2_101'
             # ICNet requires pre-trained ResNet weights
             init_fn = slim.assign_from_checkpoint_fn(os.path.join(pretrained_dir, 'resnet_v2_101.ckpt'), slim.get_model_variables('resnet_v2_101'))
-    elif preset_model == 'ICNet-Res152':
+    elif frontend == 'Res152':
         with slim.arg_scope(resnet_v2.resnet_arg_scope(weight_decay=weight_decay)):
             logits_32, end_points_32 = resnet_v2.resnet_v2_152(inputs_4, is_training=is_training, scope='resnet_v2_152')
             logits_16, end_points_16 = resnet_v2.resnet_v2_152(inputs_2, is_training=is_training, scope='resnet_v2_152')
@@ -118,7 +118,7 @@ def build_icnet(inputs, label_size, num_classes, preset_model='ICNet-Res50', poo
             # ICNet requires pre-trained ResNet weights
             init_fn = slim.assign_from_checkpoint_fn(os.path.join(pretrained_dir, 'resnet_v2_152.ckpt'), slim.get_model_variables('resnet_v2_152'))
     else:
-        raise ValueError("Unsupported ResNet model '%s'. This function only supports ResNet 50, ResNet 101, and ResNet 152" % (preset_model))
+        raise ValueError("Unsupported ResNet model '%s'. This function only supports ResNet 50, ResNet 101, and ResNet 152" % (frontend))
 
 
 
