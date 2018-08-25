@@ -87,5 +87,11 @@ if args.model == "Res152" or args.model == "ALL":
 	subprocess.check_output(['mv', 'resnet_v2_152.ckpt', 'models'])
 	subprocess.check_output(['rm', 'resnet_v2_152_2017_04_14.tar.gz'])
 
+if args.model == "Mobile" or args.model == "ALL":
+	subprocess.check_output(['wget','https://storage.googleapis.com/mobilenet_v2/checkpoints/mobilenet_v2_1.4_224.tgz'])
+	subprocess.check_output(['tar', '-xvf', 'mobilenet_v2_1.4_224.tar.gz'])
+	subprocess.check_output(['mv', 'mobilenet_v2_1.4_224.ckpt', 'models'])
+	subprocess.check_output(['rm', 'mobilenet_v2_1.4_224.tar.gz'])
+
 subprocess.check_output(['rm', 'train.graph'])
 subprocess.check_output(['rm', 'eval.graph'])

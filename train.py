@@ -107,202 +107,202 @@ if init_fn is not None:
 
 # Load a previous checkpoint if desired
 model_checkpoint_name = "checkpoints/latest_model_" + args.model + "_" + args.dataset + ".ckpt"
-if args.continue_training or not args.mode == "train":
+if args.continue_training:
     print('Loaded latest model checkpoint')
     saver.restore(sess, model_checkpoint_name)
-
-avg_scores_per_epoch = []
 
 # Load the data
 print("Loading the data ...")
 train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names = utils.prepare_data(dataset_dir=args.dataset)
 
-if args.mode == "train":
-
-    print("\n***** Begin training *****")
-    print("Dataset -->", args.dataset)
-    print("Model -->", args.model)
-    print("Crop Height -->", args.crop_height)
-    print("Crop Width -->", args.crop_width)
-    print("Num Epochs -->", args.num_epochs)
-    print("Batch Size -->", args.batch_size)
-    print("Num Classes -->", num_classes)
-
-    print("Data Augmentation:")
-    print("\tVertical Flip -->", args.v_flip)
-    print("\tHorizontal Flip -->", args.h_flip)
-    print("\tBrightness Alteration -->", args.brightness)
-    print("\tRotation -->", args.rotation)
-    print("")
-
-    avg_loss_per_epoch = []
-
-    # Which validation images do we want
-    val_indices = []
-    num_vals = min(args.num_val_images, len(val_input_names))
-
-    # Set random seed to make sure models are validated on the same validation images.
-    # So you can compare the results of different models more intuitively.
-    random.seed(16)
-    val_indices=random.sample(range(0,len(val_input_names)),num_vals)
-
-    # Do the training here
-    for epoch in range(0, args.num_epochs):
-
-        current_losses = []
-
-        cnt=0
-
-        # Equivalent to shuffling
-        id_list = np.random.permutation(len(train_input_names))
-
-        num_iters = int(np.floor(len(id_list) / args.batch_size))
-        st = time.time()
-        epoch_st=time.time()
-        for i in range(num_iters):
-            # st=time.time()
-            
-            input_image_batch = []
-            output_image_batch = [] 
-
-            # Collect a batch of images
-            for j in range(args.batch_size):
-                index = i*args.batch_size + j
-                id = id_list[index]
-                input_image = utils.load_image(train_input_names[id])
-                output_image = utils.load_image(train_output_names[id])
-
-                with tf.device('/cpu:0'):
-                    input_image, output_image = data_augmentation(input_image, output_image)
 
 
-                    # Prep the data. Make sure the labels are in one-hot format
-                    input_image = np.float32(input_image) / 255.0
-                    output_image = np.float32(helpers.one_hot_it(label=output_image, label_values=label_values))
-                    
-                    input_image_batch.append(np.expand_dims(input_image, axis=0))
-                    output_image_batch.append(np.expand_dims(output_image, axis=0))
-            
-            if args.batch_size == 1:
-                input_image_batch = input_image_batch[0]
-                output_image_batch = output_image_batch[0]
-            else:
-                input_image_batch = np.squeeze(np.stack(input_image_batch, axis=1))
-                output_image_batch = np.squeeze(np.stack(output_image_batch, axis=1))
+print("\n***** Begin training *****")
+print("Dataset -->", args.dataset)
+print("Model -->", args.model)
+print("Crop Height -->", args.crop_height)
+print("Crop Width -->", args.crop_width)
+print("Num Epochs -->", args.num_epochs)
+print("Batch Size -->", args.batch_size)
+print("Num Classes -->", num_classes)
 
-            # Do the training
-            _,current=sess.run([opt,loss],feed_dict={net_input:input_image_batch,net_output:output_image_batch})
-            current_losses.append(current)
-            cnt = cnt + args.batch_size
-            if cnt % 20 == 0:
-                string_print = "Epoch = %d Count = %d Current_Loss = %.4f Time = %.2f"%(epoch,cnt,current,time.time()-st)
-                utils.LOG(string_print)
-                st = time.time()
+print("Data Augmentation:")
+print("\tVertical Flip -->", args.v_flip)
+print("\tHorizontal Flip -->", args.h_flip)
+print("\tBrightness Alteration -->", args.brightness)
+print("\tRotation -->", args.rotation)
+print("")
 
-        mean_loss = np.mean(current_losses)
-        avg_loss_per_epoch.append(mean_loss)
+avg_loss_per_epoch = []
+avg_scores_per_epoch = []
+avg_iou_per_epoch = []
+
+# Which validation images do we want
+val_indices = []
+num_vals = min(args.num_val_images, len(val_input_names))
+
+# Set random seed to make sure models are validated on the same validation images.
+# So you can compare the results of different models more intuitively.
+random.seed(16)
+val_indices=random.sample(range(0,len(val_input_names)),num_vals)
+
+# Do the training here
+for epoch in range(0, args.num_epochs):
+
+    current_losses = []
+
+    cnt=0
+
+    # Equivalent to shuffling
+    id_list = np.random.permutation(len(train_input_names))
+
+    num_iters = int(np.floor(len(id_list) / args.batch_size))
+    st = time.time()
+    epoch_st=time.time()
+    for i in range(num_iters):
+        # st=time.time()
         
-        # Create directories if needed
-        if not os.path.isdir("%s/%04d"%("checkpoints",epoch)):
-            os.makedirs("%s/%04d"%("checkpoints",epoch))
+        input_image_batch = []
+        output_image_batch = [] 
 
-        # Save latest checkpoint to same file name
-        print("Saving latest checkpoint")
-        saver.save(sess,model_checkpoint_name)
+        # Collect a batch of images
+        for j in range(args.batch_size):
+            index = i*args.batch_size + j
+            id = id_list[index]
+            input_image = utils.load_image(train_input_names[id])
+            output_image = utils.load_image(train_output_names[id])
 
-        if val_indices != 0 and epoch % args.checkpoint_step == 0:
-            print("Saving checkpoint for this epoch")
-            saver.save(sess,"%s/%04d/model.ckpt"%("checkpoints",epoch))
-
-
-        if epoch % args.validation_step == 0:
-            print("Performing validation")
-            target=open("%s/%04d/val_scores.csv"%("checkpoints",epoch),'w')
-            target.write("val_name, avg_accuracy, precision, recall, f1 score, mean iou, %s\n" % (class_names_string))
+            with tf.device('/cpu:0'):
+                input_image, output_image = data_augmentation(input_image, output_image)
 
 
-            scores_list = []
-            class_scores_list = []
-            precision_list = []
-            recall_list = []
-            f1_list = []
-            iou_list = []
-
-
-            # Do the validation on a small set of validation images
-            for ind in val_indices:
+                # Prep the data. Make sure the labels are in one-hot format
+                input_image = np.float32(input_image) / 255.0
+                output_image = np.float32(helpers.one_hot_it(label=output_image, label_values=label_values))
                 
-                input_image = np.expand_dims(np.float32(utils.load_image(val_input_names[ind])[:args.crop_height, :args.crop_width]),axis=0)/255.0
-                gt = utils.load_image(val_output_names[ind])[:args.crop_height, :args.crop_width]
-                gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, label_values))
-
-                # st = time.time()
-
-                output_image = sess.run(network,feed_dict={net_input:input_image})
-                
-
-                output_image = np.array(output_image[0,:,:,:])
-                output_image = helpers.reverse_one_hot(output_image)
-                out_vis_image = helpers.colour_code_segmentation(output_image, label_values)
-
-                accuracy, class_accuracies, prec, rec, f1, iou = utils.evaluate_segmentation(pred=output_image, label=gt, num_classes=num_classes)
-            
-                file_name = utils.filepath_to_name(val_input_names[ind])
-                target.write("%s, %f, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1, iou))
-                for item in class_accuracies:
-                    target.write(", %f"%(item))
-                target.write("\n")
-
-                scores_list.append(accuracy)
-                class_scores_list.append(class_accuracies)
-                precision_list.append(prec)
-                recall_list.append(rec)
-                f1_list.append(f1)
-                iou_list.append(iou)
-                
-                gt = helpers.colour_code_segmentation(gt, label_values)
-     
-                file_name = os.path.basename(val_input_names[ind])
-                file_name = os.path.splitext(file_name)[0]
-                cv2.imwrite("%s/%04d/%s_pred.png"%("checkpoints",epoch, file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
-                cv2.imwrite("%s/%04d/%s_gt.png"%("checkpoints",epoch, file_name),cv2.cvtColor(np.uint8(gt), cv2.COLOR_RGB2BGR))
-
-
-            target.close()
-
-            avg_score = np.mean(scores_list)
-            class_avg_scores = np.mean(class_scores_list, axis=0)
-            avg_scores_per_epoch.append(avg_score)
-            avg_precision = np.mean(precision_list)
-            avg_recall = np.mean(recall_list)
-            avg_f1 = np.mean(f1_list)
-            avg_iou = np.mean(iou_list)
-
-            print("\nAverage validation accuracy for epoch # %04d = %f"% (epoch, avg_score))
-            print("Average per class validation accuracies for epoch # %04d:"% (epoch))
-            for index, item in enumerate(class_avg_scores):
-                print("%s = %f" % (class_names_list[index], item))
-            print("Validation precision = ", avg_precision)
-            print("Validation recall = ", avg_recall)
-            print("Validation F1 score = ", avg_f1)
-            print("Validation IoU score = ", avg_iou)
-
-        epoch_time=time.time()-epoch_st
-        remain_time=epoch_time*(args.num_epochs-1-epoch)
-        m, s = divmod(remain_time, 60)
-        h, m = divmod(m, 60)
-        if s!=0:
-            train_time="Remaining training time = %d hours %d minutes %d seconds\n"%(h,m,s)
+                input_image_batch.append(np.expand_dims(input_image, axis=0))
+                output_image_batch.append(np.expand_dims(output_image, axis=0))
+        
+        if args.batch_size == 1:
+            input_image_batch = input_image_batch[0]
+            output_image_batch = output_image_batch[0]
         else:
-            train_time="Remaining training time : Training completed.\n"
-        utils.LOG(train_time)
-        scores_list = []
+            input_image_batch = np.squeeze(np.stack(input_image_batch, axis=1))
+            output_image_batch = np.squeeze(np.stack(output_image_batch, axis=1))
 
-    fig = plt.figure(figsize=(11,8))
-    ax1 = fig.add_subplot(111)
+        # Do the training
+        _,current=sess.run([opt,loss],feed_dict={net_input:input_image_batch,net_output:output_image_batch})
+        current_losses.append(current)
+        cnt = cnt + args.batch_size
+        if cnt % 20 == 0:
+            string_print = "Epoch = %d Count = %d Current_Loss = %.4f Time = %.2f"%(epoch,cnt,current,time.time()-st)
+            utils.LOG(string_print)
+            st = time.time()
 
+    mean_loss = np.mean(current_losses)
+    avg_loss_per_epoch.append(mean_loss)
     
-    ax1.plot(range(args.num_epochs), avg_scores_per_epoch)
+    # Create directories if needed
+    if not os.path.isdir("%s/%04d"%("checkpoints",epoch)):
+        os.makedirs("%s/%04d"%("checkpoints",epoch))
+
+    # Save latest checkpoint to same file name
+    print("Saving latest checkpoint")
+    saver.save(sess,model_checkpoint_name)
+
+    if val_indices != 0 and epoch % args.checkpoint_step == 0:
+        print("Saving checkpoint for this epoch")
+        saver.save(sess,"%s/%04d/model.ckpt"%("checkpoints",epoch))
+
+
+    if epoch % args.validation_step == 0:
+        print("Performing validation")
+        target=open("%s/%04d/val_scores.csv"%("checkpoints",epoch),'w')
+        target.write("val_name, avg_accuracy, precision, recall, f1 score, mean iou, %s\n" % (class_names_string))
+
+
+        scores_list = []
+        class_scores_list = []
+        precision_list = []
+        recall_list = []
+        f1_list = []
+        iou_list = []
+
+
+        # Do the validation on a small set of validation images
+        for ind in val_indices:
+            
+            input_image = np.expand_dims(np.float32(utils.load_image(val_input_names[ind])[:args.crop_height, :args.crop_width]),axis=0)/255.0
+            gt = utils.load_image(val_output_names[ind])[:args.crop_height, :args.crop_width]
+            gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, label_values))
+
+            # st = time.time()
+
+            output_image = sess.run(network,feed_dict={net_input:input_image})
+            
+
+            output_image = np.array(output_image[0,:,:,:])
+            output_image = helpers.reverse_one_hot(output_image)
+            out_vis_image = helpers.colour_code_segmentation(output_image, label_values)
+
+            accuracy, class_accuracies, prec, rec, f1, iou = utils.evaluate_segmentation(pred=output_image, label=gt, num_classes=num_classes)
+        
+            file_name = utils.filepath_to_name(val_input_names[ind])
+            target.write("%s, %f, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1, iou))
+            for item in class_accuracies:
+                target.write(", %f"%(item))
+            target.write("\n")
+
+            scores_list.append(accuracy)
+            class_scores_list.append(class_accuracies)
+            precision_list.append(prec)
+            recall_list.append(rec)
+            f1_list.append(f1)
+            iou_list.append(iou)
+            
+            gt = helpers.colour_code_segmentation(gt, label_values)
+ 
+            file_name = os.path.basename(val_input_names[ind])
+            file_name = os.path.splitext(file_name)[0]
+            cv2.imwrite("%s/%04d/%s_pred.png"%("checkpoints",epoch, file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
+            cv2.imwrite("%s/%04d/%s_gt.png"%("checkpoints",epoch, file_name),cv2.cvtColor(np.uint8(gt), cv2.COLOR_RGB2BGR))
+
+
+        target.close()
+
+        avg_score = np.mean(scores_list)
+        class_avg_scores = np.mean(class_scores_list, axis=0)
+        avg_scores_per_epoch.append(avg_score)
+        avg_precision = np.mean(precision_list)
+        avg_recall = np.mean(recall_list)
+        avg_f1 = np.mean(f1_list)
+        avg_iou = np.mean(iou_list)
+        avg_iou_per_epoch.append(avg_iou)
+
+        print("\nAverage validation accuracy for epoch # %04d = %f"% (epoch, avg_score))
+        print("Average per class validation accuracies for epoch # %04d:"% (epoch))
+        for index, item in enumerate(class_avg_scores):
+            print("%s = %f" % (class_names_list[index], item))
+        print("Validation precision = ", avg_precision)
+        print("Validation recall = ", avg_recall)
+        print("Validation F1 score = ", avg_f1)
+        print("Validation IoU score = ", avg_iou)
+
+    epoch_time=time.time()-epoch_st
+    remain_time=epoch_time*(args.num_epochs-1-epoch)
+    m, s = divmod(remain_time, 60)
+    h, m = divmod(m, 60)
+    if s!=0:
+        train_time="Remaining training time = %d hours %d minutes %d seconds\n"%(h,m,s)
+    else:
+        train_time="Remaining training time : Training completed.\n"
+    utils.LOG(train_time)
+    scores_list = []
+
+
+    fig1, ax1 = plt.subplots(figsize=(11, 8))
+
+    ax1.plot(range(epoch+1), avg_scores_per_epoch)
     ax1.set_title("Average validation accuracy vs epochs")
     ax1.set_xlabel("Epoch")
     ax1.set_ylabel("Avg. val. accuracy")
@@ -312,15 +312,25 @@ if args.mode == "train":
 
     plt.clf()
 
-    ax1 = fig.add_subplot(111)
+    fig2, ax2 = plt.subplots(figsize=(11, 8))
 
-    
-    ax1.plot(range(args.num_epochs), avg_loss_per_epoch)
-    ax1.set_title("Average loss vs epochs")
-    ax1.set_xlabel("Epoch")
-    ax1.set_ylabel("Current loss")
+    ax2.plot(range(epoch+1), avg_loss_per_epoch)
+    ax2.set_title("Average loss vs epochs")
+    ax2.set_xlabel("Epoch")
+    ax2.set_ylabel("Current loss")
 
     plt.savefig('loss_vs_epochs.png')
-    
+
+    plt.clf()
+
+    fig3, ax3 = plt.subplots(figsize=(11, 8))
+
+    ax3.plot(range(epoch+1), avg_iou_per_epoch)
+    ax3.set_title("Average IoU vs epochs")
+    ax3.set_xlabel("Epoch")
+    ax3.set_ylabel("Current IoU")
+
+    plt.savefig('iou_vs_epochs.png')
+
 
 
