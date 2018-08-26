@@ -1,10 +1,14 @@
 # Semantic Segmentation Suite in TensorFlow
 
+![alt-text-10](https://github.com/GeorgeSeif/Semantic-Segmentation-Suite/blob/master/Images/semseg.gif)
+
 ## News
 
 **What's New:**
 
 - Plotting for every epoch, similar to Tensorboard
+
+- Added support for MobileNetV2
 
 - Code restructuring. Much easier to expand and debug **You can now set the segmentation model and frontend to use (ResNet50, ResNet101, etc) separately as command line arguments. See the updated usage section below**
 
@@ -14,7 +18,7 @@
 
 **Coming Soon:**
 
-- Support NASNet, MobileNet, Dilated ResNet for segmentation models that use classification network front-ends
+- Support NASNet, Dilated ResNet for segmentation models that use classification network front-ends
 
 - Anything that comes out at CVPR 2018!
 

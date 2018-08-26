@@ -90,7 +90,7 @@ sess=tf.Session(config=config)
 net_input = tf.placeholder(tf.float32,shape=[None,None,None,3])
 net_output = tf.placeholder(tf.float32,shape=[None,None,None,num_classes]) 
 
-network, init_fn = model_builder.build_model(args.model, frontend=args.frontend, net_input=net_input, num_classes=num_classes)
+network, init_fn = model_builder.build_model(args.model, frontend=args.frontend, net_input=net_input, num_classes=num_classes, is_training=True)
 
 loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=net_output))
 

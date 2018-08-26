@@ -72,41 +72,37 @@ args = parser.parse_args()
 # ResNet V2
 ###############################
 if args.model == "ResNet50" or args.model == "ALL":
-	subprocess.check_output(['wget','http://download.tensorflow.org/models/resnet_v2_50_2017_04_14.tar.gz'])
-	subprocess.check_output(['tar', '-xvf', 'resnet_v2_50_2017_04_14.tar.gz'])
+	subprocess.check_output(['wget','http://download.tensorflow.org/models/resnet_v2_50_2017_04_14.tar.gz', "-P", "models"])
 	try:
-		subprocess.check_output(['mv', 'resnet_v2_50.ckpt', 'models'])
-		subprocess.check_output(['rm', 'resnet_v2_50_2017_04_14.tar.gz'])
+		subprocess.check_output(['tar', '-xvf', 'models/resnet_v2_50_2017_04_14.tar.gz', "-C", "models"])
+		subprocess.check_output(['rm', 'models/resnet_v2_50_2017_04_14.tar.gz'])
 	except Exception as e:
 		print(e)
 		pass
 
 if args.model == "ResNet101" or args.model == "ALL":
-	subprocess.check_output(['wget','http://download.tensorflow.org/models/resnet_v2_101_2017_04_14.tar.gz'])
-	subprocess.check_output(['tar', '-xvf', 'resnet_v2_101_2017_04_14.tar.gz'])
+	subprocess.check_output(['wget','http://download.tensorflow.org/models/resnet_v2_101_2017_04_14.tar.gz', "-P", "models"])
 	try:
-		subprocess.check_output(['mv', 'resnet_v2_101.ckpt', 'models'])
-		subprocess.check_output(['rm', 'resnet_v2_101_2017_04_14.tar.gz'])
+		subprocess.check_output(['tar', '-xvf', 'models/resnet_v2_101_2017_04_14.tar.gz', "-C", "models"])
+		subprocess.check_output(['rm', 'models/resnet_v2_101_2017_04_14.tar.gz'])
 	except Exception as e:
 		print(e)
 		pass
 
 if args.model == "ResNet152" or args.model == "ALL":
-	subprocess.check_output(['wget','http://download.tensorflow.org/models/resnet_v2_152_2017_04_14.tar.gz'])
-	subprocess.check_output(['tar', '-xvf', 'resnet_v2_152_2017_04_14.tar.gz'])
+	subprocess.check_output(['wget','http://download.tensorflow.org/models/resnet_v2_152_2017_04_14.tar.gz', "-P", "models"])
 	try:
-		subprocess.check_output(['mv', 'resnet_v2_152.ckpt', 'models'])
-		subprocess.check_output(['rm', 'resnet_v2_152_2017_04_14.tar.gz'])
+		subprocess.check_output(['tar', '-xvf', 'models/resnet_v2_152_2017_04_14.tar.gz', "-C", "models"])
+		subprocess.check_output(['rm', 'models/resnet_v2_152_2017_04_14.tar.gz'])
 	except Exception as e:
 		print(e)
 		pass
 
-if args.model == "Mobile" or args.model == "ALL":
-	subprocess.check_output(['wget','https://storage.googleapis.com/mobilenet_v2/checkpoints/mobilenet_v2_1.4_224.tgz'])
-	subprocess.check_output(['tar', '-xvf', 'mobilenet_v2_1.4_224.tar.gz'])
+if args.model == "MobileNetV2" or args.model == "ALL":
+	subprocess.check_output(['wget','https://storage.googleapis.com/mobilenet_v2/checkpoints/mobilenet_v2_1.4_224.tgz', "-P", "models"])
 	try:
-		subprocess.check_output(['mv', 'mobilenet_v2_1.4_224.ckpt', 'models'])
-		subprocess.check_output(['rm', 'mobilenet_v2_1.4_224.tar.gz'])
+		subprocess.check_output(['tar', '-xvf', 'models/mobilenet_v2_1.4_224.tgz', "-C", "models"])
+		subprocess.check_output(['rm', 'models/mobilenet_v2_1.4_224.tgz'])
 	except Exception as e:
 		print(e)
 		pass

@@ -1,6 +1,9 @@
 *.pyc
 models/*.pyc
-models/*.ckpt
+models/*.ckpt*
+models/*.pb
+models/*txt
+models/*.tflite
 checkpoints/
 Test/*.png
 accuracy_vs_epochs.png
