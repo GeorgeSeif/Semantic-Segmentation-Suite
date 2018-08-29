@@ -38,8 +38,15 @@ You can also check out my [Transfer Learning Suite](https://github.com/GeorgeSei
 
 If you find this repository useful, please consider citing it using a link to the repo :)
 
+## Frontends
+
+The following feature extraction models are currently made available:
+
+- [MobileNetV2](https://arxiv.org/abs/1801.04381), [ResNet50/101/152](https://arxiv.org/abs/1512.03385), and [InceptionV4](https://arxiv.org/abs/1602.07261)
+
 ## Models
-The following models are currently made available:
+
+The following segmentation models are currently made available:
 
 - [Encoder-Decoder based on SegNet](https://arxiv.org/abs/1511.00561). This network uses a VGG-style encoder-decoder, where the upsampling in the decoder is done using transposed convolutions.
 
@@ -63,7 +70,6 @@ to obtain robust features for recognition. The two streams are coupled at the fu
 - [AdapNet: Adaptive Semantic Segmentation in Adverse Environmental Conditions](http://ais.informatik.uni-freiburg.de/publications/papers/valada17icra.pdf) Modifies the ResNet50 architecture by performing the lower resolution processing using a multi-scale strategy with atrous convolutions. This is a slightly modified version using bilinear upscaling instead of transposed convolutions as I found it gave better results.
 
 - [ICNet for Real-Time Semantic Segmentation on High-Resolution Images](https://arxiv.org/abs/1704.08545). Proposes a compressed-PSPNet-based image cascade network (ICNet) that incorporates multi-resolution branches under proper label guidance to address this challenge. Most of the processing is done at low resolution for high speed and the multi-scale auxillary loss helps get an accurate model.
-
 
 - [Encoder-Decoder with Atrous Separable Convolution for Semantic Image Segmentation](https://arxiv.org/abs/1802.02611). This is the DeepLabV3+ network which adds a Decoder module on top of the regular DeepLabV3 model.
 
