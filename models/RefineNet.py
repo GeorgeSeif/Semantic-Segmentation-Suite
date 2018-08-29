@@ -142,7 +142,7 @@ def RefineBlock(high_inputs=None,low_inputs=None):
 
 
 
-def build_refinenet(inputs, num_classes, preset_model='RefineNet', frontend="Res101", weight_decay=1e-5, upscaling_method="bilinear", pretrained_dir="models"):
+def build_refinenet(inputs, num_classes, preset_model='RefineNet', frontend="ResNet101", weight_decay=1e-5, upscaling_method="bilinear", pretrained_dir="models"):
     """
     Builds the RefineNet model. 
 

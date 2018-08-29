@@ -8,17 +8,11 @@
 
 - Plotting for every epoch, similar to Tensorboard
 
-- Added support for MobileNetV2
+- Added support for MobileNetV2 and InceptionV4 frontends!
 
 - Code restructuring. Much easier to expand and debug **You can now set the segmentation model and frontend to use (ResNet50, ResNet101, etc) separately as command line arguments. See the updated usage section below**
 
-- You can also check out my [Transfer Learning Suite](https://github.com/GeorgeSeif/Transfer-Learning-Suite).
-
-- Added ICNet. **Note that I have added the ICNet achitecture code, but have not yet integrated it into the main. Still trying to figure out the best way to implement it with the auxillary loss. Suggestions are welcome.**
-
 **Coming Soon:**
-
-- Support NASNet, Dilated ResNet for segmentation models that use classification network front-ends
 
 - Anything that comes out at CVPR 2018!
 

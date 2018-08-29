@@ -17,7 +17,7 @@ from AdapNet import build_adaptnet
 SUPPORTED_MODELS = ["FC-DenseNet56", "FC-DenseNet67", "FC-DenseNet103", "Encoder-Decoder", "Encoder-Decoder-Skip", "RefineNet",
     "FRRN-A", "FRRN-B", "MobileUNet", "MobileUNet-Skip", "PSPNet", "GCN", "DeepLabV3", "DeepLabV3_plus", "AdapNet", "custom"]
 
-SUPPORTED_FRONTENDS = ["ResNet50", "ResNet101", "ResNet152", "MobileNetV2"]
+SUPPORTED_FRONTENDS = ["ResNet50", "ResNet101", "ResNet152", "MobileNetV2", "InceptionV4"]
 
 def download_checkpoints(model_name):
     subprocess.check_output(["python", "get_pretrained_checkpoints.py", "--model=" + model_name])
@@ -42,8 +42,10 @@ def build_model(model_name, net_input, num_classes, frontend="ResNet101", is_tra
 	    download_checkpoints("ResNet101")
 	if "ResNet152" == frontend and not os.path.isfile("models/resnet_v2_152.ckpt"):
 	    download_checkpoints("ResNet152")
-	# if "MobileNetV2" == frontend and not os.path.isfile("models/mobilenet_v2_1.4_224.ckpt"):
-	#     download_checkpoints("MobileNetV2")
+	if "MobileNetV2" == frontend and not os.path.isfile("models/mobilenet_v2_1.4_224.ckpt.data-00000-of-00001"):
+	    download_checkpoints("MobileNetV2")
+	if "InceptionV4" == frontend and not os.path.isfile("models/inception_v4.ckpt"):
+	    download_checkpoints("InceptionV4") 
 
 	network = None
 	init_fn = None

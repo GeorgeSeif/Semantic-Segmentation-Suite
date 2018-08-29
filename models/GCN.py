@@ -41,7 +41,7 @@ def GlobalConvBlock(inputs, n_filters=21, size=3):
     return net
 
 
-def build_gcn(inputs, num_classes, preset_model='GCN', frontend="Res101", weight_decay=1e-5, is_training=True, upscaling_method="bilinear", pretrained_dir="models"):
+def build_gcn(inputs, num_classes, preset_model='GCN', frontend="ResNet101", weight_decay=1e-5, is_training=True, upscaling_method="bilinear", pretrained_dir="models"):
     """
     Builds the GCN model. 
 

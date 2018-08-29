@@ -107,6 +107,24 @@ if args.model == "MobileNetV2" or args.model == "ALL":
 		print(e)
 		pass
 
+if args.model == "InceptionV4" or args.model == "ALL":
+	subprocess.check_output(['wget','http://download.tensorflow.org/models/inception_v4_2016_09_09.tar.gz', "-P", "models"])
+	try:
+		subprocess.check_output(['tar', '-xvf', 'inception_v4_2016_09_09.tar.gz', "-C", "models"])
+		subprocess.check_output(['rm', 'inception_v4_2016_09_09.tar.gz'])
+	except Exception as e:
+		print(e)
+		pass
+
+if args.model == "NASNet" or args.model == "ALL":
+	subprocess.check_output(['wget','https://storage.googleapis.com/download.tensorflow.org/models/nasnet-a_large_04_10_2017.tar.gz', "-P", "models"])
+	try:
+		subprocess.check_output(['tar', '-xvf', 'nasnet-a_large_04_10_2017.tar.gz', "-C", "models"])
+		subprocess.check_output(['rm', 'nasnet-a_large_04_10_2017.tar.gz'])
+	except Exception as e:
+		print(e)
+		pass
+
 try:
 	subprocess.check_output(['rm', 'train.graph'])
 	subprocess.check_output(['rm', 'eval.graph'])

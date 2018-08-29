@@ -73,8 +73,8 @@ def CFFBlock(F1, F2, num_classes):
     return F1_out, F2_out
 
 
-def build_icnet(inputs, label_size, num_classes, preset_model='ICNet-Res50', pooling_type = "MAX",
-    frontend="Res101", weight_decay=1e-5, is_training=True, pretrained_dir="models"):
+def build_icnet(inputs, label_size, num_classes, preset_model='ICNet', pooling_type = "MAX",
+    frontend="ResNet101", weight_decay=1e-5, is_training=True, pretrained_dir="models"):
     """
     Builds the ICNet model. 
 

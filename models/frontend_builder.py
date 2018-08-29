@@ -2,6 +2,8 @@ import tensorflow as tf
 from tensorflow.contrib import slim
 import resnet_v2
 import mobilenet_v2
+import inception_v4
+import nasnet
 import os 
 
 
@@ -26,6 +28,11 @@ def build_frontend(inputs, frontend, is_training=True, pretrained_dir="models"):
             logits, end_points = mobilenet_v2.mobilenet(inputs, is_training=is_training, scope='mobilenet_v2', base_only=True)
             frontend_scope='mobilenet_v2'
             init_fn = slim.assign_from_checkpoint_fn(model_path=os.path.join(pretrained_dir, 'mobilenet_v2_1.4_224.ckpt'), var_list=slim.get_model_variables('mobilenet_v2'), ignore_missing_vars=True)
+    elif frontend == 'InceptionV4':
+        with slim.arg_scope(inception_v4.inception_v4_arg_scope()):
+            logits, end_points = inception_v4.inception_v4(inputs, is_training=is_training, scope='inception_v4')
+            frontend_scope='inception_v4'
+            init_fn = slim.assign_from_checkpoint_fn(model_path=os.path.join(pretrained_dir, 'inception_v4.ckpt'), var_list=slim.get_model_variables('inception_v4'), ignore_missing_vars=True)
     else:
         raise ValueError("Unsupported fronetnd model '%s'. This function only supports ResNet50, ResNet101, ResNet152, and MobileNetV2" % (frontend))
 
