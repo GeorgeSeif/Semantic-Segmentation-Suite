@@ -1,4 +1,6 @@
 *.pyc
+*.graph
+models/*.graph
 models/*.pyc
 models/*.ckpt*
 models/*.pb

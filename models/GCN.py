@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.contrib import slim
-import frontend_builder
+from builders import frontend_builder
 import os, sys
 
 def Upsampling(inputs,scale):

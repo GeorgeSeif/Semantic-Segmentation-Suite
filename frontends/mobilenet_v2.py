@@ -29,8 +29,8 @@ import functools
 
 import tensorflow as tf
 
-import conv_blocks as ops
-import mobilenet_base as lib
+from frontends import conv_blocks as ops
+from frontends import mobilenet_base as lib
 
 slim = tf.contrib.slim
 op = lib.op

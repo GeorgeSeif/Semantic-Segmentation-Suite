@@ -3,9 +3,8 @@ import tensorflow as tf
 import argparse
 import numpy as np
 
-import utils
-import helpers
-import model_builder
+from utils import utils, helpers
+from builders import model_builder
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--checkpoint_path', type=str, default=None, required=True, help='The path to the latest checkpoint weights for your model.')

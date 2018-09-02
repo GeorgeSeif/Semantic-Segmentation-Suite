@@ -3,7 +3,7 @@
 import tensorflow as tf
 from tensorflow.contrib import slim
 import numpy as np
-import resnet_v2
+from frontends import resnet_v2
 import os, sys
 
 

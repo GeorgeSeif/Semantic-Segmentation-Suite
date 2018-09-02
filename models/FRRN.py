@@ -1,6 +1,5 @@
 import tensorflow as tf
 from tensorflow.contrib import slim
-import resnet_v1
 
 def Upsampling(inputs,scale):
     return tf.image.resize_nearest_neighbor(inputs, size=[tf.shape(inputs)[1]*scale,  tf.shape(inputs)[2]*scale])

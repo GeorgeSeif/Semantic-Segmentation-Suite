@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.contrib import slim
-import frontend_builder
+from builders import frontend_builder
 import os, sys
 
 def Upsampling(inputs,scale):
@@ -142,7 +142,7 @@ def RefineBlock(high_inputs=None,low_inputs=None):
 
 
 
-def build_refinenet(inputs, num_classes, preset_model='RefineNet', frontend="ResNet101", weight_decay=1e-5, upscaling_method="bilinear", pretrained_dir="models"):
+def build_refinenet(inputs, num_classes, preset_model='RefineNet', frontend="ResNet101", weight_decay=1e-5, upscaling_method="bilinear", pretrained_dir="models", is_training=True):
     """
     Builds the RefineNet model. 
 

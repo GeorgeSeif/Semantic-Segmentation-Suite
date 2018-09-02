@@ -2,9 +2,8 @@
 
 import tensorflow as tf
 from tensorflow.contrib import slim
-import frontend_builder
+from builders import frontend_builder
 import numpy as np
-import resnet_v2
 import os, sys
 
 def Upsampling(inputs,feature_map_shape):

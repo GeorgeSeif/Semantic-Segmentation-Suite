@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow.contrib import slim
 import numpy as np
-import frontend_builder
+from frontends import frontend_builder
 import os, sys
 
 def Upsampling_by_shape(inputs, feature_map_shape):

@@ -3,7 +3,7 @@ import os,time,cv2
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 import numpy as np
-import frontend_builder
+from builders import frontend_builder
 
 def conv_block(inputs, n_filters, filter_size=[3, 3], dropout_p=0.0):
 	"""
