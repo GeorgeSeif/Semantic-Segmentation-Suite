@@ -3,7 +3,6 @@ from tensorflow.contrib import slim
 import resnet_v2
 import mobilenet_v2
 import inception_v4
-import nasnet
 import os 
 
 
