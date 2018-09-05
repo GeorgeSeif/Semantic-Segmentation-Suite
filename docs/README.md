@@ -81,7 +81,11 @@ to obtain robust features for recognition. The two streams are coupled at the fu
 ## Files and Directories
 
 
-- **main.py:** Training, Testing on dataset, and Prediction on a single image
+- **train.py:** Training on the dataset of your choice. Default is CamVid
+
+- **test.py:** Testing on the dataset of your choice. Default is CamVid
+
+- **predict.py:** Use your newly trained model to run a prediction on a single image
 
 - **helper.py:** Quick helper functions for data preparation and visualization
 
