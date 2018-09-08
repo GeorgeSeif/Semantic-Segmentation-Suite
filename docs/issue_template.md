@@ -31,3 +31,5 @@ Include any logs or source code that would be helpful to diagnose the problem. I
 - **Question:** Do I need a GPU to train these models? **Answer:** Technically no, but I'd highly recommend it. I was able to train the models pretty well in about a day using a 1080Ti GPU. Training on CPU would take much longer than that.
 
 - **Question:** Will you be adding the FCN or U-Net models? **Answer:** No I won't be adding those simply because they're a few years old and state-of-the-art has moved past that.
+
+- **Question:** I got an invalid argument error when using the InceptionV4 model. Am I doing something wrong? **Answer:** No you're not! Due to the design of the InceptiveV4 model, when you end up upsampling you do some rounding which creates a shape mismatch. _This only happens when you end up having to use the `end_points['pool5']`_. See the code for some of the models if you want to check whether the model will use `end_points['pool5']`.
