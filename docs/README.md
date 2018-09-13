@@ -4,21 +4,21 @@
 
 ## News
 
-**What's New:**
+### What's New
 
-- Plotting for every epoch, similar to Tensorboard
+- Added the DenseASPP network from CVPR 2018!
 
 - Added support for MobileNetV2 and InceptionV4 frontends!
 
 - Code restructuring. Much easier to expand and debug **You can now set the segmentation model and frontend to use (ResNet50, ResNet101, etc) separately as command line arguments. See the updated usage section below**
 
-**Coming Soon:**
+### Coming Soon
 
-- Anything that comes out at CVPR 2018!
+- Anything that comes out at CVPR 2018 and ECCV 2018!
 
-- Support for exporting inference graph.
+- More network frontends!
 
-Open up an issue to suggest a new feature or improvement!
+**Open up an issue to suggest a new feature or improvement!**
 
 ## Description
 This repository serves as a Semantic Segmentation Suite. The goal is to easily be able to implement, train, and test new Semantic Segmentation models! Complete with the following:
@@ -72,6 +72,8 @@ to obtain robust features for recognition. The two streams are coupled at the fu
 - [ICNet for Real-Time Semantic Segmentation on High-Resolution Images](https://arxiv.org/abs/1704.08545). Proposes a compressed-PSPNet-based image cascade network (ICNet) that incorporates multi-resolution branches under proper label guidance to address this challenge. Most of the processing is done at low resolution for high speed and the multi-scale auxillary loss helps get an accurate model.
 
 - [Encoder-Decoder with Atrous Separable Convolution for Semantic Image Segmentation](https://arxiv.org/abs/1802.02611). This is the DeepLabV3+ network which adds a Decoder module on top of the regular DeepLabV3 model.
+
+- [DenseASPP for Semantic Segmentation in Street Scenes](http://openaccess.thecvf.com/content_cvpr_2018/html/Yang_DenseASPP_for_Semantic_CVPR_2018_paper.html). Combines many different scales using dilated convolution but with dense connections
 
 - Or make your own and plug and play!
 
