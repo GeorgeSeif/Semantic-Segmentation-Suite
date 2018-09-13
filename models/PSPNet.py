@@ -12,8 +12,8 @@ def ConvUpscaleBlock(inputs, n_filters, kernel_size=[3, 3], scale=2):
     Basic conv transpose block for Encoder-Decoder upsampling
     Apply successivly Transposed Convolution, BatchNormalization, ReLU nonlinearity
     """
-    net = slim.conv2d_transpose(inputs, n_filters, kernel_size=[3, 3], stride=[2, 2], activation_fn=None)
-    net = tf.nn.relu(slim.batch_norm(net, fused=True))
+    net = tf.nn.relu(slim.batch_norm(inputs, fused=True))
+    net = slim.conv2d_transpose(net, n_filters, kernel_size=[3, 3], stride=[scale, scale], activation_fn=None)
     return net
 
 def ConvBlock(inputs, n_filters, kernel_size=[3, 3]):
@@ -21,8 +21,8 @@ def ConvBlock(inputs, n_filters, kernel_size=[3, 3]):
     Basic conv block for Encoder-Decoder
     Apply successivly Convolution, BatchNormalization, ReLU nonlinearity
     """
-    net = slim.conv2d(inputs, n_filters, kernel_size, activation_fn=None, normalizer_fn=None)
-    net = tf.nn.relu(slim.batch_norm(net, fused=True))
+    net = tf.nn.relu(slim.batch_norm(inputs, fused=True))
+    net = slim.conv2d(net, n_filters, kernel_size, activation_fn=None, normalizer_fn=None)
     return net
 
 def InterpBlock(net, level, feature_map_shape, pooling_type):
