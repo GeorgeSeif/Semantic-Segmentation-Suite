@@ -324,25 +324,25 @@ def random_crop(image, label, crop_height, crop_width):
     if (image.shape[0] != label.shape[0]) or (image.shape[1] != label.shape[1]):
         raise Exception('Image and label must have the same dimensions!')
 
+    downscale = 1.5 * max(crop_height / image.shape[0], crop_width / image.shape[1])
+
+    image = misc.imresize(image, (int(downscale * image.shape[0]), int(downscale * image.shape[1]), 3))
+
     if len(label.shape) == 3:
-        return misc.imresize(image, (crop_height, crop_width, 3)), misc.imresize(label, (crop_height, crop_width, 3))
+        label = misc.imresize(label, (int(downscale * label.shape[0]), int(downscale * label.shape[1]), 3))
     else:
-        return misc.imresize(image, (crop_height, crop_width, 3)), misc.imresize(label, (crop_height, crop_width))
+        label = misc.imresize(label, (int(downscale * label.shape[0]), int(downscale * label.shape[1])))
         
-    # if (crop_width <= image.shape[1]) and (crop_height <= image.shape[0]):
-    #     x = random.randint(0, image.shape[1]-crop_width)
-    #     y = random.randint(0, image.shape[0]-crop_height)
+    if (crop_width <= image.shape[1]) and (crop_height <= image.shape[0]):
+        x = random.randint(0, image.shape[1]-crop_width)
+        y = random.randint(0, image.shape[0]-crop_height)
         
-    #     if len(label.shape) == 3:
-    #         return image[y:y+crop_height, x:x+crop_width, :], label[y:y+crop_height, x:x+crop_width, :]
-    #     else:
-    #         return image[y:y+crop_height, x:x+crop_width, :], label[y:y+crop_height, x:x+crop_width]
-    # else:
-    #     if len(label.shape) == 3:
-    #         return misc.imresize(image, (crop_height, crop_width, 3)), misc.imresize(label, (crop_height, crop_width, 3))
-    #     else:
-    #         return misc.imresize(image, (crop_height, crop_width, 3)), misc.imresize(label, (crop_height, crop_width))
-        # raise Exception('Crop shape (%d, %d) exceeds image dimensions (%d, %d)!' % (crop_height, crop_width, image.shape[0], image.shape[1]))
+        if len(label.shape) == 3:
+            return image[y:y+crop_height, x:x+crop_width, :], label[y:y+crop_height, x:x+crop_width, :]
+        else:
+            return image[y:y+crop_height, x:x+crop_width, :], label[y:y+crop_height, x:x+crop_width]
+    else:
+        raise Exception('Crop shape (%d, %d) exceeds image dimensions (%d, %d)!' % (crop_height, crop_width, image.shape[0], image.shape[1]))
 
 # Compute the average segmentation accuracy across all classes
 def compute_global_accuracy(pred, label):
