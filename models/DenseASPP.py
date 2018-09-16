@@ -5,7 +5,7 @@ import os, sys
 
 
 def Upsampling(inputs,scale):
-    return tf.image.resize_nearest_neighbor(inputs, size=[tf.shape(inputs)[1]*scale,  tf.shape(inputs)[2]*scale])
+    return tf.image.resize_bilinear(inputs, size=[tf.shape(inputs)[1]*scale,  tf.shape(inputs)[2]*scale])
 
 
 
