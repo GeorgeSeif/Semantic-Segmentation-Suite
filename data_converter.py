@@ -22,6 +22,9 @@ import ast
 
  # python data_converter.py --mode train \
  # --input_dir $datasets/ADE20K_2016_07_26/images/training \
+ # --input_match_exp "*.jpg" \
+ # --label_dir $datasets/ADE20K_2016_07_26/images/training \
+ # --label_match_exp "*_seg.png" \
  # --output_dir $datasets/ade20k_sss \
  # --filter_categories $datasets/ADE20K_2016_07_26/indoor-categories.txt 
 
@@ -31,6 +34,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--input_dir", required=True, help="Source Input Path")
 parser.add_argument("--input_match_exp", required=False, help="Source Input expression to match files")
 parser.add_argument("--mode", required=True, choices=["train", "test", "val"])
+
+parser.add_argument("--label_dir", required=True, help="Label Input Path")
+parser.add_argument("--label_match_exp", required=False, help="Label Input expression to match files")
 
 parser.add_argument("--filter_categories", required=False, help="Path to file with valid categories")
 parser.add_argument("--replace_colors", required=False, help="Path to file with GT color replacements. See replace-colors.txt")
@@ -47,17 +53,26 @@ def main():
 
     print("Got %d image directories, finding images..." % num_dirs)
 
-    paths = utils.get_image_paths(a.input_dir, a.input_match_exp, require_rgb=False, filtered_dirs=filtered_dirs)
-    
-    print("Processing %d images" % len(paths))
-
     src_dir = os.path.join(a.output_dir, a.mode)
     if not os.path.exists(src_dir):
         os.makedirs(src_dir)
 
+    src_paths = utils.get_image_paths(a.input_dir, a.input_match_exp, require_rgb=False, filtered_dirs=filtered_dirs)
+
     label_dir = os.path.join(a.output_dir, a.mode + "_labels")
     if not os.path.exists(label_dir):
         os.makedirs(label_dir)
+
+    label_paths = utils.get_image_paths(a.input_dir, a.input_match_exp, require_rgb=False, filtered_dirs=filtered_dirs)
+
+    num_src = len(src_paths)
+    num_labels = len(label_paths)
+
+    if (num_src != num_labels):
+    	raise Exception('Found different number of source images than labels (%d vs %d)' % (num_src, num_labels))
+    
+    print("Processing %d images" % num_src)
+
 
     print("DONE")
 
