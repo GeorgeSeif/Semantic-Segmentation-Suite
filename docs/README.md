@@ -6,17 +6,13 @@
 
 ### What's New
 
+- Added the Dense Decoder Shortcut Connections network from CVPR 2018!
+
 - Added the DenseASPP network from CVPR 2018!
-
-- Added support for MobileNetV2 and InceptionV4 frontends!
-
-- Code restructuring. Much easier to expand and debug **You can now set the segmentation model and frontend to use (ResNet50, ResNet101, etc) separately as command line arguments. See the updated usage section below**
 
 ### Coming Soon
 
-- Anything that comes out at CVPR 2018 and ECCV 2018!
-
-- More network frontends!
+- Anything that comes out at ECCV 2018!
 
 **Open up an issue to suggest a new feature or improvement!**
 
@@ -75,9 +71,9 @@ to obtain robust features for recognition. The two streams are coupled at the fu
 
 - [DenseASPP for Semantic Segmentation in Street Scenes](http://openaccess.thecvf.com/content_cvpr_2018/html/Yang_DenseASPP_for_Semantic_CVPR_2018_paper.html). Combines many different scales using dilated convolution but with dense connections
 
-- Or make your own and plug and play!
+- [Dense Decoder Shortcut Connections for Single-Pass Semantic Segmentation](http://openaccess.thecvf.com/content_cvpr_2018/html/Bilinski_Dense_Decoder_Shortcut_CVPR_2018_paper.html). Dense Decoder Shorcut Connections using dense connectivity in the decoder stage of the segmentation model. **Note: this network takes a bit of extra time to load due to the construction of the ResNeXt blocks** 
 
-**Note:** If you are using any of the networks that rely on a pre-trained ResNet, then you will need to download the pre-trained weights using the provided script. These are currently: PSPNet, RefineNet, DeepLabV3, DeepLabV3+, GCN.
+- Or make your own and plug and play!
 
 
 ## Files and Directories
