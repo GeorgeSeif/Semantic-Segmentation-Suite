@@ -74,7 +74,7 @@ def one_hot_it(label, label_values):
         one_not = label.copy()
         mask = (red == colour[0]) & (green == colour[1]) & (blue == colour[2])
         one_not[:,:,:3][mask] = [0,0,0]
-        misc.imsave("one_not_" + i + ".png", one_not)
+        misc.imsave("one_not_" + str(i) + ".png", one_not)
 
         class_map = np.all(equality, axis = -1)
         semantic_map.append(class_map)
