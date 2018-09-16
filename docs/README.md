@@ -14,8 +14,6 @@
 
 ### Coming Soon
 
-- Anything that comes out at ECCV 2018!
-
 **Open up an issue to suggest a new feature or improvement!**
 
 ## Description
