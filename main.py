@@ -105,7 +105,7 @@ def prepare_data(dataset_dir=args.dataset):
 def load_image(path):
     image = cv2.imread(path,-1)
 
-    downscale = 1.5 * max(args.crop_height / image.shape[0], args.crop_width / image.shape[1])
+    downscale = max(args.crop_height / image.shape[0], args.crop_width / image.shape[1])
 
     if len(image.shape) == 3:
         image = misc.imresize(image, (int(downscale * image.shape[0]), int(downscale * image.shape[1]), 3), 'nearest')
