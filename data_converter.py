@@ -30,6 +30,15 @@ from shutil import copyfile
  # --filter_categories $datasets/ADE20K_2016_07_26/indoor-categories.txt \
  # --replace_colors $datasets/ADE20K_2016_07_26/replace-colors.txt
 
+ # python data_converter.py --mode val \
+ # --input_dir $datasets/ADE20K_2016_07_26/images/validation \
+ # --input_match_exp "*.jpg" \
+ # --label_dir $datasets/ADE20K_2016_07_26/images/validation \
+ # --label_match_exp "*_seg.png" \
+ # --output_dir $datasets/ade20k_sss \
+ # --filter_categories $datasets/ADE20K_2016_07_26/indoor-categories.txt \
+ # --replace_colors $datasets/ADE20K_2016_07_26/replace-colors.txt
+
 parser = argparse.ArgumentParser()
 
 # required together:
