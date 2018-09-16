@@ -64,21 +64,22 @@ def one_hot_it(label, label_values):
     # https://stackoverflow.com/questions/14859458/how-to-check-if-all-values-in-the-columns-of-a-numpy-matrix-are-the-same
     semantic_map = []
 
-    i = 0
-    red, green, blue = label[:,:,0], label[:,:,1], label[:,:,2]
+    # i = 0
+    # red, green, blue = label[:,:,0], label[:,:,1], label[:,:,2]
 
     for colour in label_values:
         # colour_map = np.full((label.shape[0], label.shape[1], label.shape[2]), colour, dtype=int)
         equality = np.equal(label, colour)
 
-        one_not = label.copy()
-        mask = (red == colour[0]) & (green == colour[1]) & (blue == colour[2])
-        one_not[:,:,:3][mask] = [0,0,0]
-        misc.imsave("one_not_" + str(i) + ".png", one_not)
+        # one_not = label.copy()
+        # mask = (red == colour[0]) & (green == colour[1]) & (blue == colour[2])
+        # one_not[:,:,:3][mask] = [0,0,0]
+        # misc.imsave("one_not_" + str(i) + ".png", one_not)
+        # i = i + 1
 
         class_map = np.all(equality, axis = -1)
         semantic_map.append(class_map)
-        i = i + 1
+        
     semantic_map = np.stack(semantic_map, axis=-1)
     # print("Time 2 = ", time.time() - st)
 
