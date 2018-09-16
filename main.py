@@ -102,7 +102,14 @@ def prepare_data(dataset_dir=args.dataset):
 
 
 def load_image(path):
-    image = cv2.cvtColor(cv2.imread(path,-1), cv2.COLOR_BGR2RGB)
+    image = cv2.imread(path,-1)
+    if (len(image.shape)<3):
+        image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+    elif image.shape[2] == 4:
+        image = cv2.cvtColor(image, cv2.COLOR_RGBA2BGR)
+    else:
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            
     return image
 
 def data_augmentation(input_image, output_image):
