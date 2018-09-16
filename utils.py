@@ -333,7 +333,10 @@ def random_crop(image, label, crop_height, crop_width):
         else:
             return image[y:y+crop_height, x:x+crop_width, :], label[y:y+crop_height, x:x+crop_width]
     else:
-        return misc.imresize(image, (crop_height, crop_width, 3))
+        if len(label.shape) == 3:
+            return misc.imresize(image, (crop_height, crop_width, 3)), misc.imresize(label, (crop_height, crop_width, 3))
+        else:
+            return misc.imresize(image, (crop_height, crop_width, 3)), misc.imresize(label, (crop_height, crop_width))
         # raise Exception('Crop shape (%d, %d) exceeds image dimensions (%d, %d)!' % (crop_height, crop_width, image.shape[0], image.shape[1]))
 
 # Compute the average segmentation accuracy across all classes
