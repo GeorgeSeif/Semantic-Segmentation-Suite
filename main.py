@@ -9,7 +9,7 @@ import random
 import os, sys
 import subprocess
 
-
+from scipy import misc
 import helpers 
 import utils 
 
