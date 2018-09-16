@@ -36,7 +36,7 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--lr', type=float, default=0.0001, help='initial learning rate')
+parser.add_argument('--lr', type=float, default=0.00001, help='initial learning rate')
 parser.add_argument('--num_epochs', type=int, default=300, help='Number of epochs to train for')
 parser.add_argument('--mode', type=str, default="train", help='Select "train", "test", or "predict" mode. \
     Note that for prediction mode you have to specify an image to run the model on.')
@@ -104,12 +104,21 @@ def prepare_data(dataset_dir=args.dataset):
 
 def load_image(path):
     image = cv2.imread(path,-1)
+
+    downscale = 1.5 * max(args.crop_height / image.shape[0], args.crop_width / image.shape[1])
+
+    if len(image.shape) == 3:
+        image = misc.imresize(image, (int(downscale * image.shape[0]), int(downscale * image.shape[1]), 3))
+    else:
+        image = misc.imresize(image, (int(downscale * image.shape[0]), int(downscale * image.shape[1])))
+        
     if (len(image.shape)<3):
         image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
     elif image.shape[2] == 4:
         image = cv2.cvtColor(image, cv2.COLOR_RGBA2BGR)
     else:
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)    
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
     return image
 
 def data_augmentation(input_image, output_image):

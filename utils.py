@@ -323,15 +323,6 @@ def lovasz_softmax(probas, labels, only_present=True, per_image=False, ignore=No
 def random_crop(image, label, crop_height, crop_width):
     if (image.shape[0] != label.shape[0]) or (image.shape[1] != label.shape[1]):
         raise Exception('Image and label must have the same dimensions!')
-
-    downscale = 1.5 * max(crop_height / image.shape[0], crop_width / image.shape[1])
-
-    image = misc.imresize(image, (int(downscale * image.shape[0]), int(downscale * image.shape[1]), 3))
-
-    if len(label.shape) == 3:
-        label = misc.imresize(label, (int(downscale * label.shape[0]), int(downscale * label.shape[1]), 3))
-    else:
-        label = misc.imresize(label, (int(downscale * label.shape[0]), int(downscale * label.shape[1])))
         
     if (crop_width <= image.shape[1]) and (crop_height <= image.shape[0]):
         x = random.randint(0, image.shape[1]-crop_width)
