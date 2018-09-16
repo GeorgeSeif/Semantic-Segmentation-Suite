@@ -303,8 +303,6 @@ if args.mode == "train":
                     # Prep the data. Make sure the labels are in one-hot format
                     input_image = np.float32(input_image) / 255.0
                     output_image = np.float32(helpers.one_hot_it(label=output_image, label_values=label_values))
-
-                    misc.imsave("test.png", output_image)
                     
                     input_image_batch.append(np.expand_dims(input_image, axis=0))
                     output_image_batch.append(np.expand_dims(output_image, axis=0))
