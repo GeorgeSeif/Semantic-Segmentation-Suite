@@ -108,10 +108,10 @@ def load_image(path):
     downscale = 1.5 * max(args.crop_height / image.shape[0], args.crop_width / image.shape[1])
 
     if len(image.shape) == 3:
-        image = misc.imresize(image, (int(downscale * image.shape[0]), int(downscale * image.shape[1]), 3))
+        image = misc.imresize(image, (int(downscale * image.shape[0]), int(downscale * image.shape[1]), 3), 'nearest')
     else:
-        image = misc.imresize(image, (int(downscale * image.shape[0]), int(downscale * image.shape[1])))
-        
+        image = misc.imresize(image, (int(downscale * image.shape[0]), int(downscale * image.shape[1])), 'nearest')
+
     if (len(image.shape)<3):
         image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
     elif image.shape[2] == 4:
