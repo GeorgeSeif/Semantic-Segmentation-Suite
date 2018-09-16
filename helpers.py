@@ -4,7 +4,7 @@ import itertools
 import operator
 import os, csv
 import tensorflow as tf
-
+from scipy import misc
 import time, datetime
 
 def get_label_info(csv_path):
