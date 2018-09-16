@@ -63,8 +63,8 @@ def one_hot_it(label, label_values):
     # https://stackoverflow.com/questions/46903885/map-rgb-semantic-maps-to-one-hot-encodings-and-vice-versa-in-tensorflow
     # https://stackoverflow.com/questions/14859458/how-to-check-if-all-values-in-the-columns-of-a-numpy-matrix-are-the-same
     semantic_map = []
-    
-    misc.imsave(label, "label.png")
+
+    misc.imsave("label.png", label)
 
     for colour in label_values:
         # colour_map = np.full((label.shape[0], label.shape[1], label.shape[2]), colour, dtype=int)
