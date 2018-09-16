@@ -20,7 +20,7 @@ import re
 import utils
 import ast
 
- # python data_converter.py \
+ # python data_converter.py --mode train \
  # --input_dir $datasets/ADE20K_2016_07_26/images/training \
  # --output_dir $datasets/ade20k_sss \
  # --filter_categories $datasets/ADE20K_2016_07_26/indoor-categories.txt 
@@ -30,6 +30,7 @@ parser = argparse.ArgumentParser()
 # required together:
 parser.add_argument("--input_dir", required=True, help="Source Input Path")
 parser.add_argument("--input_match_exp", required=False, help="Source Input expression to match files")
+parser.add_argument("--mode", required=True, choices=["train", "test", "val"])
 
 parser.add_argument("--filter_categories", required=False, help="Path to file with valid categories")
 parser.add_argument("--replace_colors", required=False, help="Path to file with GT color replacements. See replace-colors.txt")
@@ -50,6 +51,13 @@ def main():
     
     print("Processing %d images" % len(paths))
 
+    src_dir = os.path.join(a.output_dir, a.mode)
+    if not os.path.exists(src_dir):
+        os.makedirs(src_dir)
+
+    label_dir = os.path.join(a.output_dir, a.mode + "_labels")
+    if not os.path.exists(label_dir):
+        os.makedirs(label_dir)
 
     print("DONE")
 
