@@ -81,23 +81,17 @@ def prepare_data(dataset_dir=args.dataset):
     test_input_names=[]
     test_output_names=[]
     for file in os.listdir(dataset_dir + "/train"):
-        cwd = os.getcwd()
-        train_input_names.append(cwd + "/" + dataset_dir + "/train/" + file)
+        train_input_names.append(dataset_dir + "/train/" + file)
     for file in os.listdir(dataset_dir + "/train_labels"):
-        cwd = os.getcwd()
-        train_output_names.append(cwd + "/" + dataset_dir + "/train_labels/" + file)
+        train_output_names.append(dataset_dir + "/train_labels/" + file)
     for file in os.listdir(dataset_dir + "/val"):
-        cwd = os.getcwd()
-        val_input_names.append(cwd + "/" + dataset_dir + "/val/" + file)
+        val_input_names.append(dataset_dir + "/val/" + file)
     for file in os.listdir(dataset_dir + "/val_labels"):
-        cwd = os.getcwd()
-        val_output_names.append(cwd + "/" + dataset_dir + "/val_labels/" + file)
+        val_output_names.append(dataset_dir + "/val_labels/" + file)
     for file in os.listdir(dataset_dir + "/test"):
-        cwd = os.getcwd()
-        test_input_names.append(cwd + "/" + dataset_dir + "/test/" + file)
+        test_input_names.append(dataset_dir + "/test/" + file)
     for file in os.listdir(dataset_dir + "/test_labels"):
-        cwd = os.getcwd()
-        test_output_names.append(cwd + "/" + dataset_dir + "/test_labels/" + file)
+        test_output_names.append(dataset_dir + "/test_labels/" + file)
     train_input_names.sort(),train_output_names.sort(), val_input_names.sort(), val_output_names.sort(), test_input_names.sort(), test_output_names.sort()
     return train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names
 
@@ -105,12 +99,14 @@ def prepare_data(dataset_dir=args.dataset):
 def load_image(path):
     image = cv2.imread(path,-1)
 
-    downscale = 1.1 * max(args.crop_height / image.shape[0], args.crop_width / image.shape[1])
+    downscale = 1.1 * max(float(args.crop_height) / float(image.shape[0]), float(args.crop_width) / float(image.shape[1]))
 
     if len(image.shape) == 3:
-        image = misc.imresize(image, (int(downscale * image.shape[0]), int(downscale * image.shape[1]), 3), 'nearest')
+        shape= (int(downscale * image.shape[0]), int(downscale * image.shape[1]), 3)
     else:
-        image = misc.imresize(image, (int(downscale * image.shape[0]), int(downscale * image.shape[1])), 'nearest')
+        shape= (int(downscale * image.shape[0]), int(downscale * image.shape[1]))
+    
+    image = misc.imresize(image, shape, 'nearest')
 
     if (len(image.shape)<3):
         image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
@@ -490,7 +486,8 @@ elif args.mode == "test":
 
     # Run testing on ALL test images
     for ind in range(len(val_input_names)):
-        sys.stdout.write("\rRunning test image %d / %d"%(ind+1, len(val_input_names)))
+        avg_time = np.mean(run_times_list) if len(run_times_list) > 0 else 0.0 
+        sys.stdout.write("\rRunning test image %d / %d: %.2f seconds per image" % (ind+1, len(val_input_names), avg_time))
         sys.stdout.flush()
 
         input_image = np.expand_dims(np.float32(load_image(val_input_names[ind])[:args.crop_height, :args.crop_width]),axis=0)/255.0
