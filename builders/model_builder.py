@@ -45,7 +45,7 @@ def build_model(model_name, net_input, num_classes, crop_width, crop_height, fro
 	    download_checkpoints("ResNet101")
 	if "ResNet152" == frontend and not os.path.isfile("models/resnet_v2_152.ckpt"):
 	    download_checkpoints("ResNet152")
-	if "MobileNetV2" == frontend and not os.path.isfile("models/mobilenet_v2_1.4_224.ckpt.data-00000-of-00001"):
+	if "MobileNetV2" == frontend and not os.path.isfile("models/mobilenet_v2.ckpt.data-00000-of-00001"):
 	    download_checkpoints("MobileNetV2")
 	if "InceptionV4" == frontend and not os.path.isfile("models/inception_v4.ckpt"):
 	    download_checkpoints("InceptionV4") 
