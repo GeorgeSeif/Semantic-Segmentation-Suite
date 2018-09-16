@@ -214,7 +214,7 @@ if args.class_balancing:
     unweighted_loss = tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=net_output)
     losses = unweighted_loss * class_weights
 else:
-    losses = tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=net_output)
+    losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=network, labels=net_output)
 loss = tf.reduce_mean(losses)
 
 opt = tf.train.AdamOptimizer(0.0001).minimize(loss, var_list=[var for var in tf.trainable_variables()])
