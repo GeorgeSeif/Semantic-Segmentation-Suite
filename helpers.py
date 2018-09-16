@@ -64,13 +64,16 @@ def one_hot_it(label, label_values):
     # https://stackoverflow.com/questions/14859458/how-to-check-if-all-values-in-the-columns-of-a-numpy-matrix-are-the-same
     semantic_map = []
 
-    misc.imsave("label.png", label)
-
+    i = 0
     for colour in label_values:
         # colour_map = np.full((label.shape[0], label.shape[1], label.shape[2]), colour, dtype=int)
         equality = np.equal(label, colour)
+        one_hot = label
+        one_hot[equality] = [0,0,0]
+        misc.imsave("one_hot.png", one_hot)
         class_map = np.all(equality, axis = -1)
         semantic_map.append(class_map)
+        i = i + 1
     semantic_map = np.stack(semantic_map, axis=-1)
     # print("Time 2 = ", time.time() - st)
 
