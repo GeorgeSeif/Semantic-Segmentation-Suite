@@ -36,6 +36,7 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--lr', type=int, default=0.0001, help='initial learning rate')
 parser.add_argument('--num_epochs', type=int, default=300, help='Number of epochs to train for')
 parser.add_argument('--mode', type=str, default="train", help='Select "train", "test", or "predict" mode. \
     Note that for prediction mode you have to specify an image to run the model on.')
@@ -214,10 +215,10 @@ if args.class_balancing:
     unweighted_loss = tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=net_output)
     losses = unweighted_loss * class_weights
 else:
-    losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=network, labels=net_output)
+    losses = tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=net_output)
 loss = tf.reduce_mean(losses)
 
-opt = tf.train.AdamOptimizer(0.0001).minimize(loss, var_list=[var for var in tf.trainable_variables()])
+opt = tf.train.AdamOptimizer(args.lr).minimize(loss, var_list=[var for var in tf.trainable_variables()])
 
 saver=tf.train.Saver(max_to_keep=1000)
 sess.run(tf.global_variables_initializer())
