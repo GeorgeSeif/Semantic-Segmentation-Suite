@@ -106,10 +106,9 @@ def load_image(path):
     if (len(image.shape)<3):
         image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
     elif image.shape[2] == 4:
-        image = cv2.cvtColor(image, cv2.COLOR_RGBA2RGB)
-    # else:
-    #     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
+        image = cv2.cvtColor(image, cv2.COLOR_RGBA2BGR)
+    else:
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)    
     return image
 
 def data_augmentation(input_image, output_image):
@@ -151,6 +150,9 @@ for class_name in class_names_list:
         class_names_string = class_names_string + class_name
 
 num_classes = len(label_values)
+
+print(label_values)
+exit()
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
