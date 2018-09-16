@@ -36,7 +36,7 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--lr', type=int, default=0.0001, help='initial learning rate')
+parser.add_argument('--lr', type=float, default=0.0001, help='initial learning rate')
 parser.add_argument('--num_epochs', type=int, default=300, help='Number of epochs to train for')
 parser.add_argument('--mode', type=str, default="train", help='Select "train", "test", or "predict" mode. \
     Note that for prediction mode you have to specify an image to run the model on.')
