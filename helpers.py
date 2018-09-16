@@ -65,12 +65,17 @@ def one_hot_it(label, label_values):
     semantic_map = []
 
     i = 0
+    red, green, blue = label[:,:,0], label[:,:,1], label[:,:,2]
+
     for colour in label_values:
         # colour_map = np.full((label.shape[0], label.shape[1], label.shape[2]), colour, dtype=int)
         equality = np.equal(label, colour)
-        one_hot = label
-        one_hot[equality] = [0,0,0]
-        misc.imsave("one_hot.png", one_hot)
+
+        one_not = label.copy()
+        mask = (red == colour[0]) & (green == colour[1]) & (blue == colour[2])
+        one_not[:,:,:3][mask] = [0,0,0]
+        misc.imsave("one_not.png", one_not)
+
         class_map = np.all(equality, axis = -1)
         semantic_map.append(class_map)
         i = i + 1
