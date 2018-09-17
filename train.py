@@ -286,6 +286,42 @@ for epoch in range(0, args.num_epochs):
         print("Validation F1 score = ", avg_f1)
         print("Validation IoU score = ", avg_iou)
 
+        fig1, ax1 = plt.subplots(figsize=(11, 8))
+
+        x_val = range(epoch / args.validation_step + 1)
+        x_val[:] = [(x - 1) * args.validation_step + 1 for x in x_val]
+        ax1.plot(x_val, avg_scores_per_epoch)
+        ax1.set_title("Average validation accuracy vs epochs")
+        ax1.set_xlabel("Epoch")
+        ax1.set_ylabel("Avg. val. accuracy")
+
+
+        plt.savefig('accuracy_vs_epochs.png')
+
+        plt.clf()
+
+        fig2, ax2 = plt.subplots(figsize=(11, 8))
+
+        ax2.plot(range(epoch+1), avg_loss_per_epoch)
+        ax2.set_title("Average loss vs epochs")
+        ax2.set_xlabel("Epoch")
+        ax2.set_ylabel("Current loss")
+
+        plt.savefig('loss_vs_epochs.png')
+
+        plt.clf()
+
+        fig3, ax3 = plt.subplots(figsize=(11, 8))
+
+        ax3.plot(x_val, avg_iou_per_epoch)
+        ax3.set_title("Average IoU vs epochs")
+        ax3.set_xlabel("Epoch")
+        ax3.set_ylabel("Current IoU")
+
+        plt.savefig('iou_vs_epochs.png')
+
+
+
     epoch_time=time.time()-epoch_st
     remain_time=epoch_time*(args.num_epochs-1-epoch)
     m, s = divmod(remain_time, 60)
@@ -296,39 +332,6 @@ for epoch in range(0, args.num_epochs):
         train_time="Remaining training time : Training completed.\n"
     utils.LOG(train_time)
     scores_list = []
-
-
-    fig1, ax1 = plt.subplots(figsize=(11, 8))
-
-    ax1.plot(range(epoch+1), avg_scores_per_epoch)
-    ax1.set_title("Average validation accuracy vs epochs")
-    ax1.set_xlabel("Epoch")
-    ax1.set_ylabel("Avg. val. accuracy")
-
-
-    plt.savefig('accuracy_vs_epochs.png')
-
-    plt.clf()
-
-    fig2, ax2 = plt.subplots(figsize=(11, 8))
-
-    ax2.plot(range(epoch+1), avg_loss_per_epoch)
-    ax2.set_title("Average loss vs epochs")
-    ax2.set_xlabel("Epoch")
-    ax2.set_ylabel("Current loss")
-
-    plt.savefig('loss_vs_epochs.png')
-
-    plt.clf()
-
-    fig3, ax3 = plt.subplots(figsize=(11, 8))
-
-    ax3.plot(range(epoch+1), avg_iou_per_epoch)
-    ax3.set_title("Average IoU vs epochs")
-    ax3.set_xlabel("Epoch")
-    ax3.set_ylabel("Current IoU")
-
-    plt.savefig('iou_vs_epochs.png')
 
 
 
