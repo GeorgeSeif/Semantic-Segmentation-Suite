@@ -38,7 +38,7 @@ def AtrousSpatialPyramidPoolingModule(inputs, depth=256):
     feature_map_size = tf.shape(inputs)
 
     # Global average pooling
-    image_features = tf.reduce_mean(inputs, [1, 2], keep_dims=True)
+    image_features = tf.reduce_mean(inputs, [1, 2], keepdims=True)
 
     image_features = slim.conv2d(image_features, depth, [1, 1], activation_fn=None)
     image_features = tf.image.resize_bilinear(image_features, (feature_map_size[1], feature_map_size[2]))
