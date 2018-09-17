@@ -11,7 +11,7 @@ from sklearn.metrics import precision_score, \
     recall_score, confusion_matrix, classification_report, \
     accuracy_score, f1_score
 
-from utils import helpers
+from . import helpers
 
 def prepare_data(dataset_dir):
     train_input_names=[]
