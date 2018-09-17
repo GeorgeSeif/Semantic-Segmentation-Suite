@@ -9,6 +9,10 @@ import random
 import os, sys
 import subprocess
 
+# use 'Agg' on matplotlib so that plots could be generated even without Xserver
+# running
+import matplotlib
+matplotlib.use('Agg')
 
 from utils import utils, helpers
 from builders import model_builder
@@ -25,6 +29,7 @@ def str2bool(v):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_epochs', type=int, default=300, help='Number of epochs to train for')
+parser.add_argument('--epoch_start_i', type=int, default=0, help='Start counting epochs from this number')
 parser.add_argument('--checkpoint_step', type=int, default=5, help='How often to save checkpoints (epochs)')
 parser.add_argument('--validation_step', type=int, default=1, help='How often to perform validation (epochs)')
 parser.add_argument('--image', type=str, default=None, help='The image you want to predict on. Only valid in "predict" mode.')
@@ -85,7 +90,7 @@ sess=tf.Session(config=config)
 
 # Compute your softmax cross entropy loss
 net_input = tf.placeholder(tf.float32,shape=[None,None,None,3])
-net_output = tf.placeholder(tf.float32,shape=[None,None,None,num_classes]) 
+net_output = tf.placeholder(tf.float32,shape=[None,None,None,num_classes])
 
 network, init_fn = model_builder.build_model(model_name=args.model, frontend=args.frontend, net_input=net_input, num_classes=num_classes, crop_width=args.crop_width, crop_height=args.crop_height, is_training=True)
 
@@ -145,7 +150,7 @@ random.seed(16)
 val_indices=random.sample(range(0,len(val_input_names)),num_vals)
 
 # Do the training here
-for epoch in range(0, args.num_epochs):
+for epoch in range(args.epoch_start_i, args.num_epochs):
 
     current_losses = []
 
@@ -159,9 +164,9 @@ for epoch in range(0, args.num_epochs):
     epoch_st=time.time()
     for i in range(num_iters):
         # st=time.time()
-        
+
         input_image_batch = []
-        output_image_batch = [] 
+        output_image_batch = []
 
         # Collect a batch of images
         for j in range(args.batch_size):
@@ -177,10 +182,10 @@ for epoch in range(0, args.num_epochs):
                 # Prep the data. Make sure the labels are in one-hot format
                 input_image = np.float32(input_image) / 255.0
                 output_image = np.float32(helpers.one_hot_it(label=output_image, label_values=label_values))
-                
+
                 input_image_batch.append(np.expand_dims(input_image, axis=0))
                 output_image_batch.append(np.expand_dims(output_image, axis=0))
-        
+
         if args.batch_size == 1:
             input_image_batch = input_image_batch[0]
             output_image_batch = output_image_batch[0]
@@ -199,7 +204,7 @@ for epoch in range(0, args.num_epochs):
 
     mean_loss = np.mean(current_losses)
     avg_loss_per_epoch.append(mean_loss)
-    
+
     # Create directories if needed
     if not os.path.isdir("%s/%04d"%("checkpoints",epoch)):
         os.makedirs("%s/%04d"%("checkpoints",epoch))
@@ -229,7 +234,7 @@ for epoch in range(0, args.num_epochs):
 
         # Do the validation on a small set of validation images
         for ind in val_indices:
-            
+
             input_image = np.expand_dims(np.float32(utils.load_image(val_input_names[ind])[:args.crop_height, :args.crop_width]),axis=0)/255.0
             gt = utils.load_image(val_output_names[ind])[:args.crop_height, :args.crop_width]
             gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, label_values))
@@ -237,14 +242,14 @@ for epoch in range(0, args.num_epochs):
             # st = time.time()
 
             output_image = sess.run(network,feed_dict={net_input:input_image})
-            
+
 
             output_image = np.array(output_image[0,:,:,:])
             output_image = helpers.reverse_one_hot(output_image)
             out_vis_image = helpers.colour_code_segmentation(output_image, label_values)
 
             accuracy, class_accuracies, prec, rec, f1, iou = utils.evaluate_segmentation(pred=output_image, label=gt, num_classes=num_classes)
-        
+
             file_name = utils.filepath_to_name(val_input_names[ind])
             target.write("%s, %f, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1, iou))
             for item in class_accuracies:
@@ -257,9 +262,9 @@ for epoch in range(0, args.num_epochs):
             recall_list.append(rec)
             f1_list.append(f1)
             iou_list.append(iou)
-            
+
             gt = helpers.colour_code_segmentation(gt, label_values)
- 
+
             file_name = os.path.basename(val_input_names[ind])
             file_name = os.path.splitext(file_name)[0]
             cv2.imwrite("%s/%04d/%s_pred.png"%("checkpoints",epoch, file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
