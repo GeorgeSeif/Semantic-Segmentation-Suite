@@ -27,6 +27,16 @@ from DeepLabV3 import build_deeplabv3
 from DeepLabV3_plus import build_deeplabv3_plus
 from AdapNet import build_adaptnet
 
+# Train:
+# python main.py --dataset ../datasets/ade20k_sss --lr 0.0002 --model DeepLabV3_plus-Res101 --batch_size 7
+# python main.py --dataset ../datasets/ade20k_sss --lr 0.0002 --model PSPNet-Res152 --batch_size 10
+# Test:
+# python main.py --mode predict 
+# --input_dir /Volumes/YUGE/datasets/ade20k_sss/train 
+# --dataset /Volumes/YUGE/datasets/ade20k_sss 
+# --crop_height 512 --crop_width 512 
+# --model DeepLabV3_plus-Res101
+
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
         return True
@@ -44,6 +54,7 @@ parser.add_argument('--checkpoint_step', type=int, default=10, help='How often t
 parser.add_argument('--validation_step', type=int, default=1, help='How often to perform validation (epochs)')
 parser.add_argument('--class_balancing', type=str2bool, default=False, help='Whether to use median frequency class weights to balance the classes in the loss')
 parser.add_argument('--image', type=str, default=None, help='The image you want to predict on. Only valid in "predict" mode.')
+parser.add_argument('--input_dir', type=str, default=None, help='A directory of images you want to predict on. Only valid in "predict" mode.')
 parser.add_argument('--continue_training', type=str2bool, default=False, help='Whether to continue training from a checkpoint')
 parser.add_argument('--dataset', type=str, default="datasets/CamVid", help='Dataset you are using.')
 parser.add_argument('--crop_height', type=int, default=512, help='Height of cropped input image to network')
@@ -63,11 +74,8 @@ args = parser.parse_args()
 def validate_arguments(args):
     #don't waste time on invalid inputs
     if args.mode == "predict":
-        if args.image is None:
+        if args.image is None and args.input_dir is None:
             print("Error: --image is a required parameter for prediction")
-            return False
-        elif not os.path.isfile(args.image):
-            print("Error: image file does not exist at path %s" % args.image)
             return False
     return True
 
@@ -546,7 +554,7 @@ elif args.mode == "test":
 
 elif args.mode == "predict":
 
-    if args.image is None:
+    if args.image is None and args.input_dir is None:
         ValueError("You must pass an image path when using prediction mode.")
 
     print("\n***** Begin prediction *****")
@@ -555,38 +563,43 @@ elif args.mode == "predict":
     print("Crop Height -->", args.crop_height)
     print("Crop Width -->", args.crop_width)
     print("Num Classes -->", num_classes)
-    print("Image -->", args.image)
+    if args.input_dir is None:
+        print("Image -->", args.image)
+        image_paths = [args.image]
+    else: 
+        print("Input directory -->", args.input_dir)
+        image_paths = utils.get_image_paths(args.input_dir)
     print("")
-    
-    sys.stdout.write("Testing image " + args.image)
-    sys.stdout.flush()
 
-    # to get the right aspect ratio of the output
-    loaded_image = load_image(args.image)
-    height, width, channels = loaded_image.shape
-    resize_height = int(height / (width / args.crop_width))
+    for path in image_paths:
+        sys.stdout.write("Testing image " + path)
+        sys.stdout.flush()
 
-    resized_image =cv2.resize(loaded_image, (args.crop_width, resize_height))
-    input_image = np.expand_dims(np.float32(resized_image[:args.crop_height, :args.crop_width]),axis=0)/255.0
+        # to get the right aspect ratio of the output
+        loaded_image = load_image(path)
+        height, width, channels = loaded_image.shape
+        resize_height = int(height / (width / args.crop_width))
 
-    st = time.time()
-    output_image = sess.run(network,feed_dict={net_input:input_image})
+        resized_image =cv2.resize(loaded_image, (args.crop_width, resize_height))
+        input_image = np.expand_dims(np.float32(resized_image[:args.crop_height, :args.crop_width]),axis=0)/255.0
 
-    run_time = time.time()-st
+        st = time.time()
+        output_image = sess.run(network,feed_dict={net_input:input_image})
 
-    output_image = np.array(output_image[0,:,:,:])
-    output_image = helpers.reverse_one_hot(output_image)
+        run_time = time.time()-st
 
-    # this needs to get generalized
-    class_names_list, label_values = helpers.get_label_info(os.path.join(args.dataset, "class_dict.csv"))
+        output_image = np.array(output_image[0,:,:,:])
+        output_image = helpers.reverse_one_hot(output_image)
 
-    out_vis_image = helpers.colour_code_segmentation(output_image, label_values)
-    file_name = utils.filepath_to_name(args.image)
-    cv2.imwrite("%s/%s_pred.png"%("Test", file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
+        # this needs to get generalized
+        class_names_list, label_values = helpers.get_label_info(os.path.join(args.dataset, "class_dict.csv"))
+
+        out_vis_image = helpers.colour_code_segmentation(output_image, label_values)
+        file_name = utils.filepath_to_name(path)
+        cv2.imwrite("%s/%s_pred.png"%("Test", file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
 
     print("")
-    print("Finished!")
-    print("Wrote image " + "%s/%s_pred.png"%("Test", file_name))
+    print("Done")
 
 else:
     ValueError("Invalid mode selected.")

@@ -10,3 +10,4 @@ CamVid_train.tfrecords
 tfrecords.py
 .DS_Store
 /datasets
+Val

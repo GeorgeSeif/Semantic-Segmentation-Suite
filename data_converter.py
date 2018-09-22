@@ -21,6 +21,8 @@ import utils
 import ast
 from shutil import copyfile
 
+## 6 categories below, three commands
+
  # python data_converter.py --mode train \
  # --input_dir $datasets/ADE20K_2016_07_26/images/training \
  # --input_match_exp "*.jpg" \
@@ -48,6 +50,35 @@ from shutil import copyfile
  # --filter_categories $datasets/ADE20K_2016_07_26/indoor-categories.txt \
  # --replace_colors $datasets/ADE20K_2016_07_26/replace-all-colors.txt
 
+## 2 categories, just floor below, three commands
+
+ # python data_converter.py --mode train \
+ # --input_dir $datasets/ADE20K_2016_07_26/images/training \
+ # --input_match_exp "*.jpg" \
+ # --label_dir $datasets/ADE20K_2016_07_26/images/training \
+ # --label_match_exp "*_seg.png" \
+ # --output_dir $datasets/ade20k_floors_sss \
+ # --filter_categories $datasets/ADE20K_2016_07_26/indoor-categories.txt \
+ # --replace_colors $datasets/ADE20K_2016_07_26/just-floor.txt --min_colors=2
+
+ # python data_converter.py --mode val \
+ # --input_dir $datasets/ADE20K_2016_07_26/images/validation \
+ # --input_match_exp "*.jpg" \
+ # --label_dir $datasets/ADE20K_2016_07_26/images/validation \
+ # --label_match_exp "*_seg.png" \
+ # --output_dir $datasets/ade20k_floors_sss \
+ # --filter_categories $datasets/ADE20K_2016_07_26/indoor-categories.txt \
+ # --replace_colors $datasets/ADE20K_2016_07_26/just-floor.txt --min_colors=2
+
+ # python data_converter.py --mode test \
+ # --input_dir $datasets/ADE20K_2016_07_26/images/validation \
+ # --input_match_exp "*.jpg" \
+ # --label_dir $datasets/ADE20K_2016_07_26/images/validation \
+ # --label_match_exp "*_seg.png" \
+ # --output_dir $datasets/ade20k_floors_sss \
+ # --filter_categories $datasets/ADE20K_2016_07_26/indoor-categories.txt \
+ # --replace_colors $datasets/ADE20K_2016_07_26/just-floor.txt --min_colors=2
+
 parser = argparse.ArgumentParser()
 
 # required together:
@@ -60,6 +91,7 @@ parser.add_argument("--label_match_exp", required=False, help="Label Input expre
 
 parser.add_argument("--filter_categories", required=False, help="Path to file with valid categories")
 parser.add_argument("--replace_colors", required=False, help="Path to file with GT color replacements. See replace-colors.txt")
+parser.add_argument("--min_colors", type=int, required=False, default=3, help="where to put output files")
 
 # Place to output A/B images
 parser.add_argument("--output_dir", required=True, help="where to put output files")
@@ -79,7 +111,7 @@ def getColor(input):
 
     return ast.literal_eval(input)
 
-def replaceColors(im):
+def replaceColors(im, min_colors=2):
 
     h,w = im.shape[:2]
     
@@ -106,7 +138,8 @@ def replaceColors(im):
                     num_elements = num_elements + 1
                 lastZeroCount = nzCount
     
-    if num_elements < 3:
+    if num_elements < min_colors:
+        # print("Got %d colors which is less than allowed %d" % (num_elements, min_colors))
         return None
 
     if not default is None:
@@ -137,16 +170,16 @@ def main():
     num_labels = len(label_paths)
 
     if (num_src != num_labels):
-    	raise Exception('Found different number of source images than labels (%d vs %d)' % (num_src, num_labels))
+        raise Exception('Found different number of source images than labels (%d vs %d)' % (num_src, num_labels))
     
     print("Processing %d images" % num_src)
 
-    labels_function = None
+    num_dest = 0
+
     if not a.replace_colors is None:
         if not os.path.isfile(a.replace_colors): 
             print("Error: replace_colors file %s does not exist" % a.replace_colors)
             return
-        labels_function = replaceColors
 
         with open(a.replace_colors) as f:
             content = f.readlines()
@@ -176,18 +209,19 @@ def main():
         label_name = os.path.basename(label_path)
         dst_label_path = os.path.join(label_dir, label_name)
         if not a.replace_colors is None:
-        	image = misc.imread(label_path)
-        	image = labels_function(image)
-        	if image is None:
-        		continue
-        	misc.imsave(dst_label_path, image)
+            image = misc.imread(label_path)
+            image = replaceColors(image, a.min_colors)
+            if image is None:
+                # print("Skipping %s" % label_name)
+                continue
+            misc.imsave(dst_label_path, image)
         else:
-        	copyfile(label_path, dst_label_path)
+            copyfile(label_path, dst_label_path)
 
         copyfile(src_path, dst_path)
-
+        num_dest = num_dest + 1
         print("Processed %s and %s" % (src_name, label_name))
 
-    print("DONE")
+    print("DONE, processed %d images" % num_dest)
 
 main()
