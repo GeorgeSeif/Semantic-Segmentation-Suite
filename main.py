@@ -28,7 +28,7 @@ from DeepLabV3_plus import build_deeplabv3_plus
 from AdapNet import build_adaptnet
 
 # Train:
-# python main.py --dataset ../datasets/ade20k_sss --lr 0.0002 --model DeepLabV3_plus-Res101 --batch_size 7
+# python main.py --dataset ../datasets/ade20k_floors_sss --lr 0.0002 --model DeepLabV3_plus-Res152 --batch_size 5 --num_epochs=3000
 # python main.py --dataset ../datasets/ade20k_sss --lr 0.0002 --model PSPNet-Res152 --batch_size 10
 # Test:
 # python main.py --mode predict 

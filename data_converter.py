@@ -21,7 +21,7 @@ import utils
 import ast
 from shutil import copyfile
 
-## 6 categories below, three commands
+## 6 categories below, three commands. Don't forget class_dict.csv!
 
  # python data_converter.py --mode train \
  # --input_dir $datasets/ADE20K_2016_07_26/images/training \
@@ -50,7 +50,7 @@ from shutil import copyfile
  # --filter_categories $datasets/ADE20K_2016_07_26/indoor-categories.txt \
  # --replace_colors $datasets/ADE20K_2016_07_26/replace-all-colors.txt
 
-## 2 categories, just floor below, three commands
+## 2 categories, just floor below, three commands. Don't forget class_dict.csv!
 
  # python data_converter.py --mode train \
  # --input_dir $datasets/ADE20K_2016_07_26/images/training \
@@ -58,7 +58,6 @@ from shutil import copyfile
  # --label_dir $datasets/ADE20K_2016_07_26/images/training \
  # --label_match_exp "*_seg.png" \
  # --output_dir $datasets/ade20k_floors_sss \
- # --filter_categories $datasets/ADE20K_2016_07_26/indoor-categories.txt \
  # --replace_colors $datasets/ADE20K_2016_07_26/just-floor.txt --min_colors=2
 
  # python data_converter.py --mode val \
@@ -67,7 +66,6 @@ from shutil import copyfile
  # --label_dir $datasets/ADE20K_2016_07_26/images/validation \
  # --label_match_exp "*_seg.png" \
  # --output_dir $datasets/ade20k_floors_sss \
- # --filter_categories $datasets/ADE20K_2016_07_26/indoor-categories.txt \
  # --replace_colors $datasets/ADE20K_2016_07_26/just-floor.txt --min_colors=2
 
  # python data_converter.py --mode test \
@@ -76,7 +74,6 @@ from shutil import copyfile
  # --label_dir $datasets/ADE20K_2016_07_26/images/validation \
  # --label_match_exp "*_seg.png" \
  # --output_dir $datasets/ade20k_floors_sss \
- # --filter_categories $datasets/ADE20K_2016_07_26/indoor-categories.txt \
  # --replace_colors $datasets/ADE20K_2016_07_26/just-floor.txt --min_colors=2
 
 parser = argparse.ArgumentParser()
