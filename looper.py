@@ -64,29 +64,6 @@ def validate_arguments(args):
         return False
     return True
 
-# Get a list of the training, validation, and testing file paths
-def prepare_data(dataset_dir=args.dataset):
-    train_input_names=[]
-    train_output_names=[]
-    val_input_names=[]
-    val_output_names=[]
-    test_input_names=[]
-    test_output_names=[]
-    for file in os.listdir(dataset_dir + "/train"):
-        train_input_names.append(dataset_dir + "/train/" + file)
-    for file in os.listdir(dataset_dir + "/train_labels"):
-        train_output_names.append(dataset_dir + "/train_labels/" + file)
-    for file in os.listdir(dataset_dir + "/val"):
-        val_input_names.append(dataset_dir + "/val/" + file)
-    for file in os.listdir(dataset_dir + "/val_labels"):
-        val_output_names.append(dataset_dir + "/val_labels/" + file)
-    for file in os.listdir(dataset_dir + "/test"):
-        test_input_names.append(dataset_dir + "/test/" + file)
-    for file in os.listdir(dataset_dir + "/test_labels"):
-        test_output_names.append(dataset_dir + "/test_labels/" + file)
-    train_input_names.sort(),train_output_names.sort(), val_input_names.sort(), val_output_names.sort(), test_input_names.sort(), test_output_names.sort()
-    return train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names
-
 
 def load_image(path):
     image = cv2.imread(path,-1)
@@ -127,7 +104,6 @@ for class_name in class_names_list:
 num_classes = len(label_values)
 
 config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
 sess=tf.Session(config=config)
 
 # Get the selected model. 
@@ -213,12 +189,7 @@ else:
 saver.restore(sess, model_checkpoint_name)
 print('Loaded latest model checkpoint')
 
-avg_scores_per_epoch = []
-
 # Load the data
-print("Loading the data ...")
-train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names = prepare_data()
-
 print("\n***** Begin processing *****")
 print("Dataset -->", args.dataset)
 print("Model -->", args.model)
