@@ -48,6 +48,29 @@ def load_image(path, crop_width, crop_height):
 
     return image
 
+def data_augmentation(args, input_image, output_image):
+    # Data augmentation
+    input_image, output_image = utils.random_crop(input_image, output_image, args.crop_height, args.crop_width)
+
+    if args.h_flip and random.randint(0,1):
+        input_image = cv2.flip(input_image, 1)
+        output_image = cv2.flip(output_image, 1)
+    if args.v_flip and random.randint(0,1):
+        input_image = cv2.flip(input_image, 0)
+        output_image = cv2.flip(output_image, 0)
+    if args.brightness:
+        factor = 1.0 + random.uniform(-1.0*args.brightness, args.brightness)
+        table = np.array([((i / 255.0) * factor) * 255 for i in np.arange(0, 256)]).astype(np.uint8)
+        input_image = cv2.LUT(input_image, table)
+    if args.rotation:
+        angle = random.uniform(-1*args.rotation, args.rotation)
+    if args.rotation:
+        M = cv2.getRotationMatrix2D((input_image.shape[1]//2, input_image.shape[0]//2), angle, 1.0)
+        input_image = cv2.warpAffine(input_image, M, (input_image.shape[1], input_image.shape[0]), flags=cv2.INTER_NEAREST)
+        output_image = cv2.warpAffine(output_image, M, (output_image.shape[1], output_image.shape[0]), flags=cv2.INTER_NEAREST)
+
+    return input_image, output_image
+
 def ensure_checkpoints(model_name):
     if "Res50" in model_name and not os.path.isfile("models/resnet_v2_50.ckpt"):
         download_checkpoints("Res50")
@@ -58,6 +81,29 @@ def ensure_checkpoints(model_name):
 
 def download_checkpoints(model_name):
     subprocess.check_output(["python", "get_pretrained_checkpoints.py", "--model=" + model_name])
+
+# Get a list of the training, validation, and testing file paths
+def prepare_data(dataset_dir):
+    train_input_names=[]
+    train_output_names=[]
+    val_input_names=[]
+    val_output_names=[]
+    test_input_names=[]
+    test_output_names=[]
+    for file in os.listdir(dataset_dir + "/train"):
+        train_input_names.append(dataset_dir + "/train/" + file)
+    for file in os.listdir(dataset_dir + "/train_labels"):
+        train_output_names.append(dataset_dir + "/train_labels/" + file)
+    for file in os.listdir(dataset_dir + "/val"):
+        val_input_names.append(dataset_dir + "/val/" + file)
+    for file in os.listdir(dataset_dir + "/val_labels"):
+        val_output_names.append(dataset_dir + "/val_labels/" + file)
+    for file in os.listdir(dataset_dir + "/test"):
+        test_input_names.append(dataset_dir + "/test/" + file)
+    for file in os.listdir(dataset_dir + "/test_labels"):
+        test_output_names.append(dataset_dir + "/test_labels/" + file)
+    train_input_names.sort(),train_output_names.sort(), val_input_names.sort(), val_output_names.sort(), test_input_names.sort(), test_output_names.sort()
+    return train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names
 
 def build_model(model_name, net_input, num_classes, crop_width, crop_height):
     network = None

@@ -15,6 +15,8 @@ import utils
 
 import matplotlib.pyplot as plt
 
+import model_utils
+
 sys.path.append("models")
 from FC_DenseNet_Tiramisu import build_fc_densenet
 from Encoder_Decoder import build_encoder_decoder
@@ -37,32 +39,25 @@ from AdapNet import build_adaptnet
 # --crop_height 512 --crop_width 512 \
 # --model DeepLabV3_plus-Res152
 
-def str2bool(v):
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--lr', type=float, default=0.0001, help='initial learning rate')
 parser.add_argument('--num_epochs', type=int, default=300, help='Number of epochs to train for')
 parser.add_argument('--mode', type=str, default="train", help='Select "train", "test", or "predict" mode. \
     Note that for prediction mode you have to specify an image to run the model on.')
+parser.add_argument('--checkpoint', type=str, default=None, help='Path to checkpoint file')
 parser.add_argument('--checkpoint_step', type=int, default=10, help='How often to save checkpoints (epochs)')
 parser.add_argument('--validation_step', type=int, default=1, help='How often to perform validation (epochs)')
-parser.add_argument('--class_balancing', type=str2bool, default=False, help='Whether to use median frequency class weights to balance the classes in the loss')
+parser.add_argument('--class_balancing', type=utils.str2bool, default=False, help='Whether to use median frequency class weights to balance the classes in the loss')
 parser.add_argument('--image', type=str, default=None, help='The image you want to predict on. Only valid in "predict" mode.')
 parser.add_argument('--input_dir', type=str, default=None, help='A directory of images you want to predict on. Only valid in "predict" mode.')
-parser.add_argument('--continue_training', type=str2bool, default=False, help='Whether to continue training from a checkpoint')
+parser.add_argument('--continue_training', type=utils.str2bool, default=False, help='Whether to continue training from a checkpoint')
 parser.add_argument('--dataset', type=str, default="datasets/CamVid", help='Dataset you are using.')
 parser.add_argument('--crop_height', type=int, default=512, help='Height of cropped input image to network')
 parser.add_argument('--crop_width', type=int, default=512, help='Width of cropped input image to network')
 parser.add_argument('--batch_size', type=int, default=1, help='Number of images in each batch')
 parser.add_argument('--num_val_images', type=int, default=10, help='The number of images to used for validations')
-parser.add_argument('--h_flip', type=str2bool, default=False, help='Whether to randomly flip the image horizontally for data augmentation')
-parser.add_argument('--v_flip', type=str2bool, default=False, help='Whether to randomly flip the image vertically for data augmentation')
+parser.add_argument('--h_flip', type=utils.str2bool, default=False, help='Whether to randomly flip the image horizontally for data augmentation')
+parser.add_argument('--v_flip', type=utils.str2bool, default=False, help='Whether to randomly flip the image vertically for data augmentation')
 parser.add_argument('--brightness', type=float, default=None, help='Whether to randomly change the image brightness for data augmentation. Specifies the max bightness change as a factor between 0.0 and 1.0. For example, 0.1 represents a max brightness change of 10%% (+-).')
 parser.add_argument('--rotation', type=float, default=None, help='Whether to randomly rotate the image for data augmentation. Specifies the max rotation angle in degrees.')
 parser.add_argument('--model', type=str, default="FC-DenseNet56", help='The model you are using. Currently supports:\
@@ -78,78 +73,6 @@ def validate_arguments(args):
             print("Error: --image is a required parameter for prediction")
             return False
     return True
-
-
-# Get a list of the training, validation, and testing file paths
-def prepare_data(dataset_dir=args.dataset):
-    train_input_names=[]
-    train_output_names=[]
-    val_input_names=[]
-    val_output_names=[]
-    test_input_names=[]
-    test_output_names=[]
-    for file in os.listdir(dataset_dir + "/train"):
-        train_input_names.append(dataset_dir + "/train/" + file)
-    for file in os.listdir(dataset_dir + "/train_labels"):
-        train_output_names.append(dataset_dir + "/train_labels/" + file)
-    for file in os.listdir(dataset_dir + "/val"):
-        val_input_names.append(dataset_dir + "/val/" + file)
-    for file in os.listdir(dataset_dir + "/val_labels"):
-        val_output_names.append(dataset_dir + "/val_labels/" + file)
-    for file in os.listdir(dataset_dir + "/test"):
-        test_input_names.append(dataset_dir + "/test/" + file)
-    for file in os.listdir(dataset_dir + "/test_labels"):
-        test_output_names.append(dataset_dir + "/test_labels/" + file)
-    train_input_names.sort(),train_output_names.sort(), val_input_names.sort(), val_output_names.sort(), test_input_names.sort(), test_output_names.sort()
-    return train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names
-
-
-def load_image(path):
-    image = cv2.imread(path,-1)
-
-    downscale = 1.1 * max(float(args.crop_height) / float(image.shape[0]), float(args.crop_width) / float(image.shape[1]))
-
-    if len(image.shape) == 3:
-        shape= (int(downscale * image.shape[0]), int(downscale * image.shape[1]), 3)
-    else:
-        shape= (int(downscale * image.shape[0]), int(downscale * image.shape[1]))
-    
-    image = misc.imresize(image, shape, 'nearest')
-
-    if (len(image.shape)<3):
-        image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
-    elif image.shape[2] == 4:
-        image = cv2.cvtColor(image, cv2.COLOR_RGBA2BGR)
-    else:
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-    return image
-
-def data_augmentation(input_image, output_image):
-    # Data augmentation
-    input_image, output_image = utils.random_crop(input_image, output_image, args.crop_height, args.crop_width)
-
-    if args.h_flip and random.randint(0,1):
-        input_image = cv2.flip(input_image, 1)
-        output_image = cv2.flip(output_image, 1)
-    if args.v_flip and random.randint(0,1):
-        input_image = cv2.flip(input_image, 0)
-        output_image = cv2.flip(output_image, 0)
-    if args.brightness:
-        factor = 1.0 + random.uniform(-1.0*args.brightness, args.brightness)
-        table = np.array([((i / 255.0) * factor) * 255 for i in np.arange(0, 256)]).astype(np.uint8)
-        input_image = cv2.LUT(input_image, table)
-    if args.rotation:
-        angle = random.uniform(-1*args.rotation, args.rotation)
-    if args.rotation:
-        M = cv2.getRotationMatrix2D((input_image.shape[1]//2, input_image.shape[0]//2), angle, 1.0)
-        input_image = cv2.warpAffine(input_image, M, (input_image.shape[1], input_image.shape[0]), flags=cv2.INTER_NEAREST)
-        output_image = cv2.warpAffine(output_image, M, (output_image.shape[1], output_image.shape[0]), flags=cv2.INTER_NEAREST)
-
-    return input_image, output_image
-
-def download_checkpoints(model_name):
-    subprocess.check_output(["python", "get_pretrained_checkpoints.py", "--model=" + model_name])
 
 if not validate_arguments(args):
     exit()
@@ -172,52 +95,14 @@ sess=tf.Session(config=config)
 # Get the selected model. 
 # Some of them require pre-trained ResNet
 
-if "Res50" in args.model and not os.path.isfile("models/resnet_v2_50.ckpt"):
-    download_checkpoints("Res50")
-if "Res101" in args.model and not os.path.isfile("models/resnet_v2_101.ckpt"):
-    download_checkpoints("Res101")
-if "Res152" in args.model and not os.path.isfile("models/resnet_v2_152.ckpt"):
-    download_checkpoints("Res152")
+model_utils.ensure_checkpoints(args.model)
 
 # Compute your softmax cross entropy loss
 print("Preparing the model ...")
 net_input = tf.placeholder(tf.float32,shape=[None,None,None,3])
 net_output = tf.placeholder(tf.float32,shape=[None,None,None,num_classes]) 
 
-
-network = None
-init_fn = None
-if args.model == "FC-DenseNet56" or args.model == "FC-DenseNet67" or args.model == "FC-DenseNet103":
-    network = build_fc_densenet(net_input, preset_model = args.model, num_classes=num_classes)
-elif args.model == "RefineNet-Res50" or args.model == "RefineNet-Res101" or args.model == "RefineNet-Res152":
-    # RefineNet requires pre-trained ResNet weights
-    network, init_fn = build_refinenet(net_input, preset_model = args.model, num_classes=num_classes)
-elif args.model == "FRRN-A" or args.model == "FRRN-B":
-    network = build_frrn(net_input, preset_model = args.model, num_classes=num_classes)
-elif args.model == "Encoder-Decoder" or args.model == "Encoder-Decoder-Skip":
-    network = build_encoder_decoder(net_input, preset_model = args.model, num_classes=num_classes)
-elif args.model == "MobileUNet" or args.model == "MobileUNet-Skip":
-    network = build_mobile_unet(net_input, preset_model = args.model, num_classes=num_classes)
-elif args.model == "PSPNet-Res50" or args.model == "PSPNet-Res101" or args.model == "PSPNet-Res152":
-    # Image size is required for PSPNet
-    # PSPNet requires pre-trained ResNet weights
-    network, init_fn = build_pspnet(net_input, label_size=[args.crop_height, args.crop_width], preset_model = args.model, num_classes=num_classes)
-elif args.model == "GCN-Res50" or args.model == "GCN-Res101" or args.model == "GCN-Res152":
-    # GCN requires pre-trained ResNet weights
-    network, init_fn = build_gcn(net_input, preset_model = args.model, num_classes=num_classes)
-elif args.model == "DeepLabV3-Res50" or args.model == "DeepLabV3-Res101" or args.model == "DeepLabV3-Res152":
-    # DeepLabV requires pre-trained ResNet weights
-    network, init_fn = build_deeplabv3(net_input, preset_model = args.model, num_classes=num_classes)
-elif args.model == "DeepLabV3_plus-Res50" or args.model == "DeepLabV3_plus-Res101" or args.model == "DeepLabV3_plus-Res152":
-    # DeepLabV3+ requires pre-trained ResNet weights
-    network, init_fn = build_deeplabv3_plus(net_input, preset_model = args.model, num_classes=num_classes)
-elif args.model == "AdapNet":
-    network = build_adaptnet(net_input, num_classes=num_classes)
-elif args.model == "custom":
-    network = build_custom(net_input, num_classes)
-else:
-    raise ValueError("Error: the model %d is not available. Try checking which models are available using the command python main.py --help")
-
+network, init_fn = model_utils.build_model(args.model, net_input, num_classes, args.crop_width, args.crop_height)
 
 losses = None
 if args.class_balancing:
@@ -244,7 +129,11 @@ if init_fn is not None:
     init_fn(sess)
 
 # Load a previous checkpoint if desired
-model_checkpoint_name = "checkpoints/latest_model_" + args.model + "_" + os.path.basename(args.dataset) + ".ckpt"
+if args.checkpoint is None:
+    model_checkpoint_name = "checkpoints/latest_model_" + args.model + "_" + os.path.basename(args.dataset) + ".ckpt"
+else:
+    model_checkpoint_name = args.checkpoint
+
 if args.continue_training or not args.mode == "train":
     print('Loaded latest model checkpoint')
     saver.restore(sess, model_checkpoint_name)
@@ -253,7 +142,7 @@ avg_scores_per_epoch = []
 
 # Load the data
 print("Loading the data ...")
-train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names = prepare_data()
+train_input_names,train_output_names, val_input_names, val_output_names, test_input_names, test_output_names = model_utils.prepare_data(args.dataset)
 
 if args.mode == "train":
 
@@ -307,11 +196,11 @@ if args.mode == "train":
             for j in range(args.batch_size):
                 index = i*args.batch_size + j
                 id = id_list[index]
-                input_image = load_image(train_input_names[id])
-                output_image = load_image(train_output_names[id])
+                input_image = model_utils.load_image(train_input_names[id], args.crop_width, args.crop_height)
+                output_image = model_utils.load_image(train_output_names[id], args.crop_width, args.crop_height)
 
                 with tf.device('/cpu:0'):
-                    input_image, output_image = data_augmentation(input_image, output_image)
+                    input_image, output_image = model_utils.data_augmentation(args, input_image, output_image)
 
 
                     # Prep the data. Make sure the labels are in one-hot format
@@ -379,8 +268,8 @@ if args.mode == "train":
             # Do the validation on a small set of validation images
             for ind in val_indices:
                 
-                input_image = np.expand_dims(np.float32(load_image(val_input_names[ind])[:args.crop_height, :args.crop_width]),axis=0)/255.0
-                gt = load_image(val_output_names[ind])[:args.crop_height, :args.crop_width]
+                input_image = np.expand_dims(np.float32(model_utils.load_image(val_input_names[ind], args.crop_width, args.crop_height)[:args.crop_height, :args.crop_width]),axis=0)/255.0
+                gt = model_utils.load_image(val_output_names[ind], args.crop_width, args.crop_height)[:args.crop_height, :args.crop_width]
                 gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, label_values))
 
                 # st = time.time()
@@ -498,8 +387,8 @@ elif args.mode == "test":
         sys.stdout.write("\rRunning test image %d / %d: %.2f seconds per image" % (ind+1, len(val_input_names), avg_time))
         sys.stdout.flush()
 
-        input_image = np.expand_dims(np.float32(load_image(val_input_names[ind])[:args.crop_height, :args.crop_width]),axis=0)/255.0
-        gt = load_image(val_output_names[ind])[:args.crop_height, :args.crop_width]
+        input_image = np.expand_dims(np.float32(model_utils.load_image(val_input_names[ind], args.crop_width, args.crop_height)[:args.crop_height, :args.crop_width]),axis=0)/255.0
+        gt = model_utils.load_image(val_output_names[ind], args.crop_width, args.crop_height)[:args.crop_height, :args.crop_width]
         gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, label_values))
 
         st = time.time()
@@ -575,7 +464,7 @@ elif args.mode == "predict":
         print("Testing image " + path)
 
         # to get the right aspect ratio of the output
-        loaded_image = load_image(path)
+        loaded_image = model_utils.load_image(path, args.crop_width, args.crop_height)
         height, width, channels = loaded_image.shape
 
         resized_image = cv2.resize(loaded_image, (args.crop_width, args.crop_height))

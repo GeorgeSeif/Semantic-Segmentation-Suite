@@ -24,17 +24,9 @@ import model_utils
 # --dataset /Volumes/YUGE/datasets/ade20k_floors_sss \
 # --crop_height 512 --crop_width 512 
 
-def str2bool(v):
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--lr', type=float, default=0.0001, help='initial learning rate')
-parser.add_argument('--class_balancing', type=str2bool, default=False, help='Whether to use median frequency class weights to balance the classes in the loss')
+parser.add_argument('--class_balancing', type=utils.str2bool, default=False, help='Whether to use median frequency class weights to balance the classes in the loss')
 parser.add_argument('--input_dir', type=str, required=True, help='Directory of images to process.')
 parser.add_argument('--output_dir', type=str, required=True, help='Result directory of where to place output images')
 parser.add_argument('--checkpoint', type=str, default=None, help='Path to checkpoint file')
