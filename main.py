@@ -31,11 +31,11 @@ from AdapNet import build_adaptnet
 # python main.py --dataset ../datasets/ade20k_floors_sss --lr 0.0002 --model DeepLabV3_plus-Res152 --batch_size 5 --num_epochs=3000
 # python main.py --dataset ../datasets/ade20k_sss --lr 0.0002 --model PSPNet-Res152 --batch_size 10
 # Test:
-# python main.py --mode predict 
-# --input_dir /Volumes/YUGE/datasets/ade20k_sss/train 
-# --dataset /Volumes/YUGE/datasets/ade20k_sss 
-# --crop_height 512 --crop_width 512 
-# --model DeepLabV3_plus-Res101
+# python main.py --mode predict \
+# --input_dir /Volumes/YUGE/datasets/ade20k_floors_sss/train \
+# --dataset /Volumes/YUGE/datasets/ade20k_floors_sss \
+# --crop_height 512 --crop_width 512 \
+# --model DeepLabV3_plus-Res152
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -572,16 +572,15 @@ elif args.mode == "predict":
     print("")
 
     for path in image_paths:
-        sys.stdout.write("Testing image " + path)
-        sys.stdout.flush()
+        print("Testing image " + path)
 
         # to get the right aspect ratio of the output
         loaded_image = load_image(path)
         height, width, channels = loaded_image.shape
-        resize_height = int(height / (width / args.crop_width))
 
-        resized_image =cv2.resize(loaded_image, (args.crop_width, resize_height))
-        input_image = np.expand_dims(np.float32(resized_image[:args.crop_height, :args.crop_width]),axis=0)/255.0
+        resized_image = cv2.resize(loaded_image, (args.crop_width, args.crop_height))
+
+        input_image = np.expand_dims(np.float32(resized_image),axis=0)/255.0
 
         st = time.time()
         output_image = sess.run(network,feed_dict={net_input:input_image})
@@ -595,8 +594,13 @@ elif args.mode == "predict":
         class_names_list, label_values = helpers.get_label_info(os.path.join(args.dataset, "class_dict.csv"))
 
         out_vis_image = helpers.colour_code_segmentation(output_image, label_values)
+        out_vis_image = cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR)
+        out_vis_image = cv2.resize(out_vis_image, (width, height))
+
+        out_vis_image = cv2.addWeighted(loaded_image, 0.5, out_vis_image, 0.5,0)
+
         file_name = utils.filepath_to_name(path)
-        cv2.imwrite("%s/%s_pred.png"%("Test", file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
+        cv2.imwrite("%s/%s_pred.png"%("Test", file_name), out_vis_image)
 
     print("")
     print("Done")
