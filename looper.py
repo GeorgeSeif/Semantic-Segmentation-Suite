@@ -167,7 +167,8 @@ while True:
             loaded_image = model_utils.load_image(path, args.crop_width, args.crop_height)
             height, width, channels = loaded_image.shape
 
-            cv2.imwrite(os.path.join(args.output_dir, "%s_src.png" % (file_name)), cv2.cvtColor(loaded_image, cv2.COLOR_RGB2BGR))
+            if not args.output_color:
+                cv2.imwrite(os.path.join(args.output_dir, "%s_src.png" % (file_name)), cv2.cvtColor(loaded_image, cv2.COLOR_RGB2BGR))
 
             resized_image = cv2.resize(loaded_image, (args.crop_width, args.crop_height))
 
@@ -186,12 +187,15 @@ while True:
                 out_vis_image = cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR)
                 out_vis_image = cv2.resize(out_vis_image, (width, height))
                 out_vis_image = cv2.addWeighted(loaded_image, 0.5, out_vis_image, 0.5,0)
-                cv2.imwrite(os.path.join(args.output_dir, "%s_pred.png" % (file_name)), out_vis_image)
-                
-
-            mask = cv2.resize(np.uint8(output_image), (width, height))
-            mask[mask == 0] = 255
-            cv2.imwrite(os.path.join(args.output_dir, "%s_mask.png" % (file_name)), mask)
+                color_path = os.path.join(args.output_dir, "%s_pred.png" % (file_name))
+                cv2.imwrite(color_path, out_vis_image)
+                print("Saved " + color_path)
+            else:
+                mask = cv2.resize(np.uint8(output_image), (width, height))
+                mask[mask == 0] = 255
+                mask_path = os.path.join(args.output_dir, "%s_mask.png" % (file_name))
+                cv2.imwrite(mask_path, mask)
+                print("Saved " + mask_path)
 
             if args.delete_src:
                 os.remove(path)
