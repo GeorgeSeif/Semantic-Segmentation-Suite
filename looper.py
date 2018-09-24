@@ -23,7 +23,7 @@ import model_utils
 # --delete_src 1 \
 # --output_dir mloutput \
 # --dataset /Volumes/YUGE/datasets/ade20k_floors_sss \
-# --crop_height 512 --crop_width 512 
+# --crop_height 512 --crop_width 512 --output_color 0
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--lr', type=float, default=0.0001, help='initial learning rate')
@@ -129,6 +129,9 @@ print("Output directory -->", args.output_dir)
 if not os.path.isdir(args.output_dir):
     os.makedirs(args.output_dir)
 
+# this needs to get generalized
+class_names_list, label_values = helpers.get_label_info(os.path.join(args.dataset, "class_dict.csv"))
+
 while True:
     filtered_dirs = utils.getFilteredDirs(args)
     paths = utils.get_image_paths(args.input_dir, args.input_match_exp, require_rgb=False, filtered_dirs=filtered_dirs)
@@ -156,24 +159,20 @@ while True:
 
             output_image = np.array(output_image[0,:,:,:])
             output_image = helpers.reverse_one_hot(output_image)
-
-            # this needs to get generalized
-            class_names_list, label_values = helpers.get_label_info(os.path.join(args.dataset, "class_dict.csv"))
+            
+            file_name = utils.filepath_to_name(path)
 
             if args.output_color:
                 out_vis_image = helpers.colour_code_segmentation(output_image, label_values)
                 out_vis_image = cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR)
                 out_vis_image = cv2.resize(out_vis_image, (width, height))
                 out_vis_image = cv2.addWeighted(loaded_image, 0.5, out_vis_image, 0.5,0)
-            else:
-                # image.astype(int)
-                out_vis_image = cv2.resize(np.uint8(output_image), (width, height))
-                out_vis_image[out_vis_image == 0] = 255
+                cv2.imwrite(os.path.join(args.output_dir, "%s_pred.png" % (file_name)), out_vis_image)
+                
 
-
-            file_name = utils.filepath_to_name(path)
-            output_path = os.path.join(args.output_dir, "%s_pred.png" % (file_name))
-            cv2.imwrite(output_path, out_vis_image)
+            mask = cv2.resize(np.uint8(output_image), (width, height))
+            mask[mask == 0] = 255
+            cv2.imwrite(os.path.join(args.output_dir, "%s_mask.png" % (file_name)), mask)
 
             if args.delete_src:
                 os.remove(path)
