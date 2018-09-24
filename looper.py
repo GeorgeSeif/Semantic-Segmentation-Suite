@@ -33,6 +33,7 @@ parser.add_argument("--input_dir", required=False, default="uploads", help="Comb
 parser.add_argument("--input_match_exp", required=False, help="Input Match Expression")
 parser.add_argument("--filter_categories", required=False, help="Path to file with valid categories")
 parser.add_argument('--output_dir', type=str, required=True, help='Result directory of where to place output images')
+parser.add_argument("--output_color", type=utils.str2bool, nargs='?', const=True, default=True)
 parser.add_argument("--delete_src", type=utils.str2bool, nargs='?', const=True, default=False, help="delete source images")
 parser.add_argument("--run_nnet", type=utils.str2bool, nargs='?', const=True, default=True, help="Run nnet, otherwise just a filter/resize operation of images")
 
@@ -159,11 +160,16 @@ while True:
             # this needs to get generalized
             class_names_list, label_values = helpers.get_label_info(os.path.join(args.dataset, "class_dict.csv"))
 
-            out_vis_image = helpers.colour_code_segmentation(output_image, label_values)
-            out_vis_image = cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR)
-            out_vis_image = cv2.resize(out_vis_image, (width, height))
+            if args.output_color:
+                out_vis_image = helpers.colour_code_segmentation(output_image, label_values)
+                out_vis_image = cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR)
+                out_vis_image = cv2.resize(out_vis_image, (width, height))
+                out_vis_image = cv2.addWeighted(loaded_image, 0.5, out_vis_image, 0.5,0)
+            else:
+                # image.astype(int)
+                out_vis_image = cv2.resize(np.uint8(output_image), (width, height))
+                out_vis_image[out_vis_image == 0] = 255
 
-            out_vis_image = cv2.addWeighted(loaded_image, 0.5, out_vis_image, 0.5,0)
 
             file_name = utils.filepath_to_name(path)
             output_path = os.path.join(args.output_dir, "%s_pred.png" % (file_name))
