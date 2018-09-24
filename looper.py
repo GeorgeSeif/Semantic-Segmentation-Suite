@@ -23,7 +23,15 @@ import model_utils
 # --delete_src 1 \
 # --output_dir mloutput \
 # --dataset /Volumes/YUGE/datasets/ade20k_floors_sss \
-# --crop_height 512 --crop_width 512 --output_color 0
+# --crop_height 512 --crop_width 512 --output_color 1
+
+# python looper.py \
+# --model DeepLabV3_plus-Res152 \
+# --input_dir uploads \
+# --delete_src 1 \
+# --output_dir mloutput \
+# --checkpoint checkpoints/latest_model_DeepLabV3_plus-Res152_ade20k_floors_sss.ckpt \
+# --crop_height 512 --crop_width 512 --num_classes 2
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--lr', type=float, default=0.0001, help='initial learning rate')
@@ -33,12 +41,13 @@ parser.add_argument("--input_dir", required=False, default="uploads", help="Comb
 parser.add_argument("--input_match_exp", required=False, help="Input Match Expression")
 parser.add_argument("--filter_categories", required=False, help="Path to file with valid categories")
 parser.add_argument('--output_dir', type=str, required=True, help='Result directory of where to place output images')
-parser.add_argument("--output_color", type=utils.str2bool, nargs='?', const=True, default=True)
+parser.add_argument("--output_color", type=utils.str2bool, nargs='?', const=True, default=False)
 parser.add_argument("--delete_src", type=utils.str2bool, nargs='?', const=True, default=False, help="delete source images")
 parser.add_argument("--run_nnet", type=utils.str2bool, nargs='?', const=True, default=True, help="Run nnet, otherwise just a filter/resize operation of images")
+parser.add_argument('--num_classes', type=int, default=0, help='Number of classes')
 
 parser.add_argument('--checkpoint', type=str, default=None, help='Path to checkpoint file')
-parser.add_argument('--dataset', type=str, required=True, help='Dataset you are using.')
+parser.add_argument('--dataset', type=str, required=False, default=None, help='Dataset you are using.')
 parser.add_argument('--crop_height', type=int, default=512, help='Height of cropped input image to network')
 parser.add_argument('--crop_width', type=int, default=512, help='Width of cropped input image to network')
 parser.add_argument('--model', type=str, default="FC-DenseNet56", help='The model you are using. Currently supports:\
@@ -57,16 +66,28 @@ def validate_arguments(args):
 if not validate_arguments(args):
     exit()
 
-# Get the names of the classes so we can record the evaluation results
-class_names_list, label_values = helpers.get_label_info(os.path.join(args.dataset, "class_dict.csv"))
-class_names_string = ""
-for class_name in class_names_list:
-    if not class_name == class_names_list[-1]:
-        class_names_string = class_names_string + class_name + ", "
-    else:
-        class_names_string = class_names_string + class_name
+num_classes = args.num_classes
 
-num_classes = len(label_values)
+if not args.dataset is None:
+    # Get the names of the classes so we can record the evaluation results
+    class_names_list, label_values = helpers.get_label_info(os.path.join(args.dataset, "class_dict.csv"))
+    class_names_string = ""
+    for class_name in class_names_list:
+        if not class_name == class_names_list[-1]:
+            class_names_string = class_names_string + class_name + ", "
+        else:
+            class_names_string = class_names_string + class_name
+    num_classes = len(label_values)
+elif args.output_color:
+    print("Error: output_color requires a dataset")
+    exit()
+elif args.checkpoint is None:
+    print("Error: if a dataset is not supplied, a checkpoint path is required")
+    exit()
+
+if num_classes == 0:
+    print("Error: num_classes is zero. Either pass in as param, or set a dataset")
+    exit()
 
 config = tf.ConfigProto()
 sess=tf.Session(config=config)
@@ -128,9 +149,6 @@ print("Output directory -->", args.output_dir)
     
 if not os.path.isdir(args.output_dir):
     os.makedirs(args.output_dir)
-
-# this needs to get generalized
-class_names_list, label_values = helpers.get_label_info(os.path.join(args.dataset, "class_dict.csv"))
 
 while True:
     filtered_dirs = utils.getFilteredDirs(args)
