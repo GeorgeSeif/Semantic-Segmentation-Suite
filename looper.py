@@ -15,17 +15,7 @@ import utils
 
 import matplotlib.pyplot as plt
 
-sys.path.append("models")
-from FC_DenseNet_Tiramisu import build_fc_densenet
-from Encoder_Decoder import build_encoder_decoder
-from RefineNet import build_refinenet
-from FRRN import build_frrn
-from MobileUNet import build_mobile_unet
-from PSPNet import build_pspnet
-from GCN import build_gcn
-from DeepLabV3 import build_deeplabv3
-from DeepLabV3_plus import build_deeplabv3_plus
-from AdapNet import build_adaptnet
+import model_utils
 
 # python looper.py \
 # --model DeepLabV3_plus-Res152 \
@@ -64,31 +54,6 @@ def validate_arguments(args):
         return False
     return True
 
-
-def load_image(path):
-    image = cv2.imread(path,-1)
-
-    downscale = 1.1 * max(float(args.crop_height) / float(image.shape[0]), float(args.crop_width) / float(image.shape[1]))
-
-    if len(image.shape) == 3:
-        shape= (int(downscale * image.shape[0]), int(downscale * image.shape[1]), 3)
-    else:
-        shape= (int(downscale * image.shape[0]), int(downscale * image.shape[1]))
-    
-    image = misc.imresize(image, shape, 'nearest')
-
-    if (len(image.shape)<3):
-        image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
-    elif image.shape[2] == 4:
-        image = cv2.cvtColor(image, cv2.COLOR_RGBA2BGR)
-    else:
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-    return image
-
-def download_checkpoints(model_name):
-    subprocess.check_output(["python", "get_pretrained_checkpoints.py", "--model=" + model_name])
-
 if not validate_arguments(args):
     exit()
 
@@ -108,53 +73,14 @@ sess=tf.Session(config=config)
 
 # Get the selected model. 
 # Some of them require pre-trained ResNet
-
-if "Res50" in args.model and not os.path.isfile("models/resnet_v2_50.ckpt"):
-    download_checkpoints("Res50")
-if "Res101" in args.model and not os.path.isfile("models/resnet_v2_101.ckpt"):
-    download_checkpoints("Res101")
-if "Res152" in args.model and not os.path.isfile("models/resnet_v2_152.ckpt"):
-    download_checkpoints("Res152")
+model_utils.ensure_checkpoints(args.model)
 
 # Compute your softmax cross entropy loss
 print("Preparing the model ...")
 net_input = tf.placeholder(tf.float32,shape=[None,None,None,3])
 net_output = tf.placeholder(tf.float32,shape=[None,None,None,num_classes]) 
 
-
-network = None
-init_fn = None
-if args.model == "FC-DenseNet56" or args.model == "FC-DenseNet67" or args.model == "FC-DenseNet103":
-    network = build_fc_densenet(net_input, preset_model = args.model, num_classes=num_classes)
-elif args.model == "RefineNet-Res50" or args.model == "RefineNet-Res101" or args.model == "RefineNet-Res152":
-    # RefineNet requires pre-trained ResNet weights
-    network, init_fn = build_refinenet(net_input, preset_model = args.model, num_classes=num_classes)
-elif args.model == "FRRN-A" or args.model == "FRRN-B":
-    network = build_frrn(net_input, preset_model = args.model, num_classes=num_classes)
-elif args.model == "Encoder-Decoder" or args.model == "Encoder-Decoder-Skip":
-    network = build_encoder_decoder(net_input, preset_model = args.model, num_classes=num_classes)
-elif args.model == "MobileUNet" or args.model == "MobileUNet-Skip":
-    network = build_mobile_unet(net_input, preset_model = args.model, num_classes=num_classes)
-elif args.model == "PSPNet-Res50" or args.model == "PSPNet-Res101" or args.model == "PSPNet-Res152":
-    # Image size is required for PSPNet
-    # PSPNet requires pre-trained ResNet weights
-    network, init_fn = build_pspnet(net_input, label_size=[args.crop_height, args.crop_width], preset_model = args.model, num_classes=num_classes)
-elif args.model == "GCN-Res50" or args.model == "GCN-Res101" or args.model == "GCN-Res152":
-    # GCN requires pre-trained ResNet weights
-    network, init_fn = build_gcn(net_input, preset_model = args.model, num_classes=num_classes)
-elif args.model == "DeepLabV3-Res50" or args.model == "DeepLabV3-Res101" or args.model == "DeepLabV3-Res152":
-    # DeepLabV requires pre-trained ResNet weights
-    network, init_fn = build_deeplabv3(net_input, preset_model = args.model, num_classes=num_classes)
-elif args.model == "DeepLabV3_plus-Res50" or args.model == "DeepLabV3_plus-Res101" or args.model == "DeepLabV3_plus-Res152":
-    # DeepLabV3+ requires pre-trained ResNet weights
-    network, init_fn = build_deeplabv3_plus(net_input, preset_model = args.model, num_classes=num_classes)
-elif args.model == "AdapNet":
-    network = build_adaptnet(net_input, num_classes=num_classes)
-elif args.model == "custom":
-    network = build_custom(net_input, num_classes)
-else:
-    raise ValueError("Error: the model %d is not available. Try checking which models are available using the command python main.py --help")
-
+network, init_fn = model_utils.build_model(args.model, net_input, num_classes, args.crop_width, args.crop_height)
 
 losses = None
 if args.class_balancing:
@@ -209,7 +135,7 @@ for path in image_paths:
     print("Processing image " + path)
 
     # to get the right aspect ratio of the output
-    loaded_image = load_image(path)
+    loaded_image = model_utils.load_image(path, args.crop_width, args.crop_height)
     height, width, channels = loaded_image.shape
 
     resized_image = cv2.resize(loaded_image, (args.crop_width, args.crop_height))
