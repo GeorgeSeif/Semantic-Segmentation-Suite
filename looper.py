@@ -19,7 +19,8 @@ import model_utils
 
 # python looper.py \
 # --model DeepLabV3_plus-Res152 \
-# --input_dir /Volumes/YUGE/datasets/ade20k_floors_sss/train \
+# --input_dir uploads \
+# --delete_src 1 \
 # --output_dir mloutput \
 # --dataset /Volumes/YUGE/datasets/ade20k_floors_sss \
 # --crop_height 512 --crop_width 512 
@@ -27,8 +28,14 @@ import model_utils
 parser = argparse.ArgumentParser()
 parser.add_argument('--lr', type=float, default=0.0001, help='initial learning rate')
 parser.add_argument('--class_balancing', type=utils.str2bool, default=False, help='Whether to use median frequency class weights to balance the classes in the loss')
-parser.add_argument('--input_dir', type=str, required=True, help='Directory of images to process.')
+
+parser.add_argument("--input_dir", required=False, default="uploads", help="Combined Source and Target Input Path")
+parser.add_argument("--input_match_exp", required=False, help="Input Match Expression")
+parser.add_argument("--filter_categories", required=False, help="Path to file with valid categories")
 parser.add_argument('--output_dir', type=str, required=True, help='Result directory of where to place output images')
+parser.add_argument("--delete_src", type=utils.str2bool, nargs='?', const=True, default=False, help="delete source images")
+parser.add_argument("--run_nnet", type=utils.str2bool, nargs='?', const=True, default=True, help="Run nnet, otherwise just a filter/resize operation of images")
+
 parser.add_argument('--checkpoint', type=str, default=None, help='Path to checkpoint file')
 parser.add_argument('--dataset', type=str, required=True, help='Dataset you are using.')
 parser.add_argument('--crop_height', type=int, default=512, help='Height of cropped input image to network')
@@ -121,40 +128,55 @@ print("Output directory -->", args.output_dir)
 if not os.path.isdir(args.output_dir):
     os.makedirs(args.output_dir)
 
-image_paths = utils.get_image_paths(args.input_dir)
+while True:
+    filtered_dirs = utils.getFilteredDirs(args)
+    paths = utils.get_image_paths(args.input_dir, args.input_match_exp, require_rgb=False, filtered_dirs=filtered_dirs)
 
-for path in image_paths:
-    print("Processing image " + path)
+    num_images = len(paths)
 
-    # to get the right aspect ratio of the output
-    loaded_image = model_utils.load_image(path, args.crop_width, args.crop_height)
-    height, width, channels = loaded_image.shape
+    if num_images:
+        print("Processing %d images" % num_images)
+        for i in range(num_images):
+            path = paths[i]
+            print("Processing image " + path)
 
-    resized_image = cv2.resize(loaded_image, (args.crop_width, args.crop_height))
+            # to get the right aspect ratio of the output
+            loaded_image = model_utils.load_image(path, args.crop_width, args.crop_height)
+            height, width, channels = loaded_image.shape
 
-    input_image = np.expand_dims(np.float32(resized_image),axis=0)/255.0
+            resized_image = cv2.resize(loaded_image, (args.crop_width, args.crop_height))
 
-    st = time.time()
-    output_image = sess.run(network,feed_dict={net_input:input_image})
+            input_image = np.expand_dims(np.float32(resized_image),axis=0)/255.0
 
-    run_time = time.time()-st
+            st = time.time()
+            output_image = sess.run(network,feed_dict={net_input:input_image})
 
-    output_image = np.array(output_image[0,:,:,:])
-    output_image = helpers.reverse_one_hot(output_image)
+            run_time = time.time()-st
 
-    # this needs to get generalized
-    class_names_list, label_values = helpers.get_label_info(os.path.join(args.dataset, "class_dict.csv"))
+            output_image = np.array(output_image[0,:,:,:])
+            output_image = helpers.reverse_one_hot(output_image)
 
-    out_vis_image = helpers.colour_code_segmentation(output_image, label_values)
-    out_vis_image = cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR)
-    out_vis_image = cv2.resize(out_vis_image, (width, height))
+            # this needs to get generalized
+            class_names_list, label_values = helpers.get_label_info(os.path.join(args.dataset, "class_dict.csv"))
 
-    out_vis_image = cv2.addWeighted(loaded_image, 0.5, out_vis_image, 0.5,0)
+            out_vis_image = helpers.colour_code_segmentation(output_image, label_values)
+            out_vis_image = cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR)
+            out_vis_image = cv2.resize(out_vis_image, (width, height))
 
-    file_name = utils.filepath_to_name(path)
-    output_path = os.path.join(args.output_dir, "%s_pred.png" % (file_name))
-    cv2.imwrite(output_path, out_vis_image)
+            out_vis_image = cv2.addWeighted(loaded_image, 0.5, out_vis_image, 0.5,0)
 
-print("")
-print("Done")
+            file_name = utils.filepath_to_name(path)
+            output_path = os.path.join(args.output_dir, "%s_pred.png" % (file_name))
+            cv2.imwrite(output_path, out_vis_image)
+
+            if args.delete_src:
+                os.remove(path)
+
+        print("Waiting on images...")
+
+    if not args.delete_src:
+        print("DONE")
+        exit()
+
+    time.sleep(0.25)
 
