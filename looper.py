@@ -160,11 +160,14 @@ while True:
         print("Processing %d images" % num_images)
         for i in range(num_images):
             path = paths[i]
+            file_name = utils.filepath_to_name(path)
             print("Processing image " + path)
 
             # to get the right aspect ratio of the output
             loaded_image = model_utils.load_image(path, args.crop_width, args.crop_height)
             height, width, channels = loaded_image.shape
+
+            cv2.imwrite(os.path.join(args.output_dir, "%s_src.png" % (file_name)), cv2.cvtColor(loaded_image, cv2.COLOR_RGB2BGR))
 
             resized_image = cv2.resize(loaded_image, (args.crop_width, args.crop_height))
 
@@ -177,8 +180,6 @@ while True:
 
             output_image = np.array(output_image[0,:,:,:])
             output_image = helpers.reverse_one_hot(output_image)
-            
-            file_name = utils.filepath_to_name(path)
 
             if args.output_color:
                 out_vis_image = helpers.colour_code_segmentation(output_image, label_values)
