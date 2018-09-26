@@ -171,7 +171,6 @@ if args.mode == "train":
     # Set random seed to make sure models are validated on the same validation images.
     # So you can compare the results of different models more intuitively.
     random.seed(16)
-    val_indices=random.sample(range(0,len(val_input_names)),num_vals)
 
     # Do the training here
     for epoch in range(0, args.num_epochs):
@@ -246,7 +245,7 @@ if args.mode == "train":
         print("Saving latest checkpoint")
         saver.save(sess,model_checkpoint_name)
 
-        if val_indices != 0 and epoch % args.checkpoint_step == 0:
+        if epoch % args.checkpoint_step == 0:
             print("Saving checkpoint for this epoch")
             saver.save(sess,"%s/%04d/model.ckpt"%("checkpoints",epoch))
 
@@ -264,6 +263,8 @@ if args.mode == "train":
             f1_list = []
             iou_list = []
 
+            #get new random sample:
+            val_indices=random.sample(range(0,len(val_input_names)),num_vals)
 
             # Do the validation on a small set of validation images
             for ind in val_indices:
