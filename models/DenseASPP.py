@@ -23,7 +23,7 @@ def DilatedConvBlock(inputs, n_filters, rate=1, kernel_size=[3, 3]):
 def build_dense_aspp(inputs, num_classes, preset_model='DenseASPP', frontend="ResNet101", weight_decay=1e-5, is_training=True, pretrained_dir="models"):
     
 
-    logits, end_points, frontend_scope, init_fn  = frontend_builder.build_frontend(inputs, frontend, is_training=is_training)
+    logits, end_points, frontend_scope, init_fn  = frontend_builder.build_frontend(inputs, frontend, pretrained_dir=pretrained_dir, is_training=is_training)
 
     init_features = end_points['pool3']
 

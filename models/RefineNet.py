@@ -155,7 +155,7 @@ def build_refinenet(inputs, num_classes, preset_model='RefineNet', frontend="Res
       RefineNet model
     """
 
-    logits, end_points, frontend_scope, init_fn  = frontend_builder.build_frontend(inputs, frontend, is_training=is_training)
+    logits, end_points, frontend_scope, init_fn  = frontend_builder.build_frontend(inputs, frontend, pretrained_dir=pretrained_dir, is_training=is_training)
 
     
 

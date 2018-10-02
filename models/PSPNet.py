@@ -72,7 +72,7 @@ def build_pspnet(inputs, label_size, num_classes, preset_model='PSPNet', fronten
       PSPNet model
     """
 
-    logits, end_points, frontend_scope, init_fn  = frontend_builder.build_frontend(inputs, frontend, is_training=is_training)
+    logits, end_points, frontend_scope, init_fn  = frontend_builder.build_frontend(inputs, frontend, pretrained_dir=pretrained_dir, is_training=is_training)
 
     feature_map_shape = [int(x / 8.0) for x in label_size]
     print(feature_map_shape)

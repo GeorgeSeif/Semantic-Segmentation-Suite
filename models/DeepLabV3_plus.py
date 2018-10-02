@@ -72,7 +72,7 @@ def build_deeplabv3_plus(inputs, num_classes, preset_model='DeepLabV3+', fronten
       DeepLabV3 model
     """
 
-    logits, end_points, frontend_scope, init_fn  = frontend_builder.build_frontend(inputs, frontend, is_training=is_training)
+    logits, end_points, frontend_scope, init_fn  = frontend_builder.build_frontend(inputs, frontend, pretrained_dir=pretrained_dir, is_training=is_training)
 
 
     label_size = tf.shape(inputs)[1:3]

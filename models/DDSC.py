@@ -115,7 +115,7 @@ def build_ddsc(inputs, num_classes, preset_model='DDSC', frontend="ResNet101", w
       Dense Decoder Shortcut Connections model
     """
 
-    logits, end_points, frontend_scope, init_fn  = frontend_builder.build_frontend(inputs, frontend, is_training=is_training)
+    logits, end_points, frontend_scope, init_fn  = frontend_builder.build_frontend(inputs, frontend, pretrained_dir=pretrained_dir, is_training=is_training)
 
     ### Adapting features for all stages
     decoder_4 = EncoderAdaptionBlock(end_points['pool5'], n_filters=1024)

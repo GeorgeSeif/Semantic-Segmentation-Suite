@@ -54,7 +54,7 @@ def build_gcn(inputs, num_classes, preset_model='GCN', frontend="ResNet101", wei
       GCN model
     """
 
-    logits, end_points, frontend_scope, init_fn  = frontend_builder.build_frontend(inputs, frontend, is_training=is_training)
+    logits, end_points, frontend_scope, init_fn  = frontend_builder.build_frontend(inputs, frontend, pretrained_dir=pretrained_dir, is_training=is_training)
 
     
 
