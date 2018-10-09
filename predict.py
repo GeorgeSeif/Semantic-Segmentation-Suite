@@ -51,7 +51,7 @@ saver.restore(sess, args.checkpoint_path)
 print("Testing image " + args.image)
 
 loaded_image = utils.load_image(args.image)
-resized_image =cv2.resize(loaded_image, (args.crop_width, args.crop_width))
+resized_image =cv2.resize(loaded_image, (args.crop_width, args.crop_height))
 input_image = np.expand_dims(np.float32(resized_image[:args.crop_height, :args.crop_width]),axis=0)/255.0
 
 st = time.time()
