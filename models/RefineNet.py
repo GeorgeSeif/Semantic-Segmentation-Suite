@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.contrib import slim
-import resnet_v2
+from builders import frontend_builder
 import os, sys
 
 def Upsampling(inputs,scale):
@@ -11,8 +11,8 @@ def ConvBlock(inputs, n_filters, kernel_size=[3, 3]):
     Basic conv block for Encoder-Decoder
     Apply successivly Convolution, BatchNormalization, ReLU nonlinearity
     """
-    net = slim.conv2d(inputs, n_filters, kernel_size, activation_fn=None, normalizer_fn=None)
-    net = tf.nn.relu(slim.batch_norm(net, fused=True))
+    net = tf.nn.relu(slim.batch_norm(inputs, fused=True))
+    net = slim.conv2d(net, n_filters, kernel_size, activation_fn=None, normalizer_fn=None)
     return net
 
 def ConvUpscaleBlock(inputs, n_filters, kernel_size=[3, 3], scale=2):
@@ -20,8 +20,8 @@ def ConvUpscaleBlock(inputs, n_filters, kernel_size=[3, 3], scale=2):
     Basic conv transpose block for Encoder-Decoder upsampling
     Apply successivly Transposed Convolution, BatchNormalization, ReLU nonlinearity
     """
-    net = slim.conv2d_transpose(inputs, n_filters, kernel_size=[3, 3], stride=[2, 2], activation_fn=None)
-    net = tf.nn.relu(slim.batch_norm(net, fused=True))
+    net = tf.nn.relu(slim.batch_norm(inputs, fused=True))
+    net = slim.conv2d_transpose(net, n_filters, kernel_size=[3, 3], stride=[scale, scale], activation_fn=None)
     return net
 
 
@@ -142,7 +142,7 @@ def RefineBlock(high_inputs=None,low_inputs=None):
 
 
 
-def build_refinenet(inputs, num_classes, preset_model='RefineNet-Res101', weight_decay=1e-5, is_training=True, upscaling_method="bilinear", pretrained_dir="models"):
+def build_refinenet(inputs, num_classes, preset_model='RefineNet', frontend="ResNet101", weight_decay=1e-5, upscaling_method="bilinear", pretrained_dir="models", is_training=True):
     """
     Builds the RefineNet model. 
 
@@ -155,23 +155,7 @@ def build_refinenet(inputs, num_classes, preset_model='RefineNet-Res101', weight
       RefineNet model
     """
 
-    if preset_model == 'RefineNet-Res50':
-        with slim.arg_scope(resnet_v2.resnet_arg_scope(weight_decay=weight_decay)):
-            logits, end_points = resnet_v2.resnet_v2_50(inputs, is_training=is_training, scope='resnet_v2_50')
-            # RefineNet requires pre-trained ResNet weights
-            init_fn = slim.assign_from_checkpoint_fn(os.path.join(pretrained_dir, 'resnet_v2_50.ckpt'), slim.get_model_variables('resnet_v2_50'))
-    elif preset_model == 'RefineNet-Res101':
-        with slim.arg_scope(resnet_v2.resnet_arg_scope(weight_decay=weight_decay)):
-            logits, end_points = resnet_v2.resnet_v2_101(inputs, is_training=is_training, scope='resnet_v2_101')
-            # RefineNet requires pre-trained ResNet weights
-            init_fn = slim.assign_from_checkpoint_fn(os.path.join(pretrained_dir, 'resnet_v2_101.ckpt'), slim.get_model_variables('resnet_v2_101'))
-    elif preset_model == 'RefineNet-Res152':
-        with slim.arg_scope(resnet_v2.resnet_arg_scope(weight_decay=weight_decay)):
-            logits, end_points = resnet_v2.resnet_v2_152(inputs, is_training=is_training, scope='resnet_v2_152')
-            # RefineNet requires pre-trained ResNet weights
-            init_fn = slim.assign_from_checkpoint_fn(os.path.join(pretrained_dir, 'resnet_v2_152.ckpt'), slim.get_model_variables('resnet_v2_152'))
-    else:
-    	raise ValueError("Unsupported ResNet model '%s'. This function only supports ResNet 101 and ResNet 152" % (preset_model))
+    logits, end_points, frontend_scope, init_fn  = frontend_builder.build_frontend(inputs, frontend, pretrained_dir=pretrained_dir, is_training=is_training)
 
     
 
