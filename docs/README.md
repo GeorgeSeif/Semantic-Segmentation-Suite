@@ -1,26 +1,20 @@
 # Semantic Segmentation Suite in TensorFlow
 
+![alt-text-10](https://github.com/GeorgeSeif/Semantic-Segmentation-Suite/blob/master/Images/semseg.gif)
+
 ## News
 
-**What's New:**
+### What's New
 
-- You can also check out my [Transfer Learning Suite](https://github.com/GeorgeSeif/Transfer-Learning-Suite).
+- Added the BiSeNet model from ECCV 2018!
 
-- Added ICNet. **Note that I have added the ICNet achitecture code, but have not yet integrated it into the main. Still trying to figure out the best way to implement it with the auxillary loss. Suggestions are welcome.**
+- Added the Dense Decoder Shortcut Connections model from CVPR 2018!
 
-**Coming Soon:**
+- Added the DenseASPP model from CVPR 2018!
 
-- Speed optimizations with TF Records
+### Coming Soon
 
-- Support NASNet, MobileNet, Dilated ResNet for segmentation models that use classification network front-ends
-
-- Anything that comes out at CVPR 2018!
-
-- Support for exporting inference graph.
-
-- Optional mean IoU calculations: "micro", "macro", "weighted"
-
-Open up an issue to suggest a new feature or improvement!
+**Open up an issue to suggest a new feature or improvement!**
 
 ## Description
 This repository serves as a Semantic Segmentation Suite. The goal is to easily be able to implement, train, and test new Semantic Segmentation models! Complete with the following:
@@ -40,8 +34,15 @@ You can also check out my [Transfer Learning Suite](https://github.com/GeorgeSei
 
 If you find this repository useful, please consider citing it using a link to the repo :)
 
+## Frontends
+
+The following feature extraction models are currently made available:
+
+- [MobileNetV2](https://arxiv.org/abs/1801.04381), [ResNet50/101/152](https://arxiv.org/abs/1512.03385), and [InceptionV4](https://arxiv.org/abs/1602.07261)
+
 ## Models
-The following models are currently made available:
+
+The following segmentation models are currently made available:
 
 - [Encoder-Decoder based on SegNet](https://arxiv.org/abs/1511.00561). This network uses a VGG-style encoder-decoder, where the upsampling in the decoder is done using transposed convolutions.
 
@@ -64,26 +65,31 @@ to obtain robust features for recognition. The two streams are coupled at the fu
 
 - [AdapNet: Adaptive Semantic Segmentation in Adverse Environmental Conditions](http://ais.informatik.uni-freiburg.de/publications/papers/valada17icra.pdf) Modifies the ResNet50 architecture by performing the lower resolution processing using a multi-scale strategy with atrous convolutions. This is a slightly modified version using bilinear upscaling instead of transposed convolutions as I found it gave better results.
 
-- [ICNet for Real-Time Semantic Segmentation on High-Resolution Images](https://arxiv.org/abs/1704.08545). Proposes a compressed-PSPNet-based image cascade network (ICNet) that incorporates multi-resolution branches under proper label guidance to address this challenge. Most of the processing is done at low resolution for high speed and the multi-scale auxillary loss helps get an accurate model.
-
+- [ICNet for Real-Time Semantic Segmentation on High-Resolution Images](https://arxiv.org/abs/1704.08545). Proposes a compressed-PSPNet-based image cascade network (ICNet) that incorporates multi-resolution branches under proper label guidance to address this challenge. Most of the processing is done at low resolution for high speed and the multi-scale auxillary loss helps get an accurate model. **Note that for this model, I have implemented the network but have not integrated its training yet**
 
 - [Encoder-Decoder with Atrous Separable Convolution for Semantic Image Segmentation](https://arxiv.org/abs/1802.02611). This is the DeepLabV3+ network which adds a Decoder module on top of the regular DeepLabV3 model.
 
-- Or make your own and plug and play!
+- [DenseASPP for Semantic Segmentation in Street Scenes](http://openaccess.thecvf.com/content_cvpr_2018/html/Yang_DenseASPP_for_Semantic_CVPR_2018_paper.html). Combines many different scales using dilated convolution but with dense connections
 
-**Note:** If you are using any of the networks that rely on a pre-trained ResNet, then you will need to download the pre-trained weights using the provided script. These are currently: PSPNet, RefineNet, DeepLabV3, DeepLabV3+, GCN.
+- [Dense Decoder Shortcut Connections for Single-Pass Semantic Segmentation](http://openaccess.thecvf.com/content_cvpr_2018/html/Bilinski_Dense_Decoder_Shortcut_CVPR_2018_paper.html). Dense Decoder Shorcut Connections using dense connectivity in the decoder stage of the segmentation model. **Note: this network takes a bit of extra time to load due to the construction of the ResNeXt blocks** 
+
+- [BiSeNet: Bilateral Segmentation Network for Real-time Semantic Segmentation](https://arxiv.org/abs/1808.00897). BiSeNet use a Spatial Path with a small stride to preserve the spatial information and generate high-resolution features while having a parallel Context Path with a fast downsampling strategy to obtain sufficient receptive field. 
+
+- Or make your own and plug and play!
 
 
 ## Files and Directories
 
 
-- **main.py:** Training, Testing on dataset, and Prediction on a single image
+- **train.py:** Training on the dataset of your choice. Default is CamVid
+
+- **test.py:** Testing on the dataset of your choice. Default is CamVid
+
+- **predict.py:** Use your newly trained model to run a prediction on a single image
 
 - **helper.py:** Quick helper functions for data preparation and visualization
 
 - **utils.py:** Utilities for printing, debugging, testing, and evaluation
-
-- **get_pretrained_checkpoints.py:** Downloads the pre-trained ResNet V2 weights for ResNet50, ResNet101, and ResNet152
 
 - **models:** Folder containing all model files. Use this to build your models, or use a pre-built one
 
@@ -154,23 +160,26 @@ Wall,64, 192, 0
 
 **Note:** If you are using any of the networks that rely on a pre-trained ResNet, then you will need to download the pre-trained weights using the provided script. These are currently: PSPNet, RefineNet, DeepLabV3, DeepLabV3+, GCN.
 
-Then you can simply run `main.py`! Check out the optional command line arguments:
+Then you can simply run `train.py`! Check out the optional command line arguments:
 
 ```
-usage: main.py [-h] [--num_epochs NUM_EPOCHS] [--mode MODE] [--image IMAGE]
-               [--continue_training CONTINUE_TRAINING] [--dataset DATASET]
-               [--crop_height CROP_HEIGHT] [--crop_width CROP_WIDTH]
-               [--batch_size BATCH_SIZE] [--num_val_images NUM_VAL_IMAGES]
-               [--h_flip H_FLIP] [--v_flip V_FLIP] [--brightness BRIGHTNESS]
-               [--rotation ROTATION] [--zoom ZOOM] [--model MODEL]
+usage: train.py [-h] [--num_epochs NUM_EPOCHS]
+                [--checkpoint_step CHECKPOINT_STEP]
+                [--validation_step VALIDATION_STEP] [--image IMAGE]
+                [--continue_training CONTINUE_TRAINING] [--dataset DATASET]
+                [--crop_height CROP_HEIGHT] [--crop_width CROP_WIDTH]
+                [--batch_size BATCH_SIZE] [--num_val_images NUM_VAL_IMAGES]
+                [--h_flip H_FLIP] [--v_flip V_FLIP] [--brightness BRIGHTNESS]
+                [--rotation ROTATION] [--model MODEL] [--frontend FRONTEND]
 
 optional arguments:
   -h, --help            show this help message and exit
   --num_epochs NUM_EPOCHS
                         Number of epochs to train for
-  --mode MODE           Select "train", "test", or "predict" mode. Note that
-                        for prediction mode you have to specify an image to
-                        run the model on.
+  --checkpoint_step CHECKPOINT_STEP
+                        How often to save checkpoints (epochs)
+  --validation_step VALIDATION_STEP
+                        How often to perform validation (epochs)
   --image IMAGE         The image you want to predict on. Only valid in
                         "predict" mode.
   --continue_training CONTINUE_TRAINING
@@ -190,17 +199,16 @@ optional arguments:
                         augmentation
   --brightness BRIGHTNESS
                         Whether to randomly change the image brightness for
-                        data augmentation
+                        data augmentation. Specifies the max bightness change
+                        as a factor between 0.0 and 1.0. For example, 0.1
+                        represents a max brightness change of 10% (+-).
   --rotation ROTATION   Whether to randomly rotate the image for data
-                        augmentation
-  --zoom ZOOM           Whether to randomly zoom in for data augmentation
-  --model MODEL         The model you are using. Currently supports: FC-
-                        DenseNet56, FC-DenseNet67, FC-DenseNet103, Encoder-
-                        Decoder, Encoder-Decoder-Skip, RefineNet-Res50,
-                        RefineNet-Res101, RefineNet-Res152, FRRN-A, FRRN-B,
-                        MobileUNet, MobileUNet-Skip, PSPNet-Res50, PSPNet-
-                        Res101, PSPNet-Res152, GCN-Res50, GCN-Res101, GCN-
-                        Res152, custom
+                        augmentation. Specifies the max rotation angle in
+                        degrees.
+  --model MODEL         The model you are using. See model_builder.py for
+                        supported models
+  --frontend FRONTEND   The frontend you are using. See frontend_builder.py
+                        for supported models
 
 ```
     
