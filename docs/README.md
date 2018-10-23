@@ -6,15 +6,7 @@
 
 ### What's New
 
-- Added the BiSeNet model from ECCV 2018!
-
-- Added the Dense Decoder Shortcut Connections model from CVPR 2018!
-
-- Added the DenseASPP model from CVPR 2018!
-
-### Coming Soon
-
-**Open up an issue to suggest a new feature or improvement!**
+- [Contributing Guidelines](https://github.com/GeorgeSeif/Semantic-Segmentation-Suite/blob/master/docs/CONTRIBUTING.md)
 
 ## Description
 This repository serves as a Semantic Segmentation Suite. The goal is to easily be able to implement, train, and test new Semantic Segmentation models! Complete with the following:
