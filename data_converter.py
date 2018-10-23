@@ -83,7 +83,7 @@ from shutil import copyfile
 # --label_dir $datasets/unreal_prod \
 # --label_match_exp "*_S.png" \
 # --output_dir $datasets/unreal_prod_sss \
-# --replace_colors $datasets/ADE20K_2016_07_26/just-floor.txt --min_colors=2
+# --replace_colors $datasets/unreal_prod/just-floor.txt --min_colors=2
 
 parser = argparse.ArgumentParser()
 
@@ -125,10 +125,12 @@ def replaceColors(im, min_colors=2):
 
     red, green, blue = im[:,:,0], im[:,:,1], im[:,:,2]
 
+    im = im[:,:,:3]
+
     default = None
     total_mask = np.zeros([h,w],dtype=np.uint8)
 
-    num_elements = 0
+    num_elements = 1
     lastZeroCount = 0
     for i in range(0, len(matches)):
         if matches[i] == "*":
@@ -145,7 +147,7 @@ def replaceColors(im, min_colors=2):
                 lastZeroCount = nzCount
     
     if num_elements < min_colors:
-        # print("Got %d colors which is less than allowed %d" % (num_elements, min_colors))
+        print("Got %d colors which is less than allowed %d" % (num_elements, min_colors))
         return None
 
     if not default is None:
