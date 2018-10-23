@@ -17,7 +17,7 @@ from scipy import misc
 import fnmatch
 import cv2
 import re
-import utils
+import utils_old as utils
 import ast
 from shutil import copyfile
 
@@ -75,6 +75,15 @@ from shutil import copyfile
  # --label_match_exp "*_seg.png" \
  # --output_dir $datasets/ade20k_floors_sss \
  # --replace_colors $datasets/ADE20K_2016_07_26/just-floor.txt --min_colors=2
+
+#export datasets=/Volumes/YUGE/datasets
+# python2 data_converter.py --mode train \
+# --input_dir $datasets/unreal_prod \
+# --input_match_exp "*_C.png" \
+# --label_dir $datasets/unreal_prod \
+# --label_match_exp "*_S.png" \
+# --output_dir $datasets/unreal_prod_sss \
+# --replace_colors $datasets/ADE20K_2016_07_26/just-floor.txt --min_colors=2
 
 parser = argparse.ArgumentParser()
 

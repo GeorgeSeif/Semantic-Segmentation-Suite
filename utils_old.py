@@ -11,7 +11,6 @@ from sklearn.metrics import precision_score, \
     recall_score, confusion_matrix, classification_report, \
     accuracy_score, f1_score
 
-import helpers
 import imghdr
 import argparse
 import glob
@@ -60,6 +59,7 @@ def is_valid_image(path, require_rgb=True):
         if (what != None and what != "jpeg" and what != "png"):
             return False
 
+        return True
         im=Image.open(path)
         im.verify()
         return not require_rgb or im.mode == "RGB"
@@ -86,7 +86,7 @@ def get_image_paths(path, expression=None, filtered_dirs=None, require_rgb=True)
         file_path = os.path.join(path, file)
         if os.path.isdir(file_path):
             file_names.extend(get_image_paths(file_path, expression, filtered_dirs, require_rgb))
-        elif valid_image_dir and is_valid_image(file_path, require_rgb) and (expression is None or fnmatch.fnmatch(file, expression)):
+        elif valid_image_dir and (expression is None or fnmatch.fnmatch(file, expression)) and is_valid_image(file_path, require_rgb):
             file_names.append(file_path)
 
     file_names.sort()
