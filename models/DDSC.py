@@ -50,7 +50,7 @@ def ResNeXtBlock(inputs, n_filters_out, bottleneck_factor=2, cardinality=32):
 
     net = ConvBlock(inputs, n_filters=n_filters_out / bottleneck_factor, kernel_size=[1, 1])
     net = GroupedConvolutionBlock(net, grouped_channels, cardinality=32)
-    net = ConvBlock(inputs, n_filters=n_filters_out, kernel_size=[1, 1])
+    net = ConvBlock(net, n_filters=n_filters_out, kernel_size=[1, 1])
 
 
     net = tf.add(inputs, net)
