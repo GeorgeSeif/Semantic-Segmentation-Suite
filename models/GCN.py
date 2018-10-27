@@ -15,7 +15,7 @@ def ConvUpscaleBlock(inputs, n_filters, kernel_size=[3, 3], scale=2):
     net = slim.conv2d_transpose(inputs, n_filters, kernel_size=[3, 3], stride=[2, 2], activation_fn=None)
     return net
 
-def BoundaryRefinementBlock(inputs, n_filters, kernel_size=[3, 3]):
+def BoundaryRefinementBlock(inputs, n_filters, kernel_size=[3, 5]):
     """
     Boundary Refinement Block for GCN
     """
