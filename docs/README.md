@@ -6,7 +6,7 @@
 
 ### What's New
 
-- [Contributing Guidelines](https://github.com/GeorgeSeif/Semantic-Segmentation-Suite/blob/master/docs/CONTRIBUTING.md)
+- This repo has been depricated and will no longer be handling issues. Feel free to use as is :)
 
 ## Description
 This repository serves as a Semantic Segmentation Suite. The goal is to easily be able to implement, train, and test new Semantic Segmentation models! Complete with the following:
