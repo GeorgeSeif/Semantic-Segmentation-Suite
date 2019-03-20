@@ -155,7 +155,7 @@ Wall,64, 192, 0
 Then you can simply run `train.py`! Check out the optional command line arguments:
 
 ```
-usage: train.py [-h] [--num_epochs NUM_EPOCHS]
+usage: train.py [-h] [--num_epochs NUM_EPOCHS] [--epoch_start_i EPOCH_START_I]
                 [--checkpoint_step CHECKPOINT_STEP]
                 [--validation_step VALIDATION_STEP] [--image IMAGE]
                 [--continue_training CONTINUE_TRAINING] [--dataset DATASET]
@@ -163,11 +163,14 @@ usage: train.py [-h] [--num_epochs NUM_EPOCHS]
                 [--batch_size BATCH_SIZE] [--num_val_images NUM_VAL_IMAGES]
                 [--h_flip H_FLIP] [--v_flip V_FLIP] [--brightness BRIGHTNESS]
                 [--rotation ROTATION] [--model MODEL] [--frontend FRONTEND]
+                [--train_dir TRAIN_DIR]
 
 optional arguments:
   -h, --help            show this help message and exit
   --num_epochs NUM_EPOCHS
                         Number of epochs to train for
+  --epoch_start_i EPOCH_START_I
+                        Start counting epochs from this number
   --checkpoint_step CHECKPOINT_STEP
                         How often to save checkpoints (epochs)
   --validation_step VALIDATION_STEP
@@ -201,9 +204,20 @@ optional arguments:
                         supported models
   --frontend FRONTEND   The frontend you are using. See frontend_builder.py
                         for supported models
+  --train_dir TRAIN_DIR
+                        The directory on which training artifacts will be
+                        stored.
 
 ```
-    
+### Tensorboard
+You can visualize several training metrics using Tensorboard as shown below:
+
+![Alt text](images/tensorboard-metrics.jpg?raw=true "Training Metrics")
+
+You can also visualize the outputs of the network on part of the validation
+dataset across epochs. For each image it will show the input | prediction | ground truth.
+
+![Alt text](images/tensorboard-images.jpg?raw=true "Training Metrics")
 
 ## Results
 
