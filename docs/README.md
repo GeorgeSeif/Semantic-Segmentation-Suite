@@ -6,7 +6,7 @@
 
 ### What's New
 
-- This repo has been depricated and will no longer be handling issues. Feel free to use as is :)
+- This repo has been deprecated and will no longer be handling issues. Feel free to use as is :)
 
 ## Description
 This repository serves as a Semantic Segmentation Suite. The goal is to easily be able to implement, train, and test new Semantic Segmentation models! Complete with the following:
@@ -53,7 +53,7 @@ The following segmentation models are currently made available:
 - [Full-Resolution Residual Networks for Semantic Segmentation in Street Scenes](https://arxiv.org/abs/1611.08323). Combines multi-scale context with pixel-level accuracy by using two processing streams within the network. The residual stream carries information at the full image resolution, enabling precise adherence to segment boundaries. The pooling stream undergoes a sequence of pooling operations
 to obtain robust features for recognition. The two streams are coupled at the full image resolution using residuals. In the code, this is the FRRN model.
 
-- [Large Kernel Matters -- Improve Semantic Segmentation by Global Convolutional Network](https://arxiv.org/abs/1703.02719). Proposes a Global Convolutional Network to address both the classification and localization issues for the semantic segmentation. Uses large separable kernals to expand the receptive field, plus a boundary refinement block to further improve localization performance near boundaries. 
+- [Large Kernel Matters -- Improve Semantic Segmentation by Global Convolutional Network](https://arxiv.org/abs/1703.02719). Proposes a Global Convolutional Network to address both the classification and localization issues for the semantic segmentation. Uses large separable kernels to expand the receptive field, plus a boundary refinement block to further improve localization performance near boundaries. 
 
 - [AdapNet: Adaptive Semantic Segmentation in Adverse Environmental Conditions](http://ais.informatik.uni-freiburg.de/publications/papers/valada17icra.pdf) Modifies the ResNet50 architecture by performing the lower resolution processing using a multi-scale strategy with atrous convolutions. This is a slightly modified version using bilinear upscaling instead of transposed convolutions as I found it gave better results.
 
@@ -63,7 +63,7 @@ to obtain robust features for recognition. The two streams are coupled at the fu
 
 - [DenseASPP for Semantic Segmentation in Street Scenes](http://openaccess.thecvf.com/content_cvpr_2018/html/Yang_DenseASPP_for_Semantic_CVPR_2018_paper.html). Combines many different scales using dilated convolution but with dense connections
 
-- [Dense Decoder Shortcut Connections for Single-Pass Semantic Segmentation](http://openaccess.thecvf.com/content_cvpr_2018/html/Bilinski_Dense_Decoder_Shortcut_CVPR_2018_paper.html). Dense Decoder Shorcut Connections using dense connectivity in the decoder stage of the segmentation model. **Note: this network takes a bit of extra time to load due to the construction of the ResNeXt blocks** 
+- [Dense Decoder Shortcut Connections for Single-Pass Semantic Segmentation](http://openaccess.thecvf.com/content_cvpr_2018/html/Bilinski_Dense_Decoder_Shortcut_CVPR_2018_paper.html). Dense Decoder Shortcut Connections using dense connectivity in the decoder stage of the segmentation model. **Note: this network takes a bit of extra time to load due to the construction of the ResNeXt blocks** 
 
 - [BiSeNet: Bilateral Segmentation Network for Real-time Semantic Segmentation](https://arxiv.org/abs/1808.00897). BiSeNet use a Spatial Path with a small stride to preserve the spatial information and generate high-resolution features while having a parallel Context Path with a fast downsampling strategy to obtain sufficient receptive field. 
 
@@ -85,7 +85,7 @@ to obtain robust features for recognition. The two streams are coupled at the fu
 
 - **models:** Folder containing all model files. Use this to build your models, or use a pre-built one
 
-- **CamVid:** The CamVid datatset for Semantic Segmentation as a test bed. This is the 32 class version
+- **CamVid:** The CamVid dataset for Semantic Segmentation as a test bed. This is the 32 class version
 
 - **checkpoints:** Checkpoint files for each epoch during training
 
@@ -112,7 +112,7 @@ The only thing you have to do to get started is set up the folders in the follow
     |   ├── test
     |   ├── test_labels
 
-Put a text file under the dataset directory called "class_dict.csv" which contains the list of classes along with the R, G, B colour labels to visualize the segmentation results. This kind of dictionairy is usually supplied with the dataset. Here is an example for the CamVid dataset:
+Put a text file under the dataset directory called "class_dict.csv" which contains the list of classes along with the R, G, B colour labels to visualize the segmentation results. This kind of dictionary is usually supplied with the dataset. Here is an example for the CamVid dataset:
 
 ```
 name,r,g,b
@@ -191,7 +191,7 @@ optional arguments:
                         augmentation
   --brightness BRIGHTNESS
                         Whether to randomly change the image brightness for
-                        data augmentation. Specifies the max bightness change
+                        data augmentation. Specifies the max brightness change
                         as a factor between 0.0 and 1.0. For example, 0.1
                         represents a max brightness change of 10% (+-).
   --rotation ROTATION   Whether to randomly rotate the image for data
