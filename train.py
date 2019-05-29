@@ -45,6 +45,8 @@ parser.add_argument('--brightness', type=float, default=None, help='Whether to r
 parser.add_argument('--rotation', type=float, default=None, help='Whether to randomly rotate the image for data augmentation. Specifies the max rotation angle in degrees.')
 parser.add_argument('--model', type=str, default="FC-DenseNet56", help='The model you are using. See model_builder.py for supported models')
 parser.add_argument('--frontend', type=str, default="ResNet101", help='The frontend you are using. See frontend_builder.py for supported models')
+parser.add_argument('--learning_rate', type=float, default=0.0001, help='The learning rate')
+parser.add_argument('--regularization', type=float, default=1.0, help='The regularization parameter')
 args = parser.parse_args()
 
 
@@ -73,7 +75,7 @@ def data_augmentation(input_image, output_image):
 
 
 # Get the names of the classes so we can record the evaluation results
-class_names_list, label_values = helpers.get_label_info(os.path.join(args.dataset, "class_dict.csv"))
+class_names_list, label_values = helpers.get_label_info(os.path.join(args.dataset, "class_dict_colorfull.csv"))
 class_names_string = ""
 for class_name in class_names_list:
     if not class_name == class_names_list[-1]:
@@ -96,7 +98,7 @@ network, init_fn = model_builder.build_model(model_name=args.model, frontend=arg
 
 loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=net_output))
 
-opt = tf.train.RMSPropOptimizer(learning_rate=0.0001, decay=0.995).minimize(loss, var_list=[var for var in tf.trainable_variables()])
+opt = tf.train.RMSPropOptimizer(learning_rate=args.learning_rate, decay=args.regularization).minimize(loss, var_list=[var for var in tf.trainable_variables()])
 
 saver=tf.train.Saver(max_to_keep=1000)
 sess.run(tf.global_variables_initializer())
@@ -128,6 +130,8 @@ print("Crop Width -->", args.crop_width)
 print("Num Epochs -->", args.num_epochs)
 print("Batch Size -->", args.batch_size)
 print("Num Classes -->", num_classes)
+print("Learning rate -->", args.learning_rate)
+print("Regularization -->", args.regularization)
 
 print("Data Augmentation:")
 print("\tVertical Flip -->", args.v_flip)

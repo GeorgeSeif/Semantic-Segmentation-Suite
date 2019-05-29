@@ -29,7 +29,7 @@ def get_label_info(csv_path):
         header = next(file_reader)
         for row in file_reader:
             class_names.append(row[0])
-            label_values.append([int(row[1]), int(row[2]), int(row[3])])
+            label_values.append([int(float(row[1])), int(float(row[2])), int(float(row[3]))])
         # print(class_dict)
     return class_names, label_values
 

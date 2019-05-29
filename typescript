@@ -1,0 +1,64 @@
+Script started on 2019-05-25 18:15:50-0400
+^Z2019-05-25 18:15:51.419157: I tensorflow/core/platform/cpu_feature_guard.cc:141] Your CPU supports instructions that this TensorFlow binary was not compiled to use: SSE4.1 SSE4.2 AVX AVX2 FMA
+2019-05-25 18:15:51.443022: I tensorflow/core/platform/profile_utils/cpu_utils.cc:94] CPU Frequency: 3696000000 Hz
+2019-05-25 18:15:51.443959: I tensorflow/compiler/xla/service/service.cc:150] XLA service 0x55c1b46284d0 executing computations on platform Host. Devices:
+2019-05-25 18:15:51.443971: I tensorflow/compiler/xla/service/service.cc:158]   StreamExecutor device (0): <undefined>, <undefined>
+2019-05-25 18:15:51.526545: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:998] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2019-05-25 18:15:51.527102: I tensorflow/compiler/xla/service/service.cc:150] XLA service 0x55c1b1cebdb0 executing computations on platform CUDA. Devices:
+2019-05-25 18:15:51.527116: I tensorflow/compiler/xla/service/service.cc:158]   StreamExecutor device (0): GeForce GTX 1080 Ti, Compute Capability 6.1
+2019-05-25 18:15:51.527406: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1433] Found device 0 with properties: 
+name: GeForce GTX 1080 Ti major: 6 minor: 1 memoryClockRate(GHz): 1.721
+pciBusID: 0000:01:00.0
+totalMemory: 10.91GiB freeMemory: 10.27GiB
+2019-05-25 18:15:51.527430: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1512] Adding visible gpu devices: 0
+2019-05-25 18:15:51.528012: I tensorflow/core/common_runtime/gpu/gpu_device.cc:984] Device interconnect StreamExecutor with strength 1 edge matrix:
+2019-05-25 18:15:51.528020: I tensorflow/core/common_runtime/gpu/gpu_device.cc:990]      0 
+2019-05-25 18:15:51.528023: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1003] 0:   N 
+2019-05-25 18:15:51.528187: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1115] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 9993 MB memory) -> physical GPU (device: 0, name: GeForce GTX 1080 Ti, pci bus id: 0000:01:00.0, compute capability: 6.1)
+Preparing the model ...
+WARNING:tensorflow:From /home/calixa/anaconda3/envs/segmentation/lib/python3.6/site-packages/tensorflow/python/framework/op_def_library.py:263: colocate_with (from tensorflow.python.framework.ops) is deprecated and will be removed in a future version.
+Instructions for updating:
+Colocations handled automatically by placer.
+WARNING:tensorflow:From train.py:99: softmax_cross_entropy_with_logits (from tensorflow.python.ops.nn_ops) is deprecated and will be removed in a future version.
+Instructions for updating:
+
+Future major versions of TensorFlow will allow gradients to flow
+into the labels input on backprop by default.
+
+See `tf.nn.softmax_cross_entropy_with_logits_v2`.
+
+WARNING:tensorflow:From /home/calixa/anaconda3/envs/segmentation/lib/python3.6/site-packages/tensorflow/python/ops/math_ops.py:3066: to_int32 (from tensorflow.python.ops.math_ops) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use tf.cast instead.
+
+This model has 47967978 trainable parameters
+WARNING:tensorflow:From /home/calixa/anaconda3/envs/segmentation/lib/python3.6/site-packages/tensorflow/python/training/saver.py:1266: checkpoint_exists (from tensorflow.python.training.checkpoint_management) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use standard file APIs to check for files with this prefix.
+Loading the data ...
+
+***** Begin training *****
+Dataset --> CCP
+Model --> DeepLabV3_plus
+Crop Height --> 512
+Crop Width --> 512
+Num Epochs --> 1
+Batch Size --> 4
+Num Classes --> 58
+Learning rate --> 1e-05
+Regularization --> 0.001
+Data Augmentation:
+	Vertical Flip --> False
+	Horizontal Flip --> False
+	Brightness Alteration --> None
+	Rotation --> None
+
+^Z
+
+
+
+
+
+[2019-05-25 18:16:06] Epoch = 0 Count = 20 Current_Loss = 1.4715 Time = 9.86
+^CTraceback (most recent call last):
+  File "train.py", line 
