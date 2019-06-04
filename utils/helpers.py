@@ -22,16 +22,23 @@ def get_label_info(csv_path):
     if not file_extension == ".csv":
         return ValueError("File is not a CSV!")
 
-    class_names = []
-    label_values = []
+    class_names_list, label_values_list = [], []
     with open(csv_path, 'r') as csvfile:
         file_reader = csv.reader(csvfile, delimiter=',')
         header = next(file_reader)
         for row in file_reader:
-            class_names.append(row[0])
-            label_values.append([int(float(row[1])), int(float(row[2])), int(float(row[3]))])
-        # print(class_dict)
-    return class_names, label_values
+            class_names_list.append(row[0])
+            label_values_list.append([int(float(row[1])), int(float(row[2])), int(float(row[3]))])
+
+    class_names_string = ""
+    for class_name in class_names_list:
+        if not class_name == class_names_list[-1]:
+            class_names_string = class_names_string + class_name + ", "
+        else:
+            class_names_string = class_names_string + class_name
+            num_classes = len(label_values_list)
+
+    return class_names_list, label_values_list, class_names_string
 
 
 def one_hot_it(label, label_values):

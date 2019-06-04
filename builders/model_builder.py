@@ -29,7 +29,7 @@ def download_checkpoints(model_name):
 
 
 
-def build_model(model_name, net_input, num_classes, crop_width, crop_height, frontend="ResNet101", is_training=True):
+def build_model(model_name, net_input, num_classes, image_width, image_height, frontend="ResNet101", is_training=True):
 	# Get the selected model. 
 	# Some of them require pre-trained ResNet
 
@@ -43,54 +43,73 @@ def build_model(model_name, net_input, num_classes, crop_width, crop_height, fro
 
 	if "ResNet50" == frontend and not os.path.isfile("models/resnet_v2_50.ckpt"):
 	    download_checkpoints("ResNet50")
+	
 	if "ResNet101" == frontend and not os.path.isfile("models/resnet_v2_101.ckpt"):
 	    download_checkpoints("ResNet101")
+	
 	if "ResNet152" == frontend and not os.path.isfile("models/resnet_v2_152.ckpt"):
 	    download_checkpoints("ResNet152")
+	
 	if "MobileNetV2" == frontend and not os.path.isfile("models/mobilenet_v2.ckpt.data-00000-of-00001"):
 	    download_checkpoints("MobileNetV2")
+	
 	if "InceptionV4" == frontend and not os.path.isfile("models/inception_v4.ckpt"):
 	    download_checkpoints("InceptionV4") 
 
 	network = None
 	init_fn = None
+	
 	if model_name == "FC-DenseNet56" or model_name == "FC-DenseNet67" or model_name == "FC-DenseNet103":
 	    network = build_fc_densenet(net_input, preset_model = model_name, num_classes=num_classes)
+	
 	elif model_name == "RefineNet":
 	    # RefineNet requires pre-trained ResNet weights
 	    network, init_fn = build_refinenet(net_input, preset_model = model_name, frontend=frontend, num_classes=num_classes, is_training=is_training)
+	
 	elif model_name == "FRRN-A" or model_name == "FRRN-B":
 	    network = build_frrn(net_input, preset_model = model_name, num_classes=num_classes)
+	
 	elif model_name == "Encoder-Decoder" or model_name == "Encoder-Decoder-Skip":
 	    network = build_encoder_decoder(net_input, preset_model = model_name, num_classes=num_classes)
+	
 	elif model_name == "MobileUNet" or model_name == "MobileUNet-Skip":
 	    network = build_mobile_unet(net_input, preset_model = model_name, num_classes=num_classes)
+
 	elif model_name == "PSPNet":
 	    # Image size is required for PSPNet
 	    # PSPNet requires pre-trained ResNet weights
-	    network, init_fn = build_pspnet(net_input, label_size=[crop_height, crop_width], preset_model = model_name, frontend=frontend, num_classes=num_classes, is_training=is_training)
+	    network, init_fn = build_pspnet(net_input, label_size=[image_height, image_width], preset_model = model_name, frontend=frontend, num_classes=num_classes, is_training=is_training)
+
 	elif model_name == "GCN":
 	    # GCN requires pre-trained ResNet weights
 	    network, init_fn = build_gcn(net_input, preset_model = model_name, frontend=frontend, num_classes=num_classes, is_training=is_training)
+	
 	elif model_name == "DeepLabV3":
 	    # DeepLabV requires pre-trained ResNet weights
 	    network, init_fn = build_deeplabv3(net_input, preset_model = model_name, frontend=frontend, num_classes=num_classes, is_training=is_training)
+	
 	elif model_name == "DeepLabV3_plus":
 	    # DeepLabV3+ requires pre-trained ResNet weights
 	    network, init_fn = build_deeplabv3_plus(net_input, preset_model = model_name, frontend=frontend, num_classes=num_classes, is_training=is_training)
+	
 	elif model_name == "DenseASPP":
 	    # DenseASPP requires pre-trained ResNet weights
 	    network, init_fn = build_dense_aspp(net_input, preset_model = model_name, frontend=frontend, num_classes=num_classes, is_training=is_training)
+	
 	elif model_name == "DDSC":
 	    # DDSC requires pre-trained ResNet weights
 	    network, init_fn = build_ddsc(net_input, preset_model = model_name, frontend=frontend, num_classes=num_classes, is_training=is_training)
+	
 	elif model_name == "BiSeNet":
 		# BiSeNet requires pre-trained ResNet weights
 		network, init_fn = build_bisenet(net_input, preset_model = model_name, frontend=frontend, num_classes=num_classes, is_training=is_training)
+	
 	elif model_name == "AdapNet":
 	    network = build_adaptnet(net_input, num_classes=num_classes)
+	
 	elif model_name == "custom":
 	    network = build_custom(net_input, num_classes)
+	
 	else:
 	    raise ValueError("Error: the model %d is not available. Try checking which models are available using the command python main.py --help")
 

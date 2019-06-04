@@ -15,3 +15,4 @@ colour_codes.csv
 CamVid_train.tfrecords
 tfrecords.py
 log/
+images_CAMVID/

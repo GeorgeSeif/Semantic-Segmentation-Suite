@@ -9,6 +9,7 @@ import os, sys
 def Upsampling(inputs,feature_map_shape):
     return tf.image.resize_bilinear(inputs, size=tf.cast(feature_map_shape, tf.int32))
 
+
 def ConvUpscaleBlock(inputs, n_filters, kernel_size=[3, 3], scale=2):
     """
     Basic conv transpose block for Encoder-Decoder upsampling
@@ -17,6 +18,7 @@ def ConvUpscaleBlock(inputs, n_filters, kernel_size=[3, 3], scale=2):
     net = tf.nn.relu(slim.batch_norm(inputs, fused=True))
     net = slim.conv2d_transpose(net, n_filters, kernel_size=[3, 3], stride=[scale, scale], activation_fn=None)
     return net
+
 
 def ConvBlock(inputs, n_filters, kernel_size=[3, 3]):
     """
@@ -27,6 +29,7 @@ def ConvBlock(inputs, n_filters, kernel_size=[3, 3]):
     net = slim.conv2d(net, n_filters, kernel_size, activation_fn=None, normalizer_fn=None)
     return net
 
+
 def AtrousSpatialPyramidPoolingModule(inputs, depth=256):
     """
 
@@ -36,9 +39,8 @@ def AtrousSpatialPyramidPoolingModule(inputs, depth=256):
     """
 
     feature_map_size = tf.shape(inputs)
-
-    # Global average pooling
-    image_features = tf.reduce_mean(inputs, [1, 2], keep_dims=True)
+    
+    image_features = tf.reduce_mean(inputs, [1, 2], keep_dims=True) # Global average pooling
 
     image_features = slim.conv2d(image_features, depth, [1, 1], activation_fn=None)
     image_features = tf.image.resize_bilinear(image_features, (feature_map_size[1], feature_map_size[2]))
@@ -56,9 +58,6 @@ def AtrousSpatialPyramidPoolingModule(inputs, depth=256):
     return net
 
 
-
-
-
 def build_deeplabv3_plus(inputs, num_classes, preset_model='DeepLabV3+', frontend="ResNet101", weight_decay=1e-5, is_training=True, pretrained_dir="models"):
     """
     Builds the DeepLabV3 model. 
@@ -74,13 +73,14 @@ def build_deeplabv3_plus(inputs, num_classes, preset_model='DeepLabV3+', fronten
 
     logits, end_points, frontend_scope, init_fn  = frontend_builder.build_frontend(inputs, frontend, pretrained_dir=pretrained_dir, is_training=is_training)
 
-
     label_size = tf.shape(inputs)[1:3]
 
     encoder_features = end_points['pool2']
 
     net = AtrousSpatialPyramidPoolingModule(end_points['pool4'])
+
     net = slim.conv2d(net, 256, [1, 1], scope="conv_1x1_output", activation_fn=None)
+
     decoder_features = Upsampling(net, label_size / 4)
 
     encoder_features = slim.conv2d(encoder_features, 48, [1, 1], activation_fn=tf.nn.relu, normalizer_fn=None)
@@ -98,11 +98,16 @@ def build_deeplabv3_plus(inputs, num_classes, preset_model='DeepLabV3+', fronten
 
 
 def mean_image_subtraction(inputs, means=[123.68, 116.78, 103.94]):
+
     inputs=tf.to_float(inputs)
     num_channels = inputs.get_shape().as_list()[-1]
+
     if len(means) != num_channels:
       raise ValueError('len(means) must match the number of channels')
+
     channels = tf.split(axis=3, num_or_size_splits=num_channels, value=inputs)
+
     for i in range(num_channels):
         channels[i] -= means[i]
+
     return tf.concat(axis=3, values=channels)
