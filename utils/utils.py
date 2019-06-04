@@ -16,6 +16,7 @@ from utils import helpers
 
 
 def str2bool(v):
+    
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
         return True
     elif v.lower() in ('no', 'false', 'f', 'n', '0'):
@@ -31,15 +32,19 @@ def data_augmentation(args, input_image, output_image):
     if args.h_flip and random.randint(0,1):
         input_image = cv2.flip(input_image, 1)
         output_image = cv2.flip(output_image, 1)
+
     if args.v_flip and random.randint(0,1):
         input_image = cv2.flip(input_image, 0)
         output_image = cv2.flip(output_image, 0)
+
     if args.brightness:
         factor = 1.0 + random.uniform(-1.0*args.brightness, args.brightness)
         table = np.array([((i / 255.0) * factor) * 255 for i in np.arange(0, 256)]).astype(np.uint8)
         input_image = cv2.LUT(input_image, table)
+
     if args.rotation:
         angle = random.uniform(-1*args.rotation, args.rotation)
+
     if args.rotation:
         M = cv2.getRotationMatrix2D((input_image.shape[1]//2, input_image.shape[0]//2), angle, 1.0)
         input_image = cv2.warpAffine(input_image, M, (input_image.shape[1], input_image.shape[0]), flags=cv2.INTER_NEAREST)
@@ -123,8 +128,8 @@ def get_minimal_size( dataset_dir ):
                     min_size['width'] = width
                 if height < min_size['height']:
                     min_size['height'] = height
-            except Exception as e:
-                print(e)
+            except:
+                pass
 
     # ensure that width and height are multiples of 8
     min_size['width'] = math.floor(min_size['width'] / 8) * 8
@@ -134,20 +139,26 @@ def get_minimal_size( dataset_dir ):
 
 
 def load_image(path):
+
     image = cv2.cvtColor(cv2.imread(path,-1), cv2.COLOR_BGR2RGB)
+
     return image
 
 
 # Takes an absolute file path and returns the name of the file without th extension
 def filepath_to_name(full_name):
+
     file_name = os.path.basename(full_name)
     file_name = os.path.splitext(file_name)[0]
+
     return file_name
 
 
 # Print with time. To console or file
 def LOG(X, f=None):
+
     time_stamp = datetime.datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
+
     if not f:
         print(time_stamp + " " + X)
     else:
@@ -158,11 +169,15 @@ def LOG(X, f=None):
 def count_params():
 
     model_parameters = 0
+
     for variable in tf.trainable_variables():
+
         shape = variable.get_shape()
         variable_parameters = 1
+
         for dim in shape:
             variable_parameters *= dim.value
+
         model_parameters += variable_parameters
     
     return model_parameters
@@ -170,13 +185,18 @@ def count_params():
 
 # Subtracts the mean images from ImageNet
 def mean_image_subtraction(inputs, means=[123.68, 116.78, 103.94]):
+
     inputs=tf.to_float(inputs)
     num_channels = inputs.get_shape().as_list()[-1]
+
     if len(means) != num_channels:
       raise ValueError('len(means) must match the number of channels')
+
     channels = tf.split(axis=3, num_or_size_splits=num_channels, value=inputs)
+
     for i in range(num_channels):
         channels[i] -= means[i]
+
     return tf.concat(axis=3, values=channels)
 
 
@@ -190,6 +210,7 @@ def _lovasz_grad(gt_sorted):
     union = gts + tf.cumsum(1. - gt_sorted)
     jaccard = 1. - intersection / union
     jaccard = tf.concat((jaccard[0:1], jaccard[1:] - jaccard[:-1]), 0)
+
     return jaccard
 
 
@@ -200,16 +221,21 @@ def _flatten_probas(probas, labels, ignore=None, order='BHWC'):
     if order == 'BCHW':
         probas = tf.transpose(probas, (0, 2, 3, 1), name="BCHW_to_BHWC")
         order = 'BHWC'
+
     if order != 'BHWC':
         raise NotImplementedError('Order {} unknown'.format(order))
+
     C = probas.shape[3]
     probas = tf.reshape(probas, (-1, C))
     labels = tf.reshape(labels, (-1,))
+
     if ignore is None:
         return probas, labels
+
     valid = tf.not_equal(labels, ignore)
     vprobas = tf.boolean_mask(probas, valid, name='valid_probas')
     vlabels = tf.boolean_mask(labels, valid, name='valid_labels')
+
     return vprobas, vlabels
 
 
@@ -220,10 +246,13 @@ def _lovasz_softmax_flat(probas, labels, only_present=True):
       labels: [P] Tensor, ground truth labels (between 0 and C - 1)
       only_present: average only on classes present in ground truth
     """
+
     C = probas.shape[1]
     losses = []
     present = []
+
     for c in range(C):
+
         fg = tf.cast(tf.equal(labels, c), probas.dtype) # foreground for class c
         if only_present:
             present.append(tf.reduce_sum(fg) > 0)
@@ -235,9 +264,11 @@ def _lovasz_softmax_flat(probas, labels, only_present=True):
             tf.tensordot(errors_sorted, tf.stop_gradient(grad), 1, name="loss_class_{}".format(c))
                       )
     losses_tensor = tf.stack(losses)
+
     if only_present:
         present = tf.stack(present)
         losses_tensor = tf.boolean_mask(losses_tensor, present)
+
     return losses_tensor
 
 
@@ -268,6 +299,7 @@ def lovasz_softmax(probas, labels, only_present=True, per_image=False, ignore=No
 # LEGACY
 # Randomly crop the image to a specific size. For data augmentation
 def random_crop(image, label, crop_height, crop_width):
+
     if (image.shape[0] != label.shape[0]) or (image.shape[1] != label.shape[1]):
         raise Exception('Image and label must have the same dimensions!')
         
@@ -374,12 +406,13 @@ def compute_mean_iou(pred, label):
     return mean_iou
 
 
-def evaluate_segmentation(pred, label, num_classes, score_averaging="weighted"):
+def evaluate_segmentation(pred, label, nb_class, score_averaging="weighted"):
+
     flat_pred = pred.flatten()
     flat_label = label.flatten()
 
     global_accuracy = compute_global_accuracy(flat_pred, flat_label)
-    class_accuracies = compute_class_accuracies(flat_pred, flat_label, num_classes)
+    class_accuracies = compute_class_accuracies(flat_pred, flat_label, nb_class)
 
     prec = precision_score(flat_pred, flat_label, average=score_averaging)
     rec = recall_score(flat_pred, flat_label, average=score_averaging)
@@ -432,8 +465,10 @@ def compute_class_weights(labels_dir, label_values):
 
 # Compute the memory usage, for debugging
 def memory():
+
     import os
     import psutil
+
     pid = os.getpid()
     py = psutil.Process(pid)
     memoryUse = py.memory_info()[0]/2.**30  # Memory use in GB

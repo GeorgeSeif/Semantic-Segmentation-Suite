@@ -24,6 +24,7 @@ from utils.parser import parse
 
 args = parse()
 
+
 #######################################################################################
 # prepare model and dataset
 #######################################################################################
@@ -111,14 +112,20 @@ num_vals = min(args.num_val_images, len(dataset_file_name['validation']['input']
 random.seed(16)
 val_indices=random.sample(range(0,len(dataset_file_name['validation']['input'])),num_vals)
 
-# Do the training here
 for epoch in range(args.epoch_start_i, args.nb_epoch):
 
     current_losses, cnt = [], 0
 
     id_list = np.random.permutation( len(dataset_file_name['training']['input']) ) # Equivalent to shuffling
 
-    nb_iters = int(np.floor(len(id_list) / args.batch_size))
+    nb_iters = (
+        int( np.floor(len(id_list) / args.batch_size) )
+        if args.redux == 1.0
+        else int( np.floor(len(id_list) * args.redux / args.batch_size ) ) )
+
+    print( int( np.floor(len(id_list) / args.batch_size) ) )
+    print( int( np.floor(len(id_list) * args.redux / args.batch_size ) ) )
+
     st = time.time()
     epoch_st=time.time()
 
@@ -128,8 +135,8 @@ for epoch in range(args.epoch_start_i, args.nb_epoch):
         
         for j in range(args.batch_size): # Collect a batch of images
 
-            index = i*args.batch_size + j
-            id = id_list[index]
+            id = id_list[ i*args.batch_size + j ]
+
             input_image = utils.load_image( dataset_file_name['training']['input'][id] )
             output_image = utils.load_image( dataset_file_name['training']['output'][id] )
 
@@ -180,8 +187,8 @@ for epoch in range(args.epoch_start_i, args.nb_epoch):
         print("Saving checkpoint for this epoch")
         saver.save(sess,"%s/%04d/model.ckpt"%("checkpoints",epoch))
 
-
     if epoch % args.validation_step == 0:
+
         print("Performing validation")
         target=open("%s/%04d/val_scores.csv"%("checkpoints",epoch),'w')
         target.write("val_name, avg_accuracy, precision, recall, f1 score, mean iou, %s\n" % (class_names_string))
@@ -193,8 +200,7 @@ for epoch in range(args.epoch_start_i, args.nb_epoch):
         f1_list = []
         iou_list = []
 
-        # Do the validation on a small set of validation images
-        for ind in val_indices:
+        for ind in val_indices: # Do the validation on a small set of validation images
 
             input_image = np.expand_dims(
                 np.float32(utils.load_image(
@@ -216,6 +222,7 @@ for epoch in range(args.epoch_start_i, args.nb_epoch):
 
             file_name = utils.filepath_to_name(dataset_file_name['validation']['input'][ind])
             target.write("%s, %f, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1, iou))
+
             for item in class_accuracies:
                 target.write(", %f"%(item))
             target.write("\n")
@@ -231,6 +238,7 @@ for epoch in range(args.epoch_start_i, args.nb_epoch):
 
             file_name = os.path.basename(dataset_file_name['validation']['input'][ind])
             file_name = os.path.splitext(file_name)[0]
+
             cv2.imwrite("%s/%04d/%s_pred.png"%("checkpoints",epoch, file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
             cv2.imwrite("%s/%04d/%s_gt.png"%("checkpoints",epoch, file_name),cv2.cvtColor(np.uint8(gt), cv2.COLOR_RGB2BGR))
 
@@ -248,15 +256,17 @@ for epoch in range(args.epoch_start_i, args.nb_epoch):
 
         print("\nAverage validation accuracy for epoch # %04d = %f"% (epoch, avg_score))
         print("Average per class validation accuracies for epoch # %04d:"% (epoch))
+
         for index, item in enumerate(class_avg_scores):
             print("%s = %f" % (class_names_list[index], item))
+
         print("Validation precision = ", avg_precision)
         print("Validation recall = ", avg_recall)
         print("Validation F1 score = ", avg_f1)
         print("Validation IoU score = ", avg_iou)
 
     epoch_time=time.time()-epoch_st
-    remain_time=epoch_time*(args.num_epochs-1-epoch)
+    remain_time=epoch_time*(args.nb_epoch-1-epoch)
     m, s = divmod(remain_time, 60)
     h, m = divmod(m, 60)
     if s!=0:
@@ -266,32 +276,23 @@ for epoch in range(args.epoch_start_i, args.nb_epoch):
     utils.LOG(train_time)
     scores_list = []
 
-
     fig1, ax1 = plt.subplots(figsize=(11, 8))
-
     ax1.plot(range(epoch+1), avg_scores_per_epoch)
     ax1.set_title("Average validation accuracy vs epochs")
     ax1.set_xlabel("Epoch")
     ax1.set_ylabel("Avg. val. accuracy")
-
-
     plt.savefig('accuracy_vs_epochs.png')
 
     plt.clf()
-
     fig2, ax2 = plt.subplots(figsize=(11, 8))
-
     ax2.plot(range(epoch+1), avg_loss_per_epoch)
     ax2.set_title("Average loss vs epochs")
     ax2.set_xlabel("Epoch")
     ax2.set_ylabel("Current loss")
-
     plt.savefig('loss_vs_epochs.png')
 
     plt.clf()
-
     fig3, ax3 = plt.subplots(figsize=(11, 8))
-
     ax3.plot(range(epoch+1), avg_iou_per_epoch)
     ax3.set_title("Average IoU vs epochs")
     ax3.set_xlabel("Epoch")

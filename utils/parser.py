@@ -9,7 +9,7 @@ def parse():
 
     parser.add_argument('--epoch_start_i', type=int, default=0, help='Start counting epochs from this number')
 
-    parser.add_argument('--checkpoint_step', type=int, default=5, help='How often to save checkpoints (epochs)')
+    parser.add_argument('--checkpoint_step', type=int, default=2, help='How often to save checkpoints (epochs)')
 
     parser.add_argument('--validation_step', type=int, default=1, help='How often to perform validation (epochs)')
 
@@ -42,6 +42,8 @@ def parse():
     parser.add_argument('--learning_rate', type=float, default=0.0001, help='The learning rate')
 
     parser.add_argument('--regularization', type=float, default=1.0, help='The regularization parameter')
+
+    parser.add_argument('--redux', type=float, default=1.0, help='Dataset reduction factor [0,1], default to 1.')
 
     args = parser.parse_args()
 
