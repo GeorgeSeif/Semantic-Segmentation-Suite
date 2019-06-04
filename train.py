@@ -196,9 +196,13 @@ for epoch in range(args.epoch_start_i, args.nb_epoch):
         # Do the validation on a small set of validation images
         for ind in val_indices:
 
-            input_image = np.expand_dims(np.float32(utils.load_image(dataset_file_name['validation']['input'][ind])[:args.crop_height, :args.crop_width]),axis=0)/255.0
+            input_image = np.expand_dims(
+                np.float32(utils.load_image(
+                    dataset_file_name['validation']['input'][ind])[:input_size['height'], :input_size['width']]),
+                axis=0
+            ) / 255.0
 
-            gt = utils.load_image(dataset_file_name['validation']['output'][ind])[:args.crop_height, :args.crop_width]
+            gt = utils.load_image(dataset_file_name['validation']['output'][ind])[:input_size['height'], :input_size['width']]
 
             gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, label_values_list))
 
