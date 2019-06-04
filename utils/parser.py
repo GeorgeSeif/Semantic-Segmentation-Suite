@@ -17,7 +17,7 @@ def parse():
 
     parser.add_argument('--continue_training', type=str2bool, default=False, help='Whether to continue training from a checkpoint')
 
-    parser.add_argument('--dataset', type=str, default="CamVid", help='Dataset you are using.')
+    parser.add_argument('--dataset', type=str, default="CCP", help='Dataset you are using.')
 
     parser.add_argument('--crop_height', type=int, default=0, help='Height of cropped input image to network, default automatically crop to smallest dimension.')
 
@@ -35,12 +35,12 @@ def parse():
 
     parser.add_argument('--rotation', type=float, default=None, help='Whether to randomly rotate the image for data augmentation. Specifies the max rotation angle in degrees.')
 
-    parser.add_argument('--model', type=str, default="FC-DenseNet56", help='The model you are using. See model_builder.py for supported models')
+    parser.add_argument('--model', type=str, default="DeepLabV3_plus", help='The model you are using. See model_builder.py for supported models')
 
     parser.add_argument('--frontend', type=str, default="ResNet101", help='The frontend you are using. See frontend_builder.py for supported models')
 
     parser.add_argument('--learning_rate', type=float, default=0.0001, help='The learning rate')
-    
+
     parser.add_argument('--regularization', type=float, default=1.0, help='The regularization parameter')
 
     args = parser.parse_args()
