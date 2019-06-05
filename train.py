@@ -29,10 +29,11 @@ args = parse()
 #######################################################################################
 
 class_names_list, label_values_list, class_names_str = data_tool.get_label_info(
-    os.path.join( args.dataset, "class_dict_colorfull.csv") )
+    dataset_name=args.dataset,
+    dataset_path=args.dataset_path,
+    class_file_name="class_dict_colorfull.csv")
 nb_class = len(class_names_list)
 
-# retrieve dataset file names
 dataset_file_name = data_tool.get_dataset_file_name( dataset_dir=args.dataset )
 
 input_size = (
@@ -45,8 +46,8 @@ config.gpu_options.allow_growth = True
 sess = tf.Session(config=config)
 
 # Compute your softmax cross entropy loss
-net_input = tf.placeholder(tf.float32,shape=[args.batch_size, input_size['height'], input_size['width'], 3])
-net_output = tf.placeholder(tf.float32,shape=[args.batch_size, input_size['height'], input_size['width'], nb_class])
+net_input = tf.placeholder( tf.float32,shape=[args.batch_size, input_size['height'], input_size['width'], 3] )
+net_output = tf.placeholder( tf.float32,shape=[args.batch_size, input_size['height'], input_size['width'], nb_class] )
 
 # load the model
 network, init_fn = model_builder.build_model(

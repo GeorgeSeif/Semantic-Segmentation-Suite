@@ -12,38 +12,45 @@ from PIL import Image
 import time, datetime
 
 
-def get_label_info(csv_path):
-    """
+"""
     Retrieve the class names and label values for the selected dataset.
     Must be in CSV format!
+    input
+        dataset_name: default to 'CCP' dataset
+        dataset_path: folder where dataset folder is located, default to local folder
+        class_file_name: name of the csv file to open
+    output
+        class_names_list
+        label_values_list
+        class_names_str
+"""
+def get_label_info(dataset_name="CCP", dataset_path="./", class_file_name="class_dict_colorfull.csv"):
+    
+    filename, file_extension = os.path.splitext( class_file_name )
 
-    # Arguments
-        csv_path: The file path of the class dictionairy
-        
-    # Returns
-        Two lists: one for the class names and the other for the label values
-    """
-    filename, file_extension = os.path.splitext(csv_path)
     if not file_extension == ".csv":
         return ValueError("File is not a CSV!")
 
     class_names_list, label_values_list = [], []
-    with open(csv_path, 'r') as csvfile:
-        file_reader = csv.reader(csvfile, delimiter=',')
+    with open( dataset_path + dataset_name + "/" + class_file_name , 'r') as csvfile:
+
+        file_reader = csv.reader( csvfile , delimiter=',')
         header = next(file_reader)
+
         for row in file_reader:
             class_names_list.append(row[0])
             label_values_list.append([int(float(row[1])), int(float(row[2])), int(float(row[3]))])
 
-    class_names_string = ""
+    class_names_str = ""
     for class_name in class_names_list:
+
         if not class_name == class_names_list[-1]:
-            class_names_string = class_names_string + class_name + ", "
+            class_names_str = class_names_str + class_name + ", "
         else:
-            class_names_string = class_names_string + class_name
+            class_names_str = class_names_str + class_name
             num_classes = len(label_values_list)
 
-    return class_names_list, label_values_list, class_names_string
+    return class_names_list, label_values_list, class_names_str
 
 
 """
