@@ -166,7 +166,8 @@ def compute_class_accuracies(pred, label, num_classes):
     count = [0.0] * num_classes
     for i in range(len(label)):
         if pred[i] == label[i]:
-            count[int(pred[i])] = count[int(pred[i])] + 1.0
+            if pred[i] == label[i]:
+                count[int(pred[i])] = count[int(pred[i])] + 1.0
 
     # If there are no pixels from a certain class in the GT, 
     # it returns NAN because of divide by zero

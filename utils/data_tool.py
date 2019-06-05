@@ -4,12 +4,14 @@ import cv2
 import numpy as np
 import itertools
 import operator
-import os, csv, math
+import os, csv, math, sys
 import tensorflow as tf
 import random
 from PIL import Image
 
 import time, datetime
+
+np.set_printoptions(threshold=sys.maxsize)
 
 
 """
@@ -81,13 +83,17 @@ def one_hot_it(label, label_values):
     # st = time.time()
     # https://stackoverflow.com/questions/46903885/map-rgb-semantic-maps-to-one-hot-encodings-and-vice-versa-in-tensorflow
     # https://stackoverflow.com/questions/14859458/how-to-check-if-all-values-in-the-columns-of-a-numpy-matrix-are-the-same
+
     semantic_map = []
+    print( len(label_values) )
     for colour in label_values:
         # colour_map = np.full((label.shape[0], label.shape[1], label.shape[2]), colour, dtype=int)
-        equality = np.equal(label, colour)
+        equality = np.array_equal(label, colour)
         class_map = np.all(equality, axis = -1)
         semantic_map.append(class_map)
+
     semantic_map = np.stack(semantic_map, axis=-1)
+    print( semantic_map )
     # print("Time 2 = ", time.time() - st)
 
     return semantic_map
@@ -117,7 +123,37 @@ def reverse_one_hot(image):
     #         x[i, j] = index
 
     x = np.argmax(image, axis = -1)
+
     return x
+
+
+def rgb_to_onehot(rgb_arr, label_values):
+
+    num_classes = len(label_values)
+    shape = rgb_arr.shape[:2]+(num_classes,)
+    arr = np.zeros( shape, dtype=np.int8 )
+
+    for i in range(num_classes):
+
+        arr[:,:,i] = np.all( rgb_arr.reshape( (-1,3) ) == label_values[i] , axis=1).reshape( shape[:2] )
+
+    return arr
+
+
+def onehot_to_rgb(onehot, label_values):
+
+    single_layer = np.argmax(onehot, axis=-1)
+    output = np.zeros( onehot.shape[:2]+(3,) )
+
+    for i in range(len(label_values)):
+        output[ single_layer==i ] = label_values[i]
+
+    return np.uint8(output)
+
+
+def onehot_to_color_code(onehot, label_values):
+
+    return np.argmax(onehot, axis=-1)
 
 
 """

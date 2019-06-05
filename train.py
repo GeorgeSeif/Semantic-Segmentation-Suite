@@ -15,7 +15,7 @@ import cv2
 import matplotlib.pyplot as plt
 
 import matplotlib
-matplotlib.use('Agg') # to generate plot without X server
+#matplotlib.use('Agg') # to generate plot without X server
 
 from utils import data_tool, model_tool, general_tool
 from utils.parser import parse
@@ -112,35 +112,33 @@ for epoch in range(args.epoch_start_i, args.nb_epoch):
 
     for i in range(nb_iters):
 
-        input_img_batch, output_img_batch = [], []
+        input_img_batch, label_img_batch = [], []
         
         for j in range(args.batch_size): # Collect a batch of images
 
             id = id_list[ i*args.batch_size + j ]
 
             input_img = data_tool.load_image( dataset_file_name['training']['input'][id] )
-            output_img = data_tool.load_image( dataset_file_name['training']['output'][id] )
+            label_img = data_tool.load_image( dataset_file_name['training']['output'][id] )
 
             with tf.device('/cpu:0'):
 
-                #input_img, output_img = data_tool.data_augmentation( args, input_img, output_img )
-
-                if input_size != None:
-                    input_img, output_img = data_tool.crop_image_and_label( input_img, output_img, input_size )
+                #input_img, label_img = data_tool.data_augmentation( args, input_img, label_img )
+                input_img, label_img = data_tool.crop_image_and_label( input_img, label_img, input_size )
 
                 input_img_batch.append( np.expand_dims( np.float32( input_img ) / 255.0 , axis=0) )
-                output_img_batch.append( np.expand_dims( np.float32( data_tool.one_hot_it( label=output_img, label_values=label_values_list) ) , axis=0) )
+                label_img_batch.append( np.expand_dims( np.float32( data_tool.rgb_to_onehot( label_img, label_values_list) ) , axis=0) )
 
         if args.batch_size == 1:
             input_img_batch = input_img_batch[0]
-            output_img_batch = output_img_batch[0]
+            label_img_batch = label_img_batch[0]
         else:
             input_img_batch = np.squeeze(np.stack(input_img_batch, axis=1))
-            output_img_batch = np.squeeze(np.stack(output_img_batch, axis=1))
+            label_img_batch = np.squeeze(np.stack(label_img_batch, axis=1))
 
         _, current = sess.run(
             fetches=[optimizer,loss],
-            feed_dict={net_input:input_img_batch,net_output:output_img_batch}
+            feed_dict={net_input:input_img_batch,net_output:label_img_batch}
         )
 
         current_losses.append(current)
@@ -181,26 +179,40 @@ for epoch in range(args.epoch_start_i, args.nb_epoch):
 
         for ind in val_indices: # Do the validation on a small set of validation images
 
-            input_img = np.expand_dims(
-                np.float32(
-                    data_tool.load_image(
-                        dataset_file_name['validation']['input'][ind])[:input_size['height'], :input_size['width']]),
-                axis=0
-            ) / 255.0
+            input_img = data_tool.load_image( dataset_file_name['validation']['input'][ind] )
+            label_img = data_tool.load_image( dataset_file_name['validation']['output'][ind] )
 
-            gt = data_tool.load_image(dataset_file_name['validation']['output'][ind])[:input_size['height'], :input_size['width']]
+            input_img, label_img = data_tool.crop_image_and_label( input_img, label_img, input_size )
 
-            gt = data_tool.reverse_one_hot(data_tool.one_hot_it(gt, label_values_list))
+            plt.figure()
+            plt.imshow(input_img) 
+            plt.show()
 
-            output_img = sess.run(network,feed_dict={net_input:input_img})
+            plt.figure()
+            plt.imshow(label_img) 
+            plt.show()
 
-            output_img = np.array(output_img[0,:,:,:])
-            output_img = data_tool.reverse_one_hot(output_img)
-            out_vis_image = data_tool.colour_code_segmentation(output_img, label_values_list)
+            input_img = np.expand_dims( np.float32( input_img ), axis=0) / 255.0
 
-            accuracy, class_accuracies, prec, rec, f1, iou = model_tool.evaluate_segmentation(pred=output_img, label=gt, nb_class=nb_class)
+            label_img_code = data_tool.onehot_to_color_code( data_tool.rgb_to_onehot( label_img, label_values_list), label_values_list )
 
-            file_name = general_tool.filepath_to_name(dataset_file_name['validation']['input'][ind])
+            output_tensor = sess.run(
+                network,
+                feed_dict={net_input:input_img})
+
+            output_tensor = np.array(output_tensor[0,:,:,:])
+
+            output_img_code = data_tool.onehot_to_color_code( output_tensor, label_values_list )
+
+            output_img = data_tool.onehot_to_rgb( output_tensor, label_values_list )
+
+            plt.figure()
+            plt.imshow( output_img ) 
+            plt.show()
+
+            accuracy, class_accuracies, prec, rec, f1, iou = model_tool.evaluate_segmentation(pred=output_img_code, label=label_img_code, nb_class=nb_class)
+
+            file_name = general_tool.filepath_to_name( dataset_file_name['validation']['input'][ind] )
             target.write("%s, %f, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1, iou))
 
             for item in class_accuracies:
@@ -214,13 +226,11 @@ for epoch in range(args.epoch_start_i, args.nb_epoch):
             f1_list.append(f1)
             iou_list.append(iou)
 
-            gt = data_tool.colour_code_segmentation(gt, label_values_list)
-
             file_name = os.path.basename(dataset_file_name['validation']['input'][ind])
             file_name = os.path.splitext(file_name)[0]
 
-            cv2.imwrite("%s/%04d/%s_pred.png"%("checkpoints",epoch, file_name),cv2.cvtColor(np.uint8(out_vis_image), cv2.COLOR_RGB2BGR))
-            cv2.imwrite("%s/%04d/%s_gt.png"%("checkpoints",epoch, file_name),cv2.cvtColor(np.uint8(gt), cv2.COLOR_RGB2BGR))
+            cv2.imwrite("%s/%04d/%s_pred.png"%("checkpoints",epoch, file_name),cv2.cvtColor(np.uint8(output_img), cv2.COLOR_RGB2BGR))
+            cv2.imwrite("%s/%04d/%s_gt.png"%("checkpoints",epoch, file_name),cv2.cvtColor(np.uint8(label_img), cv2.COLOR_RGB2BGR))
 
 
         target.close()
