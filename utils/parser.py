@@ -1,5 +1,5 @@
 import argparse
-from utils.utils import str2bool
+from utils.general_tool import str2bool
 
 def parse():
 
@@ -18,6 +18,8 @@ def parse():
     parser.add_argument('--continue_training', type=str2bool, default=False, help='Whether to continue training from a checkpoint')
 
     parser.add_argument('--dataset', type=str, default="CCP", help='Dataset you are using.')
+
+    parser.add_argument('--dataset_path', type=str, default="./", help='Where to find the specified dataset. Default to local folder.')
 
     parser.add_argument('--crop_height', type=int, default=0, help='Height of cropped input image to network, default automatically crop to smallest dimension.')
 

@@ -17,10 +17,9 @@ import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg') # to generate plot without X server
 
-from utils.utils import data_augmentation, crop_image_and_label, str2bool
-from utils import utils, helpers
-from builders import model_builder
+from utils import data_tool, model_tool, general_tool
 from utils.parser import parse
+from builders import model_builder
 
 args = parse()
 
@@ -29,14 +28,15 @@ args = parse()
 # prepare model and dataset
 #######################################################################################
 
-class_names_list, label_values_list, class_names_string = helpers.get_label_info(os.path.join(args.dataset, "class_dict_colorfull.csv"))
+class_names_list, label_values_list, class_names_str = data_tool.get_label_info(
+    os.path.join( args.dataset, "class_dict_colorfull.csv") )
 nb_class = len(class_names_list)
 
 # retrieve dataset file names
-dataset_file_name = utils.get_dataset_file_name( dataset_dir=args.dataset )
+dataset_file_name = data_tool.get_dataset_file_name( dataset_dir=args.dataset )
 
 input_size = (
-    utils.get_minimal_size( dataset_dir=args.dataset )
+    data_tool.get_minimal_size( dataset_dir=args.dataset )
     if (not args.crop_height and not args.crop_width)
     else {'height':args.crop_height, 'width':args.crop_width} )
 
@@ -65,9 +65,6 @@ optimizer = tf.train.RMSPropOptimizer(learning_rate=args.learning_rate, decay=ar
 saver = tf.train.Saver(max_to_keep=1000)
 sess.run( tf.global_variables_initializer() )
 
-model_parameters = utils.count_params()
-print("This model has %d trainable parameters"% (model_parameters))
-
 # If pre-trained ResNet required, load weights (must be done AFTER variables are initialized with sess.run(tf.global_variables_initializer())
 if init_fn is not None:
     init_fn(sess)
@@ -78,28 +75,14 @@ if args.continue_training:
     print('Loaded latest model checkpoint')
     saver.restore(sess, model_checkpoint_name)
 
-
-print("\n***** Begin training *****")
-print("Dataset -->", args.dataset)
-print("Model -->", args.model)
-print("Input Size --> %s x %s = %s" %(input_size['width'], input_size['height'], input_size['width']*input_size['height']) )
-print("Num Epochs -->", args.nb_epoch)
-print("Batch Size -->", args.batch_size)
-print("Num Classes -->", nb_class)
-print("Learning rate -->", args.learning_rate)
-print("Regularization -->", args.regularization)
-
-print("Data Augmentation:")
-print("\tVertical Flip -->", args.v_flip)
-print("\tHorizontal Flip -->", args.h_flip)
-print("\tBrightness Alteration -->", args.brightness)
-print("\tRotation -->", args.rotation)
-print("")
+general_tool.display_info( args, input_size, nb_class )
 
 
 #######################################################################################
 # train the model
 #######################################################################################
+
+print("\n***** Begin training *****")
 
 avg_loss_per_epoch, avg_scores_per_epoch, avg_iou_per_epoch = [], [], []
 
@@ -119,57 +102,52 @@ for epoch in range(args.epoch_start_i, args.nb_epoch):
     id_list = np.random.permutation( len(dataset_file_name['training']['input']) ) # Equivalent to shuffling
 
     nb_iters = (
-        int( np.floor(len(id_list) / args.batch_size) )
+        int( np.floor( len(id_list) / args.batch_size) )
         if args.redux == 1.0
-        else int( np.floor(len(id_list) * args.redux / args.batch_size ) ) )
-
-    print( int( np.floor(len(id_list) / args.batch_size) ) )
-    print( int( np.floor(len(id_list) * args.redux / args.batch_size ) ) )
+        else int( np.floor( len(id_list) * args.redux / args.batch_size ) ) )
 
     st = time.time()
     epoch_st=time.time()
 
     for i in range(nb_iters):
 
-        input_image_batch, output_image_batch = [], []
+        input_img_batch, output_img_batch = [], []
         
         for j in range(args.batch_size): # Collect a batch of images
 
             id = id_list[ i*args.batch_size + j ]
 
-            input_image = utils.load_image( dataset_file_name['training']['input'][id] )
-            output_image = utils.load_image( dataset_file_name['training']['output'][id] )
+            input_img = data_tool.load_image( dataset_file_name['training']['input'][id] )
+            output_img = data_tool.load_image( dataset_file_name['training']['output'][id] )
 
             with tf.device('/cpu:0'):
 
-                #input_image, output_image = data_augmentation( args, input_image, output_image )
+                #input_img, output_img = data_tool.data_augmentation( args, input_img, output_img )
 
                 if input_size != None:
-                    input_image, output_image = crop_image_and_label( input_image, output_image, input_size )
+                    input_img, output_img = data_tool.crop_image_and_label( input_img, output_img, input_size )
 
-                input_image = np.float32( input_image ) / 255.0
-                output_image = np.float32( helpers.one_hot_it(label=output_image, label_values=label_values_list) )
-
-                input_image_batch.append( np.expand_dims(input_image, axis=0) )
-                output_image_batch.append( np.expand_dims(output_image, axis=0) )
+                input_img_batch.append( np.expand_dims( np.float32( input_img ) / 255.0 , axis=0) )
+                output_img_batch.append( np.expand_dims( np.float32( data_tool.one_hot_it( label=output_img, label_values=label_values_list) ) , axis=0) )
 
         if args.batch_size == 1:
-            input_image_batch = input_image_batch[0]
-            output_image_batch = output_image_batch[0]
+            input_img_batch = input_img_batch[0]
+            output_img_batch = output_img_batch[0]
         else:
-            input_image_batch = np.squeeze(np.stack(input_image_batch, axis=1))
-            output_image_batch = np.squeeze(np.stack(output_image_batch, axis=1))
+            input_img_batch = np.squeeze(np.stack(input_img_batch, axis=1))
+            output_img_batch = np.squeeze(np.stack(output_img_batch, axis=1))
 
-        # Do the training
-        _, current=sess.run([optimizer,loss],feed_dict={net_input:input_image_batch,net_output:output_image_batch})
+        _, current = sess.run(
+            fetches=[optimizer,loss],
+            feed_dict={net_input:input_img_batch,net_output:output_img_batch}
+        )
 
         current_losses.append(current)
-
         cnt = cnt + args.batch_size
 
         if cnt % 20 == 0:
             string_print = "Epoch = %d Count = %d Current_Loss = %.4f Time = %.2f"%(epoch,cnt,current,time.time()-st)
-            utils.LOG(string_print)
+            general_tool.LOG(string_print)
             st = time.time()
 
     mean_loss = np.mean(current_losses)
@@ -191,7 +169,7 @@ for epoch in range(args.epoch_start_i, args.nb_epoch):
 
         print("Performing validation")
         target=open("%s/%04d/val_scores.csv"%("checkpoints",epoch),'w')
-        target.write("val_name, avg_accuracy, precision, recall, f1 score, mean iou, %s\n" % (class_names_string))
+        target.write("val_name, avg_accuracy, precision, recall, f1 score, mean iou, %s\n" % (class_names_str))
 
         scores_list = []
         class_scores_list = []
@@ -202,25 +180,26 @@ for epoch in range(args.epoch_start_i, args.nb_epoch):
 
         for ind in val_indices: # Do the validation on a small set of validation images
 
-            input_image = np.expand_dims(
-                np.float32(utils.load_image(
-                    dataset_file_name['validation']['input'][ind])[:input_size['height'], :input_size['width']]),
+            input_img = np.expand_dims(
+                np.float32(
+                    data_tool.load_image(
+                        dataset_file_name['validation']['input'][ind])[:input_size['height'], :input_size['width']]),
                 axis=0
             ) / 255.0
 
-            gt = utils.load_image(dataset_file_name['validation']['output'][ind])[:input_size['height'], :input_size['width']]
+            gt = data_tool.load_image(dataset_file_name['validation']['output'][ind])[:input_size['height'], :input_size['width']]
 
-            gt = helpers.reverse_one_hot(helpers.one_hot_it(gt, label_values_list))
+            gt = data_tool.reverse_one_hot(data_tool.one_hot_it(gt, label_values_list))
 
-            output_image = sess.run(network,feed_dict={net_input:input_image})
+            output_img = sess.run(network,feed_dict={net_input:input_img})
 
-            output_image = np.array(output_image[0,:,:,:])
-            output_image = helpers.reverse_one_hot(output_image)
-            out_vis_image = helpers.colour_code_segmentation(output_image, label_values_list)
+            output_img = np.array(output_img[0,:,:,:])
+            output_img = data_tool.reverse_one_hot(output_img)
+            out_vis_image = data_tool.colour_code_segmentation(output_img, label_values_list)
 
-            accuracy, class_accuracies, prec, rec, f1, iou = utils.evaluate_segmentation(pred=output_image, label=gt, nb_class=nb_class)
+            accuracy, class_accuracies, prec, rec, f1, iou = model_tool.evaluate_segmentation(pred=output_img, label=gt, nb_class=nb_class)
 
-            file_name = utils.filepath_to_name(dataset_file_name['validation']['input'][ind])
+            file_name = general_tool.filepath_to_name(dataset_file_name['validation']['input'][ind])
             target.write("%s, %f, %f, %f, %f, %f"%(file_name, accuracy, prec, rec, f1, iou))
 
             for item in class_accuracies:
@@ -234,7 +213,7 @@ for epoch in range(args.epoch_start_i, args.nb_epoch):
             f1_list.append(f1)
             iou_list.append(iou)
 
-            gt = helpers.colour_code_segmentation(gt, label_values_list)
+            gt = data_tool.colour_code_segmentation(gt, label_values_list)
 
             file_name = os.path.basename(dataset_file_name['validation']['input'][ind])
             file_name = os.path.splitext(file_name)[0]
@@ -273,7 +252,7 @@ for epoch in range(args.epoch_start_i, args.nb_epoch):
         train_time="Remaining training time = %d hours %d minutes %d seconds\n"%(h,m,s)
     else:
         train_time="Remaining training time : Training completed.\n"
-    utils.LOG(train_time)
+    general_tool.LOG(train_time)
     scores_list = []
 
     fig1, ax1 = plt.subplots(figsize=(11, 8))
@@ -299,6 +278,3 @@ for epoch in range(args.epoch_start_i, args.nb_epoch):
     ax3.set_ylabel("Current IoU")
 
     plt.savefig('iou_vs_epochs.png')
-
-
-
