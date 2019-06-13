@@ -43,8 +43,8 @@ config.gpu_options.allow_growth = True
 sess = tf.Session(config=config)
 
 # Compute your softmax cross entropy loss
-net_input = tf.placeholder( tf.float32,shape=[args.batch_size, input_size['height'], input_size['width'], 3] )
-net_output = tf.placeholder( tf.float32,shape=[args.batch_size, input_size['height'], input_size['width'], nb_class] )
+net_input = tf.placeholder( tf.float32,shape=[None, input_size['height'], input_size['width'], 3] )
+net_output = tf.placeholder( tf.float32,shape=[None, input_size['height'], input_size['width'], nb_class] )
 
 # load the model
 network, init_fn = model_builder.build_model(
