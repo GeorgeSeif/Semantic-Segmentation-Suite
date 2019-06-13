@@ -55,6 +55,56 @@ def get_label_info(dataset_dir="./CCP", class_file_name="class_dict.csv"):
     return class_names_list, label_values_list, class_names_str
 
 
+"""
+    given directory of image files, return dict of file name
+    input
+        dataset_dir: string path to dataset dir
+    output
+        dataset_file_name: dict of file name
+"""
+def get_dataset_file_name(dataset_dir="./CCP"):
+
+    train_input_names=[]
+    train_output_names=[]
+    val_input_names=[]
+    val_output_names=[]
+    test_input_names=[]
+    test_output_names=[]
+
+    for file in os.listdir(dataset_dir + "/train"):
+        train_input_names.append(dataset_dir + "/train/" + file)
+
+    for file in os.listdir(dataset_dir + "/train_labels"):
+        train_output_names.append(dataset_dir + "/train_labels/" + file)
+
+    for file in os.listdir(dataset_dir + "/val"):
+        val_input_names.append(dataset_dir + "/val/" + file)
+
+    for file in os.listdir(dataset_dir + "/val_labels"):
+        val_output_names.append(dataset_dir + "/val_labels/" + file)
+
+    for file in os.listdir(dataset_dir + "/test"):
+        test_input_names.append(dataset_dir + "/test/" + file)
+
+    for file in os.listdir(dataset_dir + "/test_labels"):
+        test_output_names.append(dataset_dir + "/test_labels/" + file)
+
+    train_input_names.sort(),train_output_names.sort(), val_input_names.sort(), val_output_names.sort(), test_input_names.sort(), test_output_names.sort()
+
+    dataset_file_name = {
+        'training': {
+            'input': train_input_names,
+            'output': train_output_names},
+        'validation': {
+            'input': val_input_names,
+            'output': val_output_names},
+        'testing': {
+            'input': test_input_names,
+            'output': test_output_names}}
+
+    return dataset_file_name
+
+
 def rgb_to_onehot(rgb_arr, label_values):
 
     num_classes = len(label_values)
@@ -137,60 +187,7 @@ def data_augmentation(args, input_image, label_image):
     return input_image, label_image
 
 
-"""
-    given directory of image files, return dict of file name
-    input
-        dataset_dir: string path to dataset dir
-    output
-        dataset_file_name: dict of file name
-"""
-def get_dataset_file_name(dataset_dir):
 
-    train_input_names=[]
-    train_output_names=[]
-    val_input_names=[]
-    val_output_names=[]
-    test_input_names=[]
-    test_output_names=[]
-
-    for file in os.listdir(dataset_dir + "/train"):
-        cwd = os.getcwd()
-        train_input_names.append(cwd + "/" + dataset_dir + "/train/" + file)
-
-    for file in os.listdir(dataset_dir + "/train_labels"):
-        cwd = os.getcwd()
-        train_output_names.append(cwd + "/" + dataset_dir + "/train_labels/" + file)
-
-    for file in os.listdir(dataset_dir + "/val"):
-        cwd = os.getcwd()
-        val_input_names.append(cwd + "/" + dataset_dir + "/val/" + file)
-
-    for file in os.listdir(dataset_dir + "/val_labels"):
-        cwd = os.getcwd()
-        val_output_names.append(cwd + "/" + dataset_dir + "/val_labels/" + file)
-
-    for file in os.listdir(dataset_dir + "/test"):
-        cwd = os.getcwd()
-        test_input_names.append(cwd + "/" + dataset_dir + "/test/" + file)
-
-    for file in os.listdir(dataset_dir + "/test_labels"):
-        cwd = os.getcwd()
-        test_output_names.append(cwd + "/" + dataset_dir + "/test_labels/" + file)
-
-    train_input_names.sort(),train_output_names.sort(), val_input_names.sort(), val_output_names.sort(), test_input_names.sort(), test_output_names.sort()
-
-    dataset_file_name = {
-        'training': {
-            'input': train_input_names,
-            'output': train_output_names},
-        'validation': {
-            'input': val_input_names,
-            'output': val_output_names},
-        'testing': {
-            'input': test_input_names,
-            'output': test_output_names}}
-
-    return dataset_file_name
 
 
 """
