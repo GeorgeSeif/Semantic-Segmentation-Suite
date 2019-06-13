@@ -26,7 +26,7 @@ np.set_printoptions(threshold=sys.maxsize)
         label_values_list
         class_names_str
 """
-def get_label_info(dataset_name="CCP", dataset_path="./", class_file_name="class_dict_colorfull.csv"):
+def get_label_info(dataset_dir="./CCP", class_file_name="class_dict.csv"):
     
     filename, file_extension = os.path.splitext( class_file_name )
 
@@ -34,7 +34,7 @@ def get_label_info(dataset_name="CCP", dataset_path="./", class_file_name="class
         return ValueError("File is not a CSV!")
 
     class_names_list, label_values_list = [], []
-    with open( dataset_path + dataset_name + "/" + class_file_name , 'r') as csvfile:
+    with open( dataset_dir + "/" + class_file_name , 'r') as csvfile:
 
         file_reader = csv.reader( csvfile , delimiter=',')
         header = next(file_reader)
@@ -55,91 +55,14 @@ def get_label_info(dataset_name="CCP", dataset_path="./", class_file_name="class
     return class_names_list, label_values_list, class_names_str
 
 
-"""
-    Convert a segmentation image label array to one-hot format
-    by replacing each pixel value with a vector of length num_classes
-    input
-        label: The 2D array segmentation image label
-        label_values
-        
-    output
-        A 2D array with the same width and hieght as the input, but
-        with a depth size of num_classes
-"""
-def one_hot_it(label, label_values):
-    
-    # st = time.time()
-    # w = label.shape[0]
-    # h = label.shape[1]
-    # num_classes = len(class_dict)
-    # x = np.zeros([w,h,num_classes])
-    # unique_labels = sortedlist((class_dict.values()))
-    # for i in range(0, w):
-    #     for j in range(0, h):
-    #         index = unique_labels.index(list(label[i][j][:]))
-    #         x[i,j,index]=1
-    # print("Time 1 = ", time.time() - st)
-
-    # st = time.time()
-    # https://stackoverflow.com/questions/46903885/map-rgb-semantic-maps-to-one-hot-encodings-and-vice-versa-in-tensorflow
-    # https://stackoverflow.com/questions/14859458/how-to-check-if-all-values-in-the-columns-of-a-numpy-matrix-are-the-same
-
-    semantic_map = []
-    print( len(label_values) )
-    for colour in label_values:
-        # colour_map = np.full((label.shape[0], label.shape[1], label.shape[2]), colour, dtype=int)
-        equality = np.array_equal(label, colour)
-        class_map = np.all(equality, axis = -1)
-        semantic_map.append(class_map)
-
-    semantic_map = np.stack(semantic_map, axis=-1)
-    print( semantic_map )
-    # print("Time 2 = ", time.time() - st)
-
-    return semantic_map
-
-
-"""
-    Transform a 2D array in one-hot format (depth is num_classes),
-    to a 2D array with only 1 channel, where each pixel value is
-    the classified class key.
-    input
-        image: The one-hot format image 
-        
-    output
-        A 2D array with the same width and hieght as the input, but
-        with a depth size of 1, where each pixel value is the classified 
-        class number.
-"""
-def reverse_one_hot(image):
-    
-    # w = image.shape[0]
-    # h = image.shape[1]
-    # x = np.zeros([w,h,1])
-
-    # for i in range(0, w):
-    #     for j in range(0, h):
-    #         index, value = max(enumerate(image[i, j, :]), key=operator.itemgetter(1))
-    #         x[i, j] = index
-
-    x = np.argmax(image, axis = -1)
-
-    return x
-
-
 def rgb_to_onehot(rgb_arr, label_values):
 
     num_classes = len(label_values)
     shape = rgb_arr.shape[:2]+(num_classes,)
     arr = np.zeros( shape, dtype=np.int8 )
-    #print(arr.shape)
 
     for i in range(num_classes):
-
-        #print(rgb_arr.reshape( (-1,3) ))
         arr[:,:,i] = np.all( rgb_arr.reshape( (-1,3) ) == label_values[i] , axis=1).reshape( shape[:2] )
-        #print(arr[:,:,i].shape)
-        #input()
 
     return arr
 
@@ -153,20 +76,6 @@ def onehot_to_rgb(onehot, label_values):
         output[ single_layer==i ] = label_values[i]
 
     return np.uint8(output)
-
-
-"""
-    test if wether or not the provided image is RGB
-    input
-        image: mat
-    output: True if rgb, False if grayscale
-"""
-def img_is_rgb(image):
-
-    if len(image.shape) == 3:
-        return True
-
-    return False
 
 
 def onehot_to_code(onehot):
@@ -185,16 +94,7 @@ def onehot_to_code(onehot):
     output
         Colour coded image for segmentation visualization
 """
-def colour_code_segmentation(image, label_values):
-    
-
-    # w = image.shape[0]
-    # h = image.shape[1]
-    # x = np.zeros([w,h,3])
-    # colour_codes = label_values
-    # for i in range(0, w):
-    #     for j in range(0, h):
-    #         x[i, j, :] = colour_codes[int(image[i, j])]
+def code_to_rgb(image, label_values):
     
     colour_codes = np.array(label_values)
     x = colour_codes[image.astype(int)]

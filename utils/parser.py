@@ -19,7 +19,7 @@ def parse():
 
     parser.add_argument('--dataset', type=str, default="CCP", help='Dataset you are using.')
 
-    parser.add_argument('--dataset_path', type=str, default="./", help='Where to find the specified dataset. Default to local folder.')
+    parser.add_argument('--dataset_path', type=str, default=None, help='Where to find the specified dataset. Default to local folder.')
 
     parser.add_argument('--crop_height', type=int, default=0, help='Height of cropped input image to network, default automatically crop to smallest dimension.')
 

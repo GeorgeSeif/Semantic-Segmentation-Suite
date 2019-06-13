@@ -28,16 +28,13 @@ args = parse()
 # prepare model and dataset
 #######################################################################################
 
-class_names_list, label_values_list, class_names_str = data_tool.get_label_info(
-    dataset_name=args.dataset,
-    dataset_path=args.dataset_path,
-    class_file_name="class_dict.csv")
+dataset_dir = (args.dataset_path if args.dataset_path != None else "./" + args.dataset)
+class_names_list, label_values_list, class_names_str = data_tool.get_label_info(dataset_dir)
 nb_class = len(class_names_list)
-
-dataset_file_name = data_tool.get_dataset_file_name( dataset_dir=args.dataset )
+dataset_file_name = data_tool.get_dataset_file_name(dataset_dir=dataset_dir)
 
 input_size = (
-    data_tool.get_minimal_size( dataset_dir=args.dataset )
+    data_tool.get_minimal_size( dataset_dir=dataset_dir )
     if (not args.crop_height and not args.crop_width)
     else {'height':args.crop_height, 'width':args.crop_width} )
 
@@ -128,11 +125,7 @@ for epoch in range(args.epoch_start_i, args.nb_epoch):
 
                 input_img_batch.append( np.expand_dims( np.float32( input_img ) / 255.0 , axis=0) )
 
-                if not data_tool.img_is_rgb( label_img ):
-                    label_img_batch.append( np.expand_dims( np.float32( data_tool.rgb_to_onehot( label_img, label_values_list) ) , axis=0) )
-                else:
-                    tmp = data_tool.rgb_to_onehot( label_img, label_values_list)
-                    label_img_batch.append( np.expand_dims( np.float32( tmp ) , axis=0) )                
+                label_img_batch.append( np.expand_dims( np.float32( data_tool.rgb_to_onehot( label_img, label_values_list) ) , axis=0) )                
 
         if args.batch_size == 1:
             input_img_batch = input_img_batch[0]
@@ -188,52 +181,16 @@ for epoch in range(args.epoch_start_i, args.nb_epoch):
             label_img = data_tool.load_image( dataset_file_name['validation']['output'][ind] )
 
             input_img, label_img = data_tool.crop_image_and_label( input_img, label_img, input_size )
-
-            #plt.figure()
-            #plt.imshow(input_img)
-            #plt.show()
-
-            #plt.figure()
-            #plt.imshow(label_img)
-            #plt.show()
-
             input_img = np.expand_dims( np.float32( input_img ), axis=0) / 255.0
-
-            label_img_code = None
-            if not data_tool.img_is_rgb( label_img ):
-                #print("is not rgb")
-                label_img_code = label_img
-            else:
-                #print("is rgb")
-                #print(label_img)
-                #input()
-                label_img_code = data_tool.onehot_to_code( data_tool.rgb_to_onehot( label_img, label_values_list) )
-                #print(label_img_code)
-                #print()
-                #input()
-
-            #print(label_img_code)
-            #print(label_img_code.shape)
-
-            #plt.figure()
-            #plt.imshow(label_img_code) 
-            #plt.show()
+            label_img_code = data_tool.onehot_to_code( data_tool.rgb_to_onehot( label_img, label_values_list) )
 
             output_tensor = sess.run(
                 network,
                 feed_dict={net_input:input_img})
+
             output_tensor = np.array(output_tensor[0,:,:,:])
             output_img_code = data_tool.onehot_to_code( output_tensor )
             output_img = data_tool.onehot_to_rgb( output_tensor, label_values_list )
-
-            #plt.figure()
-            #plt.imshow( output_img ) 
-            #plt.show()
-
-            #print(output_img_code)
-            #print()
-            #input()
-            #print(label_img_code)
 
             accuracy, class_accuracies, prec, rec, f1, iou = model_tool.evaluate_segmentation(pred=output_img_code, label=label_img_code, nb_class=nb_class)
 
