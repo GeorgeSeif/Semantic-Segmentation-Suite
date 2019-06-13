@@ -109,7 +109,7 @@ def one_hot_it(label, label_values):
     output
         A 2D array with the same width and hieght as the input, but
         with a depth size of 1, where each pixel value is the classified 
-        class key.
+        class number.
 """
 def reverse_one_hot(image):
     
@@ -132,10 +132,14 @@ def rgb_to_onehot(rgb_arr, label_values):
     num_classes = len(label_values)
     shape = rgb_arr.shape[:2]+(num_classes,)
     arr = np.zeros( shape, dtype=np.int8 )
+    #print(arr.shape)
 
     for i in range(num_classes):
 
+        #print(rgb_arr.reshape( (-1,3) ))
         arr[:,:,i] = np.all( rgb_arr.reshape( (-1,3) ) == label_values[i] , axis=1).reshape( shape[:2] )
+        #print(arr[:,:,i].shape)
+        #input()
 
     return arr
 
@@ -151,9 +155,25 @@ def onehot_to_rgb(onehot, label_values):
     return np.uint8(output)
 
 
-def onehot_to_color_code(onehot, label_values):
+"""
+    test if wether or not the provided image is RGB
+    input
+        image: mat
+    output: True if rgb, False if grayscale
+"""
+def img_is_rgb(image):
 
-    return np.argmax(onehot, axis=-1)
+    if len(image.shape) == 3:
+        return True
+
+    return False
+
+
+def onehot_to_code(onehot):
+
+    tmp = np.argmax(onehot, axis=-1)
+
+    return tmp
 
 
 """
@@ -309,7 +329,11 @@ def get_minimal_size( dataset_dir ):
 """
 def load_image(path):
 
-    image = cv2.cvtColor(cv2.imread(path,-1), cv2.COLOR_BGR2RGB)
+    image = None
+    try:
+        image = cv2.cvtColor(cv2.imread(path,-1), cv2.COLOR_BGR2RGB)
+    except:
+        image = cv2.imread(path)
 
     return image
 
