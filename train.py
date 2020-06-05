@@ -1,5 +1,6 @@
 from __future__ import print_function
-import os,time,cv2, sys, math
+import os,time, sys, math
+from cv2 import cv2
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 import numpy as np

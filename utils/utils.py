@@ -1,11 +1,11 @@
 from __future__ import print_function, division
-import os,time,cv2, sys, math
+import os,time, sys, math
+from cv2 import cv2
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 import numpy as np
 import time, datetime
 import os, random
-from scipy.misc import imread
 import ast
 from sklearn.metrics import precision_score, \
     recall_score, confusion_matrix, classification_report, \
@@ -268,7 +268,7 @@ def compute_class_weights(labels_dir, label_values):
     total_pixels = 0.0
 
     for n in range(len(image_files)):
-        image = imread(image_files[n])
+        image = cv2.imread(image_files[n], -1)
 
         for index, colour in enumerate(label_values):
             class_map = np.all(np.equal(image, colour), axis = -1)

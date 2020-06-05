@@ -6,10 +6,12 @@ models/*.ckpt*
 models/*.pb
 models/*txt
 models/*.tflite
+models/*.tar.gz
 checkpoints/
-Test/*.png
 accuracy_vs_epochs.png
 loss_vs_epochs.png
 colour_codes.csv
 CamVid_train.tfrecords
 tfrecords.py
+SpaceNet/
+.vscode/
