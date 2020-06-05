@@ -28,12 +28,12 @@ print("Num Classes -->", num_classes)
 print("Image -->", args.image)
 
 # Initializing network
-config = tf.ConfigProto()
+config = tf.compat.v1.ConfigProto()
 config.gpu_options.allow_growth = True
-sess=tf.Session(config=config)
+sess=tf.compat.v1.Session(config=config)
 
-net_input = tf.placeholder(tf.float32,shape=[None,None,None,3])
-net_output = tf.placeholder(tf.float32,shape=[None,None,None,num_classes]) 
+net_input = tf.compat.v1.placeholder(tf.float32,shape=[None,None,None,3])
+net_output = tf.compat.v1.placeholder(tf.float32,shape=[None,None,None,num_classes]) 
 
 network, _ = model_builder.build_model(args.model, net_input=net_input,
                                         num_classes=num_classes,
@@ -41,10 +41,10 @@ network, _ = model_builder.build_model(args.model, net_input=net_input,
                                         crop_height=args.crop_height,
                                         is_training=False)
 
-sess.run(tf.global_variables_initializer())
+sess.run(tf.compat.v1.global_variables_initializer())
 
 print('Loading model checkpoint weights')
-saver=tf.train.Saver(max_to_keep=1000)
+saver=tf.compat.v1.train.Saver(max_to_keep=1000)
 saver.restore(sess, args.checkpoint_path)
 
 

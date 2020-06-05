@@ -1,5 +1,6 @@
 import tensorflow as tf
-from tensorflow.contrib import slim
+#from tensorflow.contrib import slim
+import tf_slim as slim
 from frontends import resnet_v2
 from frontends import mobilenet_v2
 from frontends import inception_v4

@@ -32,8 +32,10 @@ import tensorflow as tf
 from frontends import conv_blocks as ops
 from frontends import mobilenet_base as lib
 
-slim = tf.contrib.slim
+#slim = tf.contrib.slim
 op = lib.op
+
+import tf_slim as slim
 
 expand_input = ops.expand_input_by_factor
 

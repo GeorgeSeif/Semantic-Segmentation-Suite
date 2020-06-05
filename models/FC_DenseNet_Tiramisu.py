@@ -1,8 +1,10 @@
 from __future__ import division
 import os,time,cv2
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
+#import tensorflow.contrib.slim as slim
 import numpy as np
+
+import tf_slim as slim
 
 def preact_conv(inputs, n_filters, kernel_size=[3, 3], dropout_p=0.2):
     """
@@ -28,7 +30,7 @@ def DenseBlock(stack, n_layers, growth_rate, dropout_p, scope=None):
     new_features: 4D tensor containing only the new feature maps generated
       in this block
   """
-  with tf.name_scope(scope) as sc:
+  with tf.compat.v1.name_scope(scope) as sc:
     new_features = []
     for j in range(n_layers):
       # Compute new feature maps
@@ -45,7 +47,7 @@ def TransitionDown(inputs, n_filters, dropout_p=0.2, scope=None):
   Transition Down (TD) for FC-DenseNet
   Apply 1x1 BN + ReLU + conv then 2x2 max pooling
   """
-  with tf.name_scope(scope) as sc:
+  with tf.compat.v1.name_scope(scope) as sc:
     l = preact_conv(inputs, n_filters, kernel_size=[1, 1], dropout_p=dropout_p)
     l = slim.pool(l, [2, 2], stride=[2, 2], pooling_type='MAX')
     return l
@@ -56,7 +58,7 @@ def TransitionUp(block_to_upsample, skip_connection, n_filters_keep, scope=None)
   Transition Up for FC-DenseNet
   Performs upsampling on block_to_upsample by a factor 2 and concatenates it with the skip_connection
   """
-  with tf.name_scope(scope) as sc:
+  with tf.compat.v1.name_scope(scope) as sc:
     # Upsample
     l = slim.conv2d_transpose(block_to_upsample, n_filters_keep, kernel_size=[3, 3], stride=[2, 2], activation_fn=None)
     # Concatenate with skip connection
@@ -103,7 +105,7 @@ def build_fc_densenet(inputs, num_classes, preset_model='FC-DenseNet56', n_filte
     else:
         raise ValueError
 
-    with tf.variable_scope(scope, preset_model, [inputs]) as sc:
+    with tf.compat.v1.variable_scope(scope, preset_model, [inputs]) as sc:
 
       #####################
       # First Convolution #

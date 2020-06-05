@@ -26,15 +26,16 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-slim = tf.contrib.slim
+#slim = tf.contrib.slim
 
+import tf_slim as slim
 
 def inception_arg_scope(weight_decay=0.00004,
                         use_batch_norm=True,
                         batch_norm_decay=0.9997,
                         batch_norm_epsilon=0.001,
                         activation_fn=tf.nn.relu,
-                        batch_norm_updates_collections=tf.GraphKeys.UPDATE_OPS):
+                        batch_norm_updates_collections=tf.compat.v1.GraphKeys.UPDATE_OPS):
   """Defines the default arg scope for inception models.
 
   Args:
@@ -68,10 +69,10 @@ def inception_arg_scope(weight_decay=0.00004,
     normalizer_params = {}
   # Set weight_decay for weights in Conv and FC layers.
   with slim.arg_scope([slim.conv2d, slim.fully_connected],
-                      weights_regularizer=slim.l2_regularizer(weight_decay)):
+                      weights_regularizer=tf.keras.regularizers.l2(0.5 * (weight_decay))):
     with slim.arg_scope(
         [slim.conv2d],
-        weights_initializer=slim.variance_scaling_initializer(),
+        weights_initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=2.0),
         activation_fn=activation_fn,
         normalizer_fn=normalizer_fn,
         normalizer_params=normalizer_params) as sc:

@@ -1,11 +1,13 @@
 import tensorflow as tf
-from tensorflow.contrib import slim
+#from tensorflow.contrib import slim
 import numpy as np
 from builders import frontend_builder
 import os, sys
 
+import tf_slim as slim
+
 def Upsampling(inputs,feature_map_shape):
-    return tf.image.resize_bilinear(inputs, size=feature_map_shape)
+    return tf.image.resize(inputs, size=feature_map_shape, method=tf.image.ResizeMethod.BILINEAR)
 
 def ConvUpscaleBlock(inputs, n_filters, kernel_size=[3, 3], scale=2):
     """
@@ -98,7 +100,7 @@ def build_pspnet(inputs, label_size, num_classes, preset_model='PSPNet', fronten
 
 
 def mean_image_subtraction(inputs, means=[123.68, 116.78, 103.94]):
-    inputs=tf.to_float(inputs)
+    inputs=tf.cast(inputs, dtype=tf.float32)
     num_channels = inputs.get_shape().as_list()[-1]
     if len(means) != num_channels:
       raise ValueError('len(means) must match the number of channels')

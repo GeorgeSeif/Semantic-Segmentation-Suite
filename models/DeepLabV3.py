@@ -1,13 +1,15 @@
 # coding=utf-8
 
 import tensorflow as tf
-from tensorflow.contrib import slim
+#from tensorflow.contrib import slim
 import numpy as np
 from builders import frontend_builder
 import os, sys
 
+import tf_slim as slim
+
 def Upsampling(inputs,feature_map_shape):
-    return tf.image.resize_bilinear(inputs, size=feature_map_shape)
+    return tf.image.resize(inputs, size=feature_map_shape, method=tf.image.ResizeMethod.BILINEAR)
 
 def ConvUpscaleBlock(inputs, n_filters, kernel_size=[3, 3], scale=2):
     """
@@ -35,13 +37,13 @@ def AtrousSpatialPyramidPoolingModule(inputs, depth=256):
 
     """
 
-    feature_map_size = tf.shape(inputs)
+    feature_map_size = tf.shape(input=inputs)
 
     # Global average pooling
-    image_features = tf.reduce_mean(inputs, [1, 2], keep_dims=True)
+    image_features = tf.reduce_mean(input_tensor=inputs, axis=[1, 2], keepdims=True)
 
     image_features = slim.conv2d(image_features, depth, [1, 1], activation_fn=None)
-    image_features = tf.image.resize_bilinear(image_features, (feature_map_size[1], feature_map_size[2]))
+    image_features = tf.image.resize(image_features, (feature_map_size[1], feature_map_size[2]), method=tf.image.ResizeMethod.BILINEAR)
 
     atrous_pool_block_1 = slim.conv2d(inputs, depth, [1, 1], activation_fn=None)
 
@@ -75,7 +77,7 @@ def build_deeplabv3(inputs, num_classes, preset_model='DeepLabV3', frontend="Res
 
     logits, end_points, frontend_scope, init_fn  = frontend_builder.build_frontend(inputs, frontend, pretrained_dir=pretrained_dir, is_training=is_training)
 
-    label_size = tf.shape(inputs)[1:3]
+    label_size = tf.shape(input=inputs)[1:3]
 
     net = AtrousSpatialPyramidPoolingModule(end_points['pool4'])
 
@@ -87,7 +89,7 @@ def build_deeplabv3(inputs, num_classes, preset_model='DeepLabV3', frontend="Res
 
 
 def mean_image_subtraction(inputs, means=[123.68, 116.78, 103.94]):
-    inputs=tf.to_float(inputs)
+    inputs=tf.cast(inputs, dtype=tf.float32)
     num_channels = inputs.get_shape().as_list()[-1]
     if len(means) != num_channels:
       raise ValueError('len(means) must match the number of channels')

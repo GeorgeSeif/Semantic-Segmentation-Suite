@@ -25,7 +25,7 @@ def bottleneck(inputs, depth, depth_bottleneck, stride, rate=1,
     Returns:
       The ResNet unit's output.
     """
-    with tf.variable_scope(scope, 'bottleneck_v1', [inputs]) as sc:
+    with tf.compat.v1.variable_scope(scope, 'bottleneck_v1', [inputs]) as sc:
         depth_in = slim.utils.last_dimension(inputs.get_shape(), min_rank=4)
         if depth == depth_in:
             shortcut = resnet_utils.subsample(inputs, stride, 'shortcut')
@@ -113,7 +113,7 @@ def resnet_v1(inputs,
     Raises:
       ValueError: If the target output_stride is not valid.
     """
-    with tf.variable_scope(scope, 'resnet_v1', [inputs], reuse=reuse) as sc:
+    with tf.compat.v1.variable_scope(scope, 'resnet_v1', [inputs], reuse=reuse) as sc:
         end_points_collection = sc.name + '_end_points'
         with slim.arg_scope([slim.conv2d, bottleneck,
                              resnet_utils.stack_blocks_dense],
@@ -252,6 +252,6 @@ resnet_v1_200.default_image_size = resnet_v1.default_image_size
 
 
 if __name__ == '__main__':
-    input = tf.placeholder(tf.float32, shape=(None, 224, 224, 3), name='input')
+    input = tf.compat.v1.placeholder(tf.float32, shape=(None, 224, 224, 3), name='input')
     with slim.arg_scope(resnet_arg_scope()) as sc:
         logits = resnet_v1_50(input)

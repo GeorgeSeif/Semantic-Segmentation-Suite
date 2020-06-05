@@ -2,13 +2,14 @@ from __future__ import print_function
 import os,time, sys, math
 from cv2 import cv2
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
 import numpy as np
 import time, datetime
 import argparse
 import random
 import os, sys
 import subprocess
+
+#tf.disable_v2_behavior()
 
 # use 'Agg' on matplotlib so that plots could be generated even without Xserver
 # running
@@ -84,23 +85,23 @@ for class_name in class_names_list:
 
 num_classes = len(label_values)
 
-config = tf.ConfigProto()
+config = tf.compat.v1.ConfigProto()
 config.gpu_options.allow_growth = True
-sess=tf.Session(config=config)
+sess=tf.compat.v1.Session(config=config)
 
 
 # Compute your softmax cross entropy loss
-net_input = tf.placeholder(tf.float32,shape=[None,None,None,3])
-net_output = tf.placeholder(tf.float32,shape=[None,None,None,num_classes])
+net_input = tf.compat.v1.placeholder(tf.float32,shape=[None,None,None,3])
+net_output = tf.compat.v1.placeholder(tf.float32,shape=[None,None,None,num_classes])
 
 network, init_fn = model_builder.build_model(model_name=args.model, frontend=args.frontend, net_input=net_input, num_classes=num_classes, crop_width=args.crop_width, crop_height=args.crop_height, is_training=True)
 
-loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=net_output))
+loss = tf.reduce_mean(input_tensor=tf.nn.softmax_cross_entropy_with_logits(logits=network, labels=tf.stop_gradient(net_output)))
 
-opt = tf.train.RMSPropOptimizer(learning_rate=0.0001, decay=0.995).minimize(loss, var_list=[var for var in tf.trainable_variables()])
+opt = tf.compat.v1.train.RMSPropOptimizer(learning_rate=0.0001, decay=0.995).minimize(loss, var_list=[var for var in tf.compat.v1.trainable_variables()])
 
-saver=tf.train.Saver(max_to_keep=1000)
-sess.run(tf.global_variables_initializer())
+saver=tf.compat.v1.train.Saver(max_to_keep=1000)
+sess.run(tf.compat.v1.global_variables_initializer())
 
 utils.count_params()
 

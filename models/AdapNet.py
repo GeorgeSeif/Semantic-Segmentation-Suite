@@ -1,14 +1,16 @@
 # coding=utf-8
 
 import tensorflow as tf
-from tensorflow.contrib import slim
+#from tensorflow.contrib import slim
 import numpy as np
 from frontends import resnet_v2
 import os, sys
 
+import tf_slim as slim
+
 
 def Upsampling(inputs,scale):
-    return tf.image.resize_bilinear(inputs, size=[tf.shape(inputs)[1]*scale,  tf.shape(inputs)[2]*scale])
+    return tf.image.resize(inputs, size=[tf.shape(input=inputs)[1]*scale,  tf.shape(input=inputs)[2]*scale], method=tf.image.ResizeMethod.BILINEAR)
 
 def ConvBlock(inputs, n_filters, kernel_size=[3, 3], stride=1):
     """
@@ -149,7 +151,7 @@ def build_adaptnet(inputs, num_classes):
 
 
 def mean_image_subtraction(inputs, means=[123.68, 116.78, 103.94]):
-    inputs=tf.to_float(inputs)
+    inputs=tf.cast(inputs, dtype=tf.float32)
     num_channels = inputs.get_shape().as_list()[-1]
     if len(means) != num_channels:
       raise ValueError('len(means) must match the number of channels')

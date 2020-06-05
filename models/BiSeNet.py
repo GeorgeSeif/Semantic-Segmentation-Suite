@@ -1,13 +1,15 @@
 # coding=utf-8
 
 import tensorflow as tf
-from tensorflow.contrib import slim
+#from tensorflow.contrib import slim
 from builders import frontend_builder
 import numpy as np
 import os, sys
 
+import tf_slim as slim
+
 def Upsampling(inputs,scale):
-    return tf.image.resize_bilinear(inputs, size=[tf.shape(inputs)[1]*scale,  tf.shape(inputs)[2]*scale])
+    return tf.image.resize(inputs, size=[tf.shape(input=inputs)[1]*scale,  tf.shape(input=inputs)[2]*scale], method=tf.image.ResizeMethod.BILINEAR)
 
 def ConvUpscaleBlock(inputs, n_filters, kernel_size=[3, 3], scale=2):
     """
@@ -30,7 +32,7 @@ def ConvBlock(inputs, n_filters, kernel_size=[3, 3], strides=1):
 def AttentionRefinementModule(inputs, n_filters):
 
     # Global average pooling
-    net = tf.reduce_mean(inputs, [1, 2], keep_dims=True)
+    net = tf.reduce_mean(input_tensor=inputs, axis=[1, 2], keepdims=True)
 
     net = slim.conv2d(net, n_filters, kernel_size=[1, 1])
     net = slim.batch_norm(net, fused=True)
@@ -45,7 +47,7 @@ def FeatureFusionModule(input_1, input_2, n_filters):
     inputs = ConvBlock(inputs, n_filters=n_filters, kernel_size=[3, 3])
 
     # Global average pooling
-    net = tf.reduce_mean(inputs, [1, 2], keep_dims=True)
+    net = tf.reduce_mean(input_tensor=inputs, axis=[1, 2], keepdims=True)
     
     net = slim.conv2d(net, n_filters, kernel_size=[1, 1])
     net = tf.nn.relu(net)
@@ -88,7 +90,7 @@ def build_bisenet(inputs, num_classes, preset_model='BiSeNet', frontend="ResNet1
 
     net_5 = AttentionRefinementModule(end_points['pool5'], n_filters=2048)
 
-    global_channels = tf.reduce_mean(net_5, [1, 2], keep_dims=True)
+    global_channels = tf.reduce_mean(input_tensor=net_5, axis=[1, 2], keepdims=True)
     net_5_scaled = tf.multiply(global_channels, net_5)
 
     ### Combining the paths

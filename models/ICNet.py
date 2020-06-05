@@ -5,10 +5,10 @@ from frontends import frontend_builder
 import os, sys
 
 def Upsampling_by_shape(inputs, feature_map_shape):
-    return tf.image.resize_bilinear(inputs, size=feature_map_shape)
+    return tf.image.resize(inputs, size=feature_map_shape, method=tf.image.ResizeMethod.BILINEAR)
 
 def Upsampling_by_scale(inputs, scale):
-    return tf.image.resize_bilinear(inputs, size=[tf.shape(inputs)[1]*scale,  tf.shape(inputs)[2]*scale])
+    return tf.image.resize(inputs, size=[tf.shape(input=inputs)[1]*scale,  tf.shape(input=inputs)[2]*scale], method=tf.image.ResizeMethod.BILINEAR)
 
 def ConvUpscaleBlock(inputs, n_filters, kernel_size=[3, 3], scale=2):
     """
@@ -89,8 +89,8 @@ def build_icnet(inputs, label_size, num_classes, preset_model='ICNet', pooling_t
       ICNet model
     """
 
-    inputs_4 = tf.image.resize_bilinear(inputs, size=[tf.shape(inputs)[1]*4,  tf.shape(inputs)[2]*4])   
-    inputs_2 = tf.image.resize_bilinear(inputs, size=[tf.shape(inputs)[1]*2,  tf.shape(inputs)[2]*2])
+    inputs_4 = tf.image.resize(inputs, size=[tf.shape(input=inputs)[1]*4,  tf.shape(input=inputs)[2]*4], method=tf.image.ResizeMethod.BILINEAR)   
+    inputs_2 = tf.image.resize(inputs, size=[tf.shape(input=inputs)[1]*2,  tf.shape(input=inputs)[2]*2], method=tf.image.ResizeMethod.BILINEAR)
     inputs_1 = inputs
 
     if frontend == 'Res50':
@@ -140,7 +140,7 @@ def build_icnet(inputs, label_size, num_classes, preset_model='ICNet', pooling_t
 
 
 def mean_image_subtraction(inputs, means=[123.68, 116.78, 103.94]):
-    inputs=tf.to_float(inputs)
+    inputs=tf.cast(inputs, dtype=tf.float32)
     num_channels = inputs.get_shape().as_list()[-1]
     if len(means) != num_channels:
       raise ValueError('len(means) must match the number of channels')

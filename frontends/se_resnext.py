@@ -32,11 +32,11 @@ def constant_xavier_initializer(shape, group, dtype=tf.float32, uniform=True):
     if uniform:
       # To get stddev = math.sqrt(factor / n) need to adjust for uniform.
       limit = math.sqrt(3.0 * 1.0 / n)
-      return tf.random_uniform(shape, -limit, limit, dtype, seed=None)
+      return tf.random.uniform(shape, -limit, limit, dtype, seed=None)
     else:
       # To get stddev = math.sqrt(factor / n) need to adjust for truncated.
       trunc_stddev = math.sqrt(1.3 * 1.0 / n)
-      return tf.truncated_normal(shape, 0.0, trunc_stddev, dtype, seed=None)
+      return tf.random.truncated_normal(shape, 0.0, trunc_stddev, dtype, seed=None)
 
 # for root block, use dummy input_filters, e.g. 128 rather than 64 for the first block
 def se_bottleneck_block(inputs, input_filters, name_prefix, is_training, group, data_format='channels_last', need_reduce=True, is_root=False, reduced_scale=16):
@@ -45,39 +45,39 @@ def se_bottleneck_block(inputs, input_filters, name_prefix, is_training, group, 
     residuals = inputs
     if need_reduce:
         strides_to_use = 1 if is_root else 2
-        proj_mapping = tf.layers.conv2d(inputs, input_filters, (1, 1), use_bias=False,
+        proj_mapping = tf.compat.v1.layers.conv2d(inputs, input_filters, (1, 1), use_bias=False,
                                 name=name_prefix + '_1x1_proj', strides=(strides_to_use, strides_to_use),
                                 padding='valid', data_format=data_format, activation=None,
-                                kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                bias_initializer=tf.zeros_initializer())
-        residuals = tf.layers.batch_normalization(proj_mapping, momentum=BN_MOMENTUM,
+                                kernel_initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform"),
+                                bias_initializer=tf.compat.v1.zeros_initializer())
+        residuals = tf.compat.v1.layers.batch_normalization(proj_mapping, momentum=BN_MOMENTUM,
                                 name=name_prefix + '_1x1_proj/bn', axis=bn_axis,
                                 epsilon=BN_EPSILON, training=is_training, reuse=None, fused=USE_FUSED_BN)
 
-    reduced_inputs = tf.layers.conv2d(inputs, input_filters // 2, (1, 1), use_bias=False,
+    reduced_inputs = tf.compat.v1.layers.conv2d(inputs, input_filters // 2, (1, 1), use_bias=False,
                             name=name_prefix + '_1x1_reduce', strides=(1, 1),
                             padding='valid', data_format=data_format, activation=None,
-                            kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                            bias_initializer=tf.zeros_initializer())
-    reduced_inputs_bn = tf.layers.batch_normalization(reduced_inputs, momentum=BN_MOMENTUM,
+                            kernel_initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform"),
+                            bias_initializer=tf.compat.v1.zeros_initializer())
+    reduced_inputs_bn = tf.compat.v1.layers.batch_normalization(reduced_inputs, momentum=BN_MOMENTUM,
                                         name=name_prefix + '_1x1_reduce/bn', axis=bn_axis,
                                         epsilon=BN_EPSILON, training=is_training, reuse=None, fused=USE_FUSED_BN)
     reduced_inputs_relu = tf.nn.relu(reduced_inputs_bn, name=name_prefix + '_1x1_reduce/relu')
 
     if data_format == 'channels_first':
-        reduced_inputs_relu = tf.pad(reduced_inputs_relu, paddings = [[0, 0], [0, 0], [1, 1], [1, 1]])
+        reduced_inputs_relu = tf.pad(tensor=reduced_inputs_relu, paddings = [[0, 0], [0, 0], [1, 1], [1, 1]])
         weight_shape = [3, 3, reduced_inputs_relu.get_shape().as_list()[1]//group, input_filters // 2]
         weight_ = tf.Variable(constant_xavier_initializer(weight_shape, group=group, dtype=tf.float32), trainable=is_training, name=name_prefix + '_3x3/kernel')
         weight_groups = tf.split(weight_, num_or_size_splits=group, axis=-1, name=name_prefix + '_weight_split')
         xs = tf.split(reduced_inputs_relu, num_or_size_splits=group, axis=1, name=name_prefix + '_inputs_split')
     else:
-        reduced_inputs_relu = tf.pad(reduced_inputs_relu, paddings = [[0, 0], [1, 1], [1, 1], [0, 0]])
+        reduced_inputs_relu = tf.pad(tensor=reduced_inputs_relu, paddings = [[0, 0], [1, 1], [1, 1], [0, 0]])
         weight_shape = [3, 3, reduced_inputs_relu.get_shape().as_list()[-1]//group, input_filters // 2]
         weight_ = tf.Variable(constant_xavier_initializer(weight_shape, group=group, dtype=tf.float32), trainable=is_training, name=name_prefix + '_3x3/kernel')
         weight_groups = tf.split(weight_, num_or_size_splits=group, axis=-1, name=name_prefix + '_weight_split')
         xs = tf.split(reduced_inputs_relu, num_or_size_splits=group, axis=-1, name=name_prefix + '_inputs_split')
 
-    convolved = [tf.nn.convolution(x, weight, padding='VALID', strides=[strides_to_use, strides_to_use], name=name_prefix + '_group_conv',
+    convolved = [tf.nn.convolution(input=x, filters=weight, padding='VALID', strides=[strides_to_use, strides_to_use], name=name_prefix + '_group_conv',
                     data_format=('NCHW' if data_format == 'channels_first' else 'NHWC')) for (x, weight) in zip(xs, weight_groups)]
 
     if data_format == 'channels_first':
@@ -85,37 +85,37 @@ def se_bottleneck_block(inputs, input_filters, name_prefix, is_training, group, 
     else:
         conv3_inputs = tf.concat(convolved, axis=-1, name=name_prefix + '_concat')
 
-    conv3_inputs_bn = tf.layers.batch_normalization(conv3_inputs, momentum=BN_MOMENTUM, name=name_prefix + '_3x3/bn',
+    conv3_inputs_bn = tf.compat.v1.layers.batch_normalization(conv3_inputs, momentum=BN_MOMENTUM, name=name_prefix + '_3x3/bn',
                                         axis=bn_axis, epsilon=BN_EPSILON, training=is_training, reuse=None, fused=USE_FUSED_BN)
     conv3_inputs_relu = tf.nn.relu(conv3_inputs_bn, name=name_prefix + '_3x3/relu')
 
 
-    increase_inputs = tf.layers.conv2d(conv3_inputs_relu, input_filters, (1, 1), use_bias=False,
+    increase_inputs = tf.compat.v1.layers.conv2d(conv3_inputs_relu, input_filters, (1, 1), use_bias=False,
                                 name=name_prefix + '_1x1_increase', strides=(1, 1),
                                 padding='valid', data_format=data_format, activation=None,
-                                kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                bias_initializer=tf.zeros_initializer())
-    increase_inputs_bn = tf.layers.batch_normalization(increase_inputs, momentum=BN_MOMENTUM,
+                                kernel_initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform"),
+                                bias_initializer=tf.compat.v1.zeros_initializer())
+    increase_inputs_bn = tf.compat.v1.layers.batch_normalization(increase_inputs, momentum=BN_MOMENTUM,
                                         name=name_prefix + '_1x1_increase/bn', axis=bn_axis,
                                         epsilon=BN_EPSILON, training=is_training, reuse=None, fused=USE_FUSED_BN)
 
     if data_format == 'channels_first':
-        pooled_inputs = tf.reduce_mean(increase_inputs_bn, [2, 3], name=name_prefix + '_global_pool', keep_dims=True)
+        pooled_inputs = tf.reduce_mean(input_tensor=increase_inputs_bn, axis=[2, 3], name=name_prefix + '_global_pool', keepdims=True)
     else:
-        pooled_inputs = tf.reduce_mean(increase_inputs_bn, [1, 2], name=name_prefix + '_global_pool', keep_dims=True)
+        pooled_inputs = tf.reduce_mean(input_tensor=increase_inputs_bn, axis=[1, 2], name=name_prefix + '_global_pool', keepdims=True)
 
-    down_inputs = tf.layers.conv2d(pooled_inputs, input_filters // reduced_scale, (1, 1), use_bias=True,
+    down_inputs = tf.compat.v1.layers.conv2d(pooled_inputs, input_filters // reduced_scale, (1, 1), use_bias=True,
                                 name=name_prefix + '_1x1_down', strides=(1, 1),
                                 padding='valid', data_format=data_format, activation=None,
-                                kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                bias_initializer=tf.zeros_initializer())
+                                kernel_initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform"),
+                                bias_initializer=tf.compat.v1.zeros_initializer())
     down_inputs_relu = tf.nn.relu(down_inputs, name=name_prefix + '_1x1_down/relu')
 
-    up_inputs = tf.layers.conv2d(down_inputs_relu, input_filters, (1, 1), use_bias=True,
+    up_inputs = tf.compat.v1.layers.conv2d(down_inputs_relu, input_filters, (1, 1), use_bias=True,
                                 name=name_prefix + '_1x1_up', strides=(1, 1),
                                 padding='valid', data_format=data_format, activation=None,
-                                kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                bias_initializer=tf.zeros_initializer())
+                                kernel_initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform"),
+                                bias_initializer=tf.compat.v1.zeros_initializer())
     prob_outputs = tf.nn.sigmoid(up_inputs, name=name_prefix + '_prob')
 
     rescaled_feat = tf.multiply(prob_outputs, increase_inputs_bn, name=name_prefix + '_mul')
@@ -145,23 +145,23 @@ def se_resnext(input_image, scope, is_training = False, group=16, data_format='c
     block_name_prefix = ['conv2_{}', 'conv3_{}', 'conv4_{}', 'conv5_{}']
 
     if data_format == 'channels_first':
-        swaped_input_image = tf.pad(swaped_input_image, paddings = [[0, 0], [0, 0], [3, 3], [3, 3]])
+        swaped_input_image = tf.pad(tensor=swaped_input_image, paddings = [[0, 0], [0, 0], [3, 3], [3, 3]])
     else:
-        swaped_input_image = tf.pad(swaped_input_image, paddings = [[0, 0], [3, 3], [3, 3], [0, 0]])
+        swaped_input_image = tf.pad(tensor=swaped_input_image, paddings = [[0, 0], [3, 3], [3, 3], [0, 0]])
 
-    inputs_features = tf.layers.conv2d(swaped_input_image, input_depth[0]//4, (7, 7), use_bias=False,
+    inputs_features = tf.compat.v1.layers.conv2d(swaped_input_image, input_depth[0]//4, (7, 7), use_bias=False,
                                 name='conv1/7x7_s2', strides=(2, 2),
                                 padding='valid', data_format=data_format, activation=None,
-                                kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                bias_initializer=tf.zeros_initializer())
+                                kernel_initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform"),
+                                bias_initializer=tf.compat.v1.zeros_initializer())
     VAR_LIST.append('conv1/7x7_s2')
 
-    inputs_features = tf.layers.batch_normalization(inputs_features, momentum=BN_MOMENTUM,
+    inputs_features = tf.compat.v1.layers.batch_normalization(inputs_features, momentum=BN_MOMENTUM,
                                         name='conv1/7x7_s2/bn', axis=bn_axis,
                                         epsilon=BN_EPSILON, training=is_training, reuse=None, fused=USE_FUSED_BN)
     inputs_features = tf.nn.relu(inputs_features, name='conv1/relu_7x7_s2')
 
-    inputs_features = tf.layers.max_pooling2d(inputs_features, [3, 3], [2, 2], padding='same', data_format=data_format, name='pool1/3x3_s2')
+    inputs_features = tf.compat.v1.layers.max_pooling2d(inputs_features, [3, 3], [2, 2], padding='same', data_format=data_format, name='pool1/3x3_s2')
 
     is_root = True
     for ind, num_unit in enumerate(num_units):
@@ -173,11 +173,11 @@ def se_resnext(input_image, scope, is_training = False, group=16, data_format='c
         is_root = False
 
     if data_format == 'channels_first':
-        pooled_inputs = tf.reduce_mean(inputs_features, [2, 3], name='pool5/7x7_s1', keep_dims=True)
+        pooled_inputs = tf.reduce_mean(input_tensor=inputs_features, axis=[2, 3], name='pool5/7x7_s1', keepdims=True)
     else:
-        pooled_inputs = tf.reduce_mean(inputs_features, [1, 2], name='pool5/7x7_s1', keep_dims=True)
+        pooled_inputs = tf.reduce_mean(input_tensor=inputs_features, axis=[1, 2], name='pool5/7x7_s1', keepdims=True)
 
-    pooled_inputs = tf.layers.flatten(pooled_inputs)
+    pooled_inputs = tf.compat.v1.layers.flatten(pooled_inputs)
 
     # logits_output = tf.layers.dense(pooled_inputs, num_classes,
     #                             kernel_initializer=tf.contrib.layers.xavier_initializer(),

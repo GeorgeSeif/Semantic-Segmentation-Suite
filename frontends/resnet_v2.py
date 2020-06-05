@@ -50,12 +50,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+
+tf.disable_v2_behavior()
 
 from frontends import resnet_utils
 
-slim = tf.contrib.slim
+#slim = tf.contrib.slim
 resnet_arg_scope = resnet_utils.resnet_arg_scope
+
+import tf_slim as slim
 
 
 @slim.add_arg_scope
@@ -83,7 +87,7 @@ def bottleneck(inputs, depth, depth_bottleneck, stride, rate=1,
   Returns:
     The ResNet unit's output.
   """
-  with tf.variable_scope(scope, 'bottleneck_v2', [inputs]) as sc:
+  with tf.compat.v1.variable_scope(scope, 'bottleneck_v2', [inputs]) as sc:
     depth_in = slim.utils.last_dimension(inputs.get_shape(), min_rank=4)
     preact = slim.batch_norm(inputs, activation_fn=tf.nn.relu, scope='preact')
     if depth == depth_in:
@@ -107,7 +111,7 @@ def bottleneck(inputs, depth, depth_bottleneck, stride, rate=1,
                                             sc.name,
                                             output)
 
-
+@slim.add_arg_scope
 def resnet_v2(inputs,
               blocks,
               num_classes=None,
@@ -180,7 +184,7 @@ def resnet_v2(inputs,
   Raises:
     ValueError: If the target output_stride is not valid.
   """
-  with tf.variable_scope(scope, 'resnet_v2', [inputs], reuse=reuse) as sc:
+  with tf.compat.v1.variable_scope(scope, 'resnet_v2', [inputs], reuse=reuse) as sc:
     end_points_collection = sc.original_name_scope + '_end_points'
     with slim.arg_scope([slim.conv2d, bottleneck,
                          resnet_utils.stack_blocks_dense],
@@ -215,7 +219,7 @@ def resnet_v2(inputs,
         return net, end_points
 resnet_v2.default_image_size = 224
 
-
+@slim.add_arg_scope
 def resnet_v2_block(scope, base_depth, num_units, stride):
   """Helper function for creating a resnet_v2 bottleneck block.
 
@@ -240,7 +244,7 @@ def resnet_v2_block(scope, base_depth, num_units, stride):
   }])
 resnet_v2.default_image_size = 224
 
-
+@slim.add_arg_scope
 def resnet_v2_50(inputs,
                  num_classes=None,
                  is_training=True,

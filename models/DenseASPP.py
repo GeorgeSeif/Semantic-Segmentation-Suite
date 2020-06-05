@@ -1,11 +1,12 @@
 import tensorflow as tf
-from tensorflow.contrib import slim
+#from tensorflow.contrib import slim
 from builders import frontend_builder
 import os, sys
 
+import tf_slim as slim
 
 def Upsampling(inputs,scale):
-    return tf.image.resize_bilinear(inputs, size=[tf.shape(inputs)[1]*scale,  tf.shape(inputs)[2]*scale])
+    return tf.image.resize(inputs, size=[tf.shape(input=inputs)[1]*scale,  tf.shape(input=inputs)[2]*scale], method=tf.image.ResizeMethod.BILINEAR)
 
 
 

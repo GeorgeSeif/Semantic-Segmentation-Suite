@@ -1,6 +1,7 @@
 import sys, os
-import tensorflow as tf
+#import tensorflow.compat.v1 as tf
 import subprocess
+
 
 sys.path.append("models")
 from models.FC_DenseNet_Tiramisu import build_fc_densenet

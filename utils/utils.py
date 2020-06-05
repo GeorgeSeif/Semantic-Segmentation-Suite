@@ -2,7 +2,7 @@ from __future__ import print_function, division
 import os,time, sys, math
 from cv2 import cv2
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
+#import tensorflow.contrib.slim as slim
 import numpy as np
 import time, datetime
 import os, random
@@ -63,7 +63,7 @@ def LOG(X, f=None):
 # Count total number of parameters in the model
 def count_params():
     total_parameters = 0
-    for variable in tf.trainable_variables():
+    for variable in tf.compat.v1.trainable_variables():
         shape = variable.get_shape()
         variable_parameters = 1
         for dim in shape:
@@ -73,7 +73,7 @@ def count_params():
 
 # Subtracts the mean images from ImageNet
 def mean_image_subtraction(inputs, means=[123.68, 116.78, 103.94]):
-    inputs=tf.to_float(inputs)
+    inputs=tf.cast(inputs, dtype=tf.float32)
     num_channels = inputs.get_shape().as_list()[-1]
     if len(means) != num_channels:
       raise ValueError('len(means) must match the number of channels')
@@ -87,7 +87,7 @@ def _lovasz_grad(gt_sorted):
     Computes gradient of the Lovasz extension w.r.t sorted errors
     See Alg. 1 in paper
     """
-    gts = tf.reduce_sum(gt_sorted)
+    gts = tf.reduce_sum(input_tensor=gt_sorted)
     intersection = gts - tf.cumsum(gt_sorted)
     union = gts + tf.cumsum(1. - gt_sorted)
     jaccard = 1. - intersection / union
@@ -99,7 +99,7 @@ def _flatten_probas(probas, labels, ignore=None, order='BHWC'):
     Flattens predictions in the batch
     """
     if order == 'BCHW':
-        probas = tf.transpose(probas, (0, 2, 3, 1), name="BCHW_to_BHWC")
+        probas = tf.transpose(a=probas, perm=(0, 2, 3, 1), name="BCHW_to_BHWC")
         order = 'BHWC'
     if order != 'BHWC':
         raise NotImplementedError('Order {} unknown'.format(order))
@@ -109,8 +109,8 @@ def _flatten_probas(probas, labels, ignore=None, order='BHWC'):
     if ignore is None:
         return probas, labels
     valid = tf.not_equal(labels, ignore)
-    vprobas = tf.boolean_mask(probas, valid, name='valid_probas')
-    vlabels = tf.boolean_mask(labels, valid, name='valid_labels')
+    vprobas = tf.boolean_mask(tensor=probas, mask=valid, name='valid_probas')
+    vlabels = tf.boolean_mask(tensor=labels, mask=valid, name='valid_labels')
     return vprobas, vlabels
 
 def _lovasz_softmax_flat(probas, labels, only_present=True):
@@ -126,9 +126,9 @@ def _lovasz_softmax_flat(probas, labels, only_present=True):
     for c in range(C):
         fg = tf.cast(tf.equal(labels, c), probas.dtype) # foreground for class c
         if only_present:
-            present.append(tf.reduce_sum(fg) > 0)
+            present.append(tf.reduce_sum(input_tensor=fg) > 0)
         errors = tf.abs(fg - probas[:, c])
-        errors_sorted, perm = tf.nn.top_k(errors, k=tf.shape(errors)[0], name="descending_sort_{}".format(c))
+        errors_sorted, perm = tf.nn.top_k(errors, k=tf.shape(input=errors)[0], name="descending_sort_{}".format(c))
         fg_sorted = tf.gather(fg, perm)
         grad = _lovasz_grad(fg_sorted)
         losses.append(
@@ -137,7 +137,7 @@ def _lovasz_softmax_flat(probas, labels, only_present=True):
     losses_tensor = tf.stack(losses)
     if only_present:
         present = tf.stack(present)
-        losses_tensor = tf.boolean_mask(losses_tensor, present)
+        losses_tensor = tf.boolean_mask(tensor=losses_tensor, mask=present)
     return losses_tensor
 
 def lovasz_softmax(probas, labels, only_present=True, per_image=False, ignore=None, order='BHWC'):
