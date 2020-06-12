@@ -88,7 +88,7 @@ def bottleneck(inputs, depth, depth_bottleneck, stride, rate=1,
     The ResNet unit's output.
   """
   with tf.compat.v1.variable_scope(scope, 'bottleneck_v2', [inputs]) as sc:
-    depth_in = slim.utils.last_dimension(inputs.get_shape(), min_rank=4)
+    depth_in = slim.utils.last_dimension(inputs.get_shape(), min_rank=4) # CHANNELS
     preact = slim.batch_norm(inputs, activation_fn=tf.nn.relu, scope='preact')
     if depth == depth_in:
       shortcut = resnet_utils.subsample(inputs, stride, 'shortcut')
