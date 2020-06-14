@@ -16,3 +16,4 @@ CamVid_train.tfrecords
 tfrecords.py
 SpaceNet/
 .vscode/
+logs/

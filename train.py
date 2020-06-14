@@ -9,6 +9,8 @@ from tensorflow.keras.losses import CategoricalCrossentropy
 
 import tensorflow as tf
 
+from tensorflow import keras
+
 
 
 
@@ -48,6 +50,7 @@ model.fit(x=myTrainGen.generator(),
           steps_per_epoch = steps_per_epoch,
           validation_data = myValGen.generator(),
           validation_steps = validation_images // batch_size,
-          epochs = epochs)
+          epochs = epochs,
+          callbacks = [tensorboard_callback])
 
 # callbacks = [model_checkpoint, tbCallBack, lrate, history, save_imgs]
