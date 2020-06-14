@@ -5,7 +5,7 @@ from tensorflow import keras
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Conv2D, ReLU, Add, MaxPool2D, UpSampling2D, BatchNormalization, ZeroPadding2D, Layer
 
-from tensorflow.keras.applications import ResNet50V2, ResNet101V2
+from tensorflow.keras.applications import ResNet50, ResNet101
 
 from models.ResNet_101 import resnet101_model
 
@@ -59,7 +59,7 @@ def ResidualConvUnit(inputs, n_filters=256, kernel_size=3, name=''):
     net = ReLU(name=name+"relu1")(inputs)
     net = Conv2D(n_filters, kernel_size, padding="same",  name=name+'conv1',
                  kernel_initializer=kern_init, kernel_regularizer=kern_reg)(net)
-    net = ReLU(name=name+"relu2")(inputs)
+    net = ReLU(name=name+"relu2")(net)
     net = Conv2D(n_filters, kernel_size, padding="same",  name=name+'conv2',
                  kernel_initializer=kern_init, kernel_regularizer=kern_reg)(net)
 
@@ -113,6 +113,7 @@ def ChainedResidualPooling(inputs, n_filters=256, name=''):
     net = BatchNormalization()(net)
     net = MaxPool2D([5, 5], strides=1,  name=name+'pool1', padding='SAME')(net)
     net_out_1 = net
+
     net = Conv2D(n_filters, 3, padding='same', name=name+'conv2',
                  kernel_initializer=kern_init, kernel_regularizer=kern_reg)(net)
     net = BatchNormalization()(net)
@@ -277,7 +278,7 @@ def RefineBlock(high_inputs=None, low_inputs=None, block=0):
         return output
 
 
-def build_refinenet(input_shape, num_classes, is_training=True, frontend_trainable=True, tf_frontend=False):
+def build_refinenet(input_shape, num_classes, is_training=True, frontend_trainable=True, tf_frontend=True):
     """
     Builds the RefineNet model.
 
@@ -298,12 +299,12 @@ def build_refinenet(input_shape, num_classes, is_training=True, frontend_trainab
 
     if tf_frontend:  # attempt to use the ResNet implementation provided by TensorFlow
 
-        frontend = ResNet50V2(input_shape=input_shape,
+        frontend = ResNet50(input_shape=input_shape,
                                 include_top=False, weights='imagenet')
 
         layer_names = [l.name for l in frontend.layers]
 
-        print(frontend.summary())
+        #print(frontend.summary())
 
         # model.get_layer(layer_name).output
 
@@ -334,9 +335,12 @@ def build_refinenet(input_shape, num_classes, is_training=True, frontend_trainab
     high[1] = Conv2D(256, 1, padding='same', name='resnet_map2', kernel_initializer=kern_init, kernel_regularizer=kern_reg)(high[1])
     high[2] = Conv2D(256, 1, padding='same', name='resnet_map3', kernel_initializer=kern_init, kernel_regularizer=kern_reg)(high[2])
     high[3] = Conv2D(256, 1, padding='same', name='resnet_map4', kernel_initializer=kern_init, kernel_regularizer=kern_reg)(high[3])
-    for h in high:
-        h = BatchNormalization()(h)
     
+    #for h in high:      # this dont do shit bc the author doesnt understand references in python. Whoops.
+    #    h = BatchNormalization()(h)
+    
+    for h in range(len(high)):
+        high[h] = BatchNormalization()(high[h])
 
 
     # RefineNet

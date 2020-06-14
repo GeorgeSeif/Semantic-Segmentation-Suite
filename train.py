@@ -9,6 +9,8 @@ from tensorflow.keras.losses import CategoricalCrossentropy
 
 import tensorflow as tf
 
+from tensorflow import keras
+
 
 
 
@@ -43,11 +45,16 @@ input_shape = random_crop if random_crop else input_shape # adjust network input
 model = build_refinenet(input_shape, num_classes)
 model.compile(optimizer = Adam(lr = 1e-4), loss = CategoricalCrossentropy(), metrics = ['accuracy'])
 
+
+#tensorboard
+tensorboard_callback = keras.callbacks.TensorBoard(log_dir='logs/fit/')
+
 model.fit(x=myTrainGen.generator(), 
           batch_size = batch_size,
           steps_per_epoch = steps_per_epoch,
           validation_data = myValGen.generator(),
           validation_steps = validation_images // batch_size,
-          epochs = epochs)
+          epochs = epochs,
+          callbacks = [tensorboard_callback])
 
 # callbacks = [model_checkpoint, tbCallBack, lrate, history, save_imgs]
