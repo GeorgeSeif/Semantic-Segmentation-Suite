@@ -7,6 +7,7 @@ models/*.pb
 models/*txt
 models/*.tflite
 models/*.tar.gz
+models/*.h5
 checkpoints/
 accuracy_vs_epochs.png
 loss_vs_epochs.png

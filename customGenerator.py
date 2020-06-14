@@ -13,7 +13,7 @@ import random
 import os
 import itertools
 from PIL import Image
-from cv2 import cv2
+import cv2
 import tensorflow as tf
 
 #from scripts.transformations import augment_image
