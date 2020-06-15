@@ -14,8 +14,7 @@ from tensorflow import keras
 
 
 
-
-dataset_basepath=Path("SpaceNet/")
+dataset_basepath=Path("/media/jetson/Samsung500GB/Semantic-Segmentation-Suite/SpaceNet/")
 train_images = dataset_basepath / 'train'
 train_masks = dataset_basepath / 'train_labels'
 val_images = dataset_basepath / 'val'
@@ -26,7 +25,7 @@ class_labels, class_colors, num_classes = get_label_info(dataset_basepath / "cla
 
 
 input_shape=(650,650,3)
-random_crop = (448,448,3) #dense prediction tasks recommend multiples of 32 +1
+random_crop = (224,224,3) #dense prediction tasks recommend multiples of 32 +1
 #random_crop = (638, 638, 3)
 
 
@@ -46,12 +45,8 @@ input_shape = random_crop if random_crop else input_shape # adjust network input
 model = build_refinenet(input_shape, num_classes)
 model.compile(optimizer = Adam(lr = 1e-4), loss = CategoricalCrossentropy(), metrics = ['accuracy'])
 
-
-#tensorboard
-tensorboard_callback = keras.callbacks.TensorBoard(log_dir='logs/fit/')
-
-model.fit(x=myTrainGen.generator(), 
-          batch_size = batch_size,
+model.fit(x=myTrainGen.generator(),
+          batch_size = None,
           steps_per_epoch = steps_per_epoch,
           validation_data = myValGen.generator(),
           validation_steps = validation_images // batch_size,
