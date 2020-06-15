@@ -297,6 +297,22 @@ def build_refinenet(input_shape, num_classes, is_training=True, frontend_trainab
     # set the frontend and retrieve high
     frontend = None
 
+
+    from classification_models.tfkeras import Classifiers
+
+    ResNet34, preprocess_input = Classifiers.get('resnet34')
+    frontend = ResNet34((224, 224, 3), weights='imagenet')
+
+
+    #print(frontend.summary())
+
+
+    high[0] = frontend.get_layer("add_15").output
+    high[1] = frontend.get_layer("add_12").output
+    high[2] = frontend.get_layer("add_6").output
+    high[3] = frontend.get_layer("add_2").output
+
+    '''
     if tf_frontend:  # attempt to use the ResNet implementation provided by TensorFlow
 
         frontend = ResNet50(input_shape=input_shape,
@@ -327,7 +343,7 @@ def build_refinenet(input_shape, num_classes, is_training=True, frontend_trainab
             frontend.get_layer('res4b22_relu').output,
             frontend.get_layer('res3b3_relu').output,
             frontend.get_layer('res2c_relu').output]
-
+    '''
 
     
     # Get the feature maps to the proper size with bottleneck

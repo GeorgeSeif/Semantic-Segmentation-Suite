@@ -17,3 +17,5 @@ tfrecords.py
 SpaceNet/
 .vscode/
 logs/
+*.h5
+*.model
