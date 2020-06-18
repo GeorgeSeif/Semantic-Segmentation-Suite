@@ -5,9 +5,10 @@ import re
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import Model
-from tensorflow.keras.layers import Conv2D, ReLU, Add, MaxPool2D, UpSampling2D, BatchNormalization, ZeroPadding2D, Layer
+from tensorflow.keras.layers import Conv2D, ReLU, Add, MaxPool2D, UpSampling2D, BatchNormalization, ZeroPadding2D, Layer, Softmax
 
 from tensorflow.keras.applications import ResNet50, ResNet101
+
 
 #from models.ResNet_101 import resnet101_model
 
@@ -45,7 +46,7 @@ class ScaledAdd(Layer):
     return out
 
 
-def ResidualConvUnit(inputs, n_filters=256, kernel_size=3, name=''):
+def ResidualConvUnit(inputs, n_filters=256, kernel_size=1, name=''):
     """
     A local residual unit designed to fine-tune the pretrained ResNet weights
 
@@ -59,10 +60,13 @@ def ResidualConvUnit(inputs, n_filters=256, kernel_size=3, name=''):
     """
 
     net = ReLU(name=name+"relu1")(inputs)
-    net = Conv2D(n_filters, kernel_size, padding="same",  name=name+'conv1',
+    net = Conv2D(n_filters, 1, padding="same",  name=name+'conv1',
                  kernel_initializer=kern_init, kernel_regularizer=kern_reg)(net)
     net = ReLU(name=name+"relu2")(net)
-    net = Conv2D(n_filters, kernel_size, padding="same",  name=name+'conv2',
+    net = Conv2D(n_filters, 3, padding="same",  name=name+'conv2',
+                 kernel_initializer=kern_init, kernel_regularizer=kern_reg)(net)
+    net = ReLU(name=name+"relu3")(net)
+    net = Conv2D(n_filters, 1, padding="same",  name=name+'conv3',
                  kernel_initializer=kern_init, kernel_regularizer=kern_reg)(net)
 
     # print("net", net)
@@ -85,7 +89,7 @@ def ResidualConvUnit(inputs, n_filters=256, kernel_size=3, name=''):
 
 
 def BilinearUpsampling(inputs, scale):
-    return tf.image.resize(inputs, size=[tf.shape(input=inputs)[1]*scale,  tf.shape(input=inputs)[2]*scale], method=tf.image.ResizeMethod.BILINEAR)
+    return tf.image.resize(inputs, size=[tf.shape(input=inputs)[1]*scale,  tf.shape(input=inputs)[2]*scale], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
 
 def ChainedResidualPooling(inputs, n_filters=256, name=''):
@@ -145,12 +149,12 @@ def ChainedResidualPooling(inputs, n_filters=256, name=''):
 
     net = MaxPool2D([5, 5], strides=1,  name=name+ \
                     'pool1', padding='SAME')(net_relu)
-    net = Conv2D(n_filters, 3, name=name+'conv1',
+    net = Conv2D(n_filters, 1, name=name+'conv1',
                  padding='SAME', activation=None)(net)
     net_out_1 = net
 
     net = MaxPool2D([5, 5], strides=1,  name=name+'pool2', padding='SAME')(net)
-    net = Conv2D(n_filters, 3, name=name+'conv2',
+    net = Conv2D(n_filters, 1, name=name+'conv2',
                  padding='SAME', activation=None)(net)
     net_out_2 = net
 
@@ -186,11 +190,11 @@ def MultiResolutionFusion(high_inputs=None, low_inputs=None, n_filters=256, name
 
     else:
 
-        conv_low = Conv2D(n_filters, 3, padding='same', name=name+'conv_lo', activation=None,
+        conv_low = Conv2D(n_filters, 1, padding='same', name=name+'conv_lo', activation=None,
                           kernel_initializer=kern_init, kernel_regularizer=kern_reg)(low_inputs)
         conv_low = BatchNormalization()(conv_low)
 
-        conv_high = Conv2D(n_filters, 3, padding='same', name=name+'conv_hi', activation=None,
+        conv_high = Conv2D(n_filters, 1, padding='same', name=name+'conv_hi', activation=None,
                            kernel_initializer=kern_init, kernel_regularizer=kern_reg)(high_inputs)
         conv_high = BatchNormalization()(conv_high)
         # conv_low_up = BilinearUpsampling(conv_low,2)
@@ -210,7 +214,8 @@ def MultiResolutionFusion(high_inputs=None, low_inputs=None, n_filters=256, name
         print("high_dim", high_dim)
         mysize = (high_dim[0]//low_dim[0], high_dim[1]//low_dim[1])
         print("SIZE", mysize)
-        low_up = UpSampling2D(size=mysize, interpolation='bilinear')(conv_low)
+        #low_up = UpSampling2D(size=mysize, interpolation='bilinear')(conv_low)
+        low_up = BilinearUpsampling(conv_low, 2)
         out = Add()([conv_high, low_up])
 
         # return Add(name=name+'sum')([conv_low_up, conv_high])
@@ -236,13 +241,13 @@ def RefineBlock(high_inputs=None, low_inputs=None, block=0):
     """
 
     if low_inputs is None:  # block 4
-        rcu_high = ResidualConvUnit(
-            high_inputs, n_filters=512, name='rf_{}_rcu_h1_'.format(block))
-        rcu_high = ResidualConvUnit(
-            rcu_high, n_filters=512, name='rf_{}_rcu_h2_'.format(block))
+#        rcu_high = ResidualConvUnit(
+#            high_inputs, n_filters=512, name='rf_{}_rcu_h1_'.format(block))
+#        rcu_high = ResidualConvUnit(
+#            rcu_high, n_filters=512, name='rf_{}_rcu_h2_'.format(block))
 
         fuse = MultiResolutionFusion(
-            high_inputs=rcu_high, low_inputs=None, n_filters=512, name='rf_{}_mrf_'.format(block))
+            high_inputs=high_inputs, low_inputs=None, n_filters=512, name='rf_{}_mrf_'.format(block))
 
         fuse_pooling = ChainedResidualPooling(
             fuse, n_filters=512, name='rf_{}_crp_'.format(block))
@@ -255,22 +260,22 @@ def RefineBlock(high_inputs=None, low_inputs=None, block=0):
         # high_n = 256
         # low_n = 256
 
-        rcu_high = ResidualConvUnit(
-            high_inputs, n_filters=high_n, name='rf_{}_rcu_h1_'.format(block))
-        rcu_high = ResidualConvUnit(
-            rcu_high, n_filters=high_n, name='rf_{}_rcu_h2_'.format(block))
+#        rcu_high = ResidualConvUnit(
+#            high_inputs, n_filters=high_n, name='rf_{}_rcu_h1_'.format(block))
+#        rcu_high = ResidualConvUnit(
+#            rcu_high, n_filters=high_n, name='rf_{}_rcu_h2_'.format(block))
 
         # we want 3x RCU's between the pooling of one block
         # and the fusion of the next. Therefore we must run
         # the low_inputs through 2x RCU as well
 
-        rcu_low = ResidualConvUnit(
-            low_inputs, n_filters=low_n, name='rf_{}_rcu_l1_'.format(block))
-        rcu_low = ResidualConvUnit(
-            rcu_low, n_filters=low_n, name='rf_{}_rcu_l2_'.format(block))
+#        rcu_low = ResidualConvUnit(
+#            low_inputs, n_filters=low_n, name='rf_{}_rcu_l1_'.format(block))
+#        rcu_low = ResidualConvUnit(
+#            rcu_low, n_filters=low_n, name='rf_{}_rcu_l2_'.format(block))
 
         fuse = MultiResolutionFusion(
-            rcu_high, rcu_low, n_filters=256, name='rf_{}_mrf_'.format(block))
+            high_inputs, low_inputs, n_filters=256, name='rf_{}_mrf_'.format(block))
 
         fuse_pooling = ChainedResidualPooling(
             fuse, n_filters=256, name='rf_{}_crp_'.format(block))
@@ -301,22 +306,25 @@ def build_refinenet(input_shape, num_classes, is_training=True, frontend_trainab
 
     from classification_models.tfkeras import Classifiers
 
-    ResNet18, preprocess_input = Classifiers.get('resnet18')
-    frontend = ResNet18((224, 224, 3), weights='imagenet')
+    #input_tens = tf.zeros([448,448,3])
+
+    ResNet34, preprocess_input = Classifiers.get('resnet34')
+    frontend = ResNet34(input_shape=(448,448,3), weights='imagenet', include_top=False)
+
 
 
     #print(frontend.summary())
 
-    high[0] = frontend.get_layer("add_7").output
-    high[1] = frontend.get_layer("add_5").output
-    high[2] = frontend.get_layer("add_3").output
-    high[3] = frontend.get_layer("add_1").output
+    #high[0] = frontend.get_layer("add_7").output
+    #high[1] = frontend.get_layer("add_5").output
+    #high[2] = frontend.get_layer("add_3").output
+    #high[3] = frontend.get_layer("add_1").output
 
 
-    #high[0] = frontend.get_layer("add_15").output
-    #high[1] = frontend.get_layer("add_12").output
-    #high[2] = frontend.get_layer("add_6").output
-    #high[3] = frontend.get_layer("add_2").output
+    high[0] = frontend.get_layer("add_15").output
+    high[1] = frontend.get_layer("add_12").output
+    high[2] = frontend.get_layer("add_6").output
+    high[3] = frontend.get_layer("add_2").output
 
     '''
     if tf_frontend:  # attempt to use the ResNet implementation provided by TensorFlow
@@ -376,7 +384,8 @@ def build_refinenet(input_shape, num_classes, is_training=True, frontend_trainab
     net = ResidualConvUnit(net, name='rf_rcu_o1_')
     net = ResidualConvUnit(net, name='rf_rcu_o2_')
 
-    net = UpSampling2D(size=4, interpolation='bilinear', name='rf_up_o')(net)
+    #net = UpSampling2D(size=4, interpolation='bilinear', name='rf_up_o')(net)
+    net = BilinearUpsampling(net, 4)
 
 #    net = Conv2D(num_classes, 1, activation = 'softmax', name='rf_pred')(net)
     net = Conv2D(num_classes, 1, activation = None, name='rf_logits')(net)

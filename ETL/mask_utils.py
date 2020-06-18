@@ -22,6 +22,10 @@ def create_building_mask(rasterSrc, vectorSrc, npDistFileName='',
     '''
     Create building mask for rasterSrc,
     Similar to labeltools/createNPPixArray() in spacenet utilities
+
+        -rasterSrc: path to aerial image
+        -vectorSrc: path to geojson
+        -npDistFileName: path to output ground truth image
     '''
     
     ## open source vector file that truth data
@@ -37,11 +41,20 @@ def create_building_mask(rasterSrc, vectorSrc, npDistFileName='',
     ## create First raster memory layer, units are pixels
     # Change output to geotiff instead of memory 
     memdrv = gdal.GetDriverByName('GTiff') 
-    dst_ds = memdrv.Create(npDistFileName, cols, rows, 3, gdal.GDT_Byte, 
+
+    output_channels = 3
+
+    dst_ds = memdrv.Create(npDistFileName, cols, rows, output_channels, gdal.GDT_Byte, 
                            options=['COMPRESS=LZW'])
+
+    #copy projection from raster
     dst_ds.SetGeoTransform(srcRas_ds.GetGeoTransform())
     dst_ds.SetProjection(srcRas_ds.GetProjection())
-    [dst_ds.GetRasterBand(i).SetNoDataValue(noDataValue) for i in range(1,4)]
+
+
+    [dst_ds.GetRasterBand(i).SetNoDataValue(noDataValue) for i in range(1,output_channels+1)]
+
+
     gdal.RasterizeLayer(dst_ds, [1], source_layer, burn_values=[burn_values])
     dst_ds = 0
     

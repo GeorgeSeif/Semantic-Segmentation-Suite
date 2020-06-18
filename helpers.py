@@ -3,7 +3,6 @@ import numpy as np
 import itertools
 import operator
 import os, csv
-import tensorflow as tf
 
 import time, datetime
 

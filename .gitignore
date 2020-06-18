@@ -19,3 +19,7 @@ SpaceNet/
 logs/
 *.h5
 *.model
+images/
+tensorflow_large_model_support/
+customCallbacks.py
+customDataset.py
