@@ -1,5 +1,7 @@
 import re
 
+
+
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import Model
@@ -7,7 +9,7 @@ from tensorflow.keras.layers import Conv2D, ReLU, Add, MaxPool2D, UpSampling2D, 
 
 from tensorflow.keras.applications import ResNet50, ResNet101
 
-from models.ResNet_101 import resnet101_model
+#from models.ResNet_101 import resnet101_model
 
 kern_init = keras.initializers.he_normal()
 kern_reg = keras.regularizers.l2(1e-5)
@@ -104,7 +106,7 @@ def ChainedResidualPooling(inputs, n_filters=256, name=''):
     Returns:
       Double-pooled feature maps
     """
-
+    '''
     # using the 4 layer pooling claimed in paper as better for segmentation tasks
     net_relu = ReLU(name=name+'relu')(inputs)
 
@@ -136,8 +138,8 @@ def ChainedResidualPooling(inputs, n_filters=256, name=''):
         name=name+'sum')([net_relu, net_out_1, net_out_2, net_out_3, net_out_4])
 
     return net_sum_2
-
     '''
+
     net_relu = ReLU(name=name+'relu')(inputs)
 
 
@@ -153,7 +155,6 @@ def ChainedResidualPooling(inputs, n_filters=256, name=''):
     net_out_2 = net
 
     return Add(name=name+'sum')([net_relu, net_out_1, net_out_2])
-    '''
 
 
 def MultiResolutionFusion(high_inputs=None, low_inputs=None, n_filters=256, name=''):
@@ -175,9 +176,9 @@ def MultiResolutionFusion(high_inputs=None, low_inputs=None, n_filters=256, name
 
     if low_inputs is None:  # RefineNet block 4
 
-        # fuse = Conv2D(n_filters, 3, name=name+'conv', activation=None)(low_inputs)
+        #fuse = Conv2D(n_filters, 3, name=name+'conv', activation=None)(high_inputs)
 
-        # return fuse
+        #return fuse
 
         return high_inputs
 
@@ -200,8 +201,8 @@ def MultiResolutionFusion(high_inputs=None, low_inputs=None, n_filters=256, name
         # print("low_dim", keras.backend.int_shape(conv_low))
         # print("high_dim", keras.backend.int_shape(conv_high))
 
-        # conv_low_up = UpSampling2D(size=2, interpolation='bilinear', name=name+'up')(conv_low)
-        # return Add(name=name+'sum')([conv_low, conv_high])
+        #conv_low_up = UpSampling2D(size=2, interpolation='bilinear', name=name+'up')(conv_low)
+        #return Add(name=name+'sum')([conv_low, conv_high])
 
         low_dim = keras.backend.int_shape(conv_low)[1:3]
         high_dim = keras.backend.int_shape(conv_high)[1:3]
@@ -278,7 +279,7 @@ def RefineBlock(high_inputs=None, low_inputs=None, block=0):
         return output
 
 
-def build_refinenet(input_shape, num_classes, is_training=True, frontend_trainable=True, tf_frontend=True):
+def build_refinenet(input_shape, num_classes, is_training=True, frontend_trainable=False, tf_frontend=True, out_logits=True):
     """
     Builds the RefineNet model.
 
@@ -300,17 +301,22 @@ def build_refinenet(input_shape, num_classes, is_training=True, frontend_trainab
 
     from classification_models.tfkeras import Classifiers
 
-    ResNet34, preprocess_input = Classifiers.get('resnet34')
-    frontend = ResNet34((224, 224, 3), weights='imagenet')
+    ResNet18, preprocess_input = Classifiers.get('resnet18')
+    frontend = ResNet18((224, 224, 3), weights='imagenet')
 
 
     #print(frontend.summary())
 
+    high[0] = frontend.get_layer("add_7").output
+    high[1] = frontend.get_layer("add_5").output
+    high[2] = frontend.get_layer("add_3").output
+    high[3] = frontend.get_layer("add_1").output
 
-    high[0] = frontend.get_layer("add_15").output
-    high[1] = frontend.get_layer("add_12").output
-    high[2] = frontend.get_layer("add_6").output
-    high[3] = frontend.get_layer("add_2").output
+
+    #high[0] = frontend.get_layer("add_15").output
+    #high[1] = frontend.get_layer("add_12").output
+    #high[2] = frontend.get_layer("add_6").output
+    #high[3] = frontend.get_layer("add_2").output
 
     '''
     if tf_frontend:  # attempt to use the ResNet implementation provided by TensorFlow
@@ -355,8 +361,8 @@ def build_refinenet(input_shape, num_classes, is_training=True, frontend_trainab
     #for h in high:      # this dont do shit bc the author doesnt understand references in python. Whoops.
     #    h = BatchNormalization()(h)
     
-    for h in range(len(high)):
-        high[h] = BatchNormalization()(high[h])
+#    for h in range(len(high)):
+#        high[h] = BatchNormalization()(high[h])
 
 
     # RefineNet
@@ -371,18 +377,68 @@ def build_refinenet(input_shape, num_classes, is_training=True, frontend_trainab
     net = ResidualConvUnit(net, name='rf_rcu_o2_')
 
     net = UpSampling2D(size=4, interpolation='bilinear', name='rf_up_o')(net)
-    net = Conv2D(num_classes, 1, activation = 'softmax', name='rf_pred')(net)
+
+#    net = Conv2D(num_classes, 1, activation = 'softmax', name='rf_pred')(net)
+    net = Conv2D(num_classes, 1, activation = None, name='rf_logits')(net)
 
 
     model = Model(frontend.input, net)
+
+    
 
     for layer in model.layers:
         if 'rb' in layer.name or 'rf_' in layer.name:
             layer.trainable = True
         else:
             layer.trainable = frontend_trainable
+
+    print(model.summary())
+
     return model
 
 
-
+'''
 # build_refinenet(None, 2)
+from pathlib import Path
+import os, csv
+
+def get_label_info(csv_path):
+    """
+    Retrieve the class names and label values for the selected dataset.
+    Must be in CSV format!
+
+    # Arguments
+        csv_path: The file path of the class dictionairy
+        
+    # Returns
+        Two lists: one for the class names and the other for the label values
+        The number of classes
+    """
+    filename, file_extension = os.path.splitext(csv_path)
+    if not file_extension == ".csv":
+        return ValueError("File is not a CSV!")
+
+    class_names = []
+    label_values = []
+    with open(csv_path, 'r') as csvfile:
+        file_reader = csv.reader(csvfile, delimiter=',')
+        header = next(file_reader)
+        for row in file_reader:
+            class_names.append(row[0])
+            label_values.append([int(row[1]), int(row[2]), int(row[3])])
+        # print(class_dict)
+    return class_names, label_values, len(class_names)
+
+
+dataset_basepath=Path("/media/jetson/Samsung500GB/Semantic-Segmentation-Suite/SpaceNet/")
+class_labels, class_colors, num_classes = get_label_info(dataset_basepath / "class_dict.csv")
+
+
+input_shape=(650,650,3)
+random_crop = (224,224,3) #dense prediction tasks recommend multiples of 32 +1
+#random_crop = (638, 638, 3)
+
+model = build_refinenet(input_shape, num_classes)
+
+print(model.summary())
+'''
