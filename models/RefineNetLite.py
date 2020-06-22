@@ -210,10 +210,10 @@ def MultiResolutionFusion(high_inputs=None, low_inputs=None, n_filters=256, name
 
         low_dim = keras.backend.int_shape(conv_low)[1:3]
         high_dim = keras.backend.int_shape(conv_high)[1:3]
-        print("low_dim", low_dim)
-        print("high_dim", high_dim)
+        #print("low_dim", low_dim)
+        #print("high_dim", high_dim)
         mysize = (high_dim[0]//low_dim[0], high_dim[1]//low_dim[1])
-        print("SIZE", mysize)
+        #print("SIZE", mysize)
         #low_up = UpSampling2D(size=mysize, interpolation='bilinear')(conv_low)
         low_up = BilinearUpsampling(conv_low, 2)
         out = Add()([conv_high, low_up])
@@ -401,7 +401,7 @@ def build_refinenet(input_shape, num_classes, is_training=True, frontend_trainab
         else:
             layer.trainable = frontend_trainable
 
-    print(model.summary())
+    #print(model.summary())
 
     return model
 

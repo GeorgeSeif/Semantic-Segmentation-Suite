@@ -17,16 +17,20 @@ import sys
 
 ###############################################################################
 def create_building_mask(rasterSrc, vectorSrc, npDistFileName='', 
-                            noDataValue=0, burn_values=1):
+                            output_channels=3, noDataValue=0, building_value=(255,0,0), perimeter_value=(0,0,255), perimeter_width=0):
 
     '''
-    Create building mask for rasterSrc,
-    Similar to labeltools/createNPPixArray() in spacenet utilities
+    Create building mask for rasterSrc based upon vectorSrc. 
+    Will also draw building perimeter iff perimeter_wdith > 0.
 
         -rasterSrc: path to aerial image
         -vectorSrc: path to geojson
         -npDistFileName: path to output ground truth image
+        -perimeter_width: width of the perimeter mask in approximate meters
     '''
+
+
+    bands = list(range(1,output_channels +1))
     
     ## open source vector file that truth data
     source_ds = ogr.Open(vectorSrc)
@@ -42,7 +46,6 @@ def create_building_mask(rasterSrc, vectorSrc, npDistFileName='',
     # Change output to geotiff instead of memory 
     memdrv = gdal.GetDriverByName('GTiff') 
 
-    output_channels = 3
 
     dst_ds = memdrv.Create(npDistFileName, cols, rows, output_channels, gdal.GDT_Byte, 
                            options=['COMPRESS=LZW'])
@@ -52,13 +55,42 @@ def create_building_mask(rasterSrc, vectorSrc, npDistFileName='',
     dst_ds.SetProjection(srcRas_ds.GetProjection())
 
 
-    [dst_ds.GetRasterBand(i).SetNoDataValue(noDataValue) for i in range(1,output_channels+1)]
+    [dst_ds.GetRasterBand(i).SetNoDataValue(noDataValue) for i in bands]
 
+    # draw perimeter mask before (underneath) the building mask
+    if perimeter_width > 0:
+        draw_building_perimeter(perimeter_width, bands, dst_ds, source_layer, perimeter_value)
+        
 
-    gdal.RasterizeLayer(dst_ds, [1], source_layer, burn_values=[burn_values])
+    gdal.RasterizeLayer(dst_ds, bands, source_layer, burn_values=building_value)
     dst_ds = 0
     
     return 
+
+
+def draw_building_perimeter(perimeter_width, bands, dst_ds, src_lyr, perimeter_value):
+
+    # create temporary datasource in memory to hold buffered boundary
+    temp_ds = ogr.GetDriverByName('Memory').CreateDataSource('wrk')
+    temp_layer = temp_ds.CreateLayer('poly', srs = src_lyr.GetSpatialRef())
+    temp_layer_def = temp_layer.GetLayerDefn()
+
+    for feature in src_lyr:
+        ingeom = feature.GetGeometryRef()
+
+        base_buffer_dist = .00001 # measured in degrees- equiv. to 1.111 meters at the equator
+
+        buffer_dist = perimeter_width * base_buffer_dist / 1.11 #convert degrees to meters
+
+        geomBuffer = ingeom.Buffer(buffer_dist)
+
+        temp_feat = ogr.Feature(temp_layer_def)
+        temp_feat.SetGeometryDirectly(geomBuffer)
+
+        temp_layer.CreateFeature(temp_feat)
+
+    gdal.RasterizeLayer(dst_ds, bands, temp_layer, burn_values=perimeter_value)
+    temp_ds = 0 # save file and flush memory
 
 def plot_building_mask(input_image, pixel_coords, mask_image,   
                   figsize=(8,8), plot_name='',

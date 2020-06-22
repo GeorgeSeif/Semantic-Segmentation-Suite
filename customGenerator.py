@@ -58,9 +58,13 @@ class customGenerator:
         
         # Read all image and mask filenames, sort alphabetically
         self.image_filenames = next(os.walk(image_path))[2]
-        self.image_filenames.sort()
+        self.image_filenames.sort(key=lambda x: (len(x), x))
         self.mask_filenames = next(os.walk(mask_path))[2]
-        self.mask_filenames.sort()
+        self.mask_filenames.sort(key=lambda x: (len(x), x))
+
+        #print("images", tuple(zip(self.image_filenames, self.mask_filenames)))
+
+        #print("mask", self.mask_filenames)
                 
         # Check image/mask pairs
         if len(self.image_filenames) != len(self.mask_filenames):
@@ -77,6 +81,10 @@ class customGenerator:
             self.image_filenames, self.mask_filenames = zip(*c)
             
         self.samples = itertools.cycle(zip(self.image_filenames, self.mask_filenames))
+
+
+        for i in range(5):
+            print("SAMPLES", next(self.samples))
     
     def generator(self):
         while True:
@@ -127,7 +135,7 @@ class customGenerator:
                 x2 = x1 + self.random_crop[1]
                 y2 = y1 + self.random_crop[0]
 
-                print("COORDS", x1,x2,y1,y2)
+                #print("COORDS", x1,x2,y1,y2)
                 
                 img_out = img_out[:,y1:y2,x1:x2,:]
                 mask_out = mask_out[:,y1:y2,x1:x2,:]

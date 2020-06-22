@@ -140,13 +140,16 @@ class datasetLoader:
             #mask = np.array(Image.fromarray(mask).resize(self.target_size[::-1], Image.NEAREST))
 
 
-            #img_raw = tf.io.read_file(img_file)
+            img_raw = tf.io.read_file(img_file)
             #img = tf.io.decode_image(contents=img_raw, channels=3)
-            img = tfio.experimental.image.decode_tiff(img_file)
+            img = tfio.experimental.image.decode_tiff(img_raw, index=0)
 
-            #mask_raw = tf.io.read_file(mask_file)
+            mask_raw = tf.io.read_file(mask_file)
             #mask = tf.io.decode_image(contents=mask_raw, channels=3)
-            mask = tfio.experimental.image.decode_tiff(mask_file)
+            mask = tfio.experimental.image.decode_tiff(mask_raw, index=0)
+
+            print("mask shape", tf.keras.backend.int_shape(mask))
+            print("img shape", tf.keras.backend.int_shape(img))
 
 
             #img = tf.keras.preprocessing.image.load_img(str(tf.io.decode_raw(img_file, tf.uint8)))
@@ -155,6 +158,9 @@ class datasetLoader:
 
             img_out = tf.cast(img, tf.float32) / 255.0
             mask_out = (one_hot_it(mask, self.mask_colors))
+
+            print("mask out shape", tf.keras.backend.int_shape(mask_out))
+            print("img out shape", tf.keras.backend.int_shape(img_out))
 
             
 
@@ -177,7 +183,7 @@ class datasetLoader:
                 img_out = tf.reshape(img_out, shape=self.random_crop)
             '''
             img_out= tf.image.random_crop(img_out, self.random_crop, seed=1)
-            mask_out= tf.image.random_crop(mask_out, self.random_crop, seed=1)
+            mask_out= tf.image.random_crop(mask_out, (448,448,2), seed=1)
             return img_out, mask_out
 
 

@@ -10,9 +10,9 @@ from tensorflow.keras.losses import CategoricalCrossentropy
 #from memory_saving_gradients import gradients
 #from tensorflow.keras.mixed_precision import experimental as mixed_precision
 
-from tensorflow_large_model_support import LMS
+#from tensorflow_large_model_support import LMS
 
-from customCallbacks import OutputObserver
+#from customCallbacks import OutputObserver
 
 import datetime
 
@@ -20,6 +20,7 @@ import tensorflow as tf
 
 from tensorflow import keras
 import tensorboard
+from OutputObserver import OutputObserver
 
 #tf.python.profiler.experimental.server.start(6009)
 
@@ -41,6 +42,7 @@ import tensorboard
 #tf.config.threading.set_inter_op_parallelism_threads(512)
 #tf.config.threading.set_intra_op_parallelism_threads(512)
 
+#dataset_basepath=Path(r"\Users\jschaffer\Semantic-Segmentation-Suite\Semantic-Segmentation-Suite\SpaceNet\bak")
 dataset_basepath=Path("/media/jetson/Samsung500GB/Semantic-Segmentation-Suite/SpaceNet/")
 train_images = dataset_basepath / 'train'
 train_masks = dataset_basepath / 'train_labels'
@@ -58,14 +60,17 @@ batch_size = 1
 epochs = 5
 validation_images = 4
 
-myTrainGen = datasetLoader(batch_size, train_images, train_masks, num_classes, input_shape, dict(), class_colors, random_crop = random_crop)
-myValGen = datasetLoader(batch_size, val_images, val_masks, num_classes, input_shape, dict(), class_colors, random_crop = random_crop)
+#myTrainGen = datasetLoader(batch_size, train_images, train_masks, num_classes, input_shape, dict(), class_colors, random_crop = random_crop)
+#myValGen = datasetLoader(batch_size, val_images, val_masks, num_classes, input_shape, dict(), class_colors, random_crop = random_crop)
+
+myTrainGen = customGenerator(batch_size, train_images, train_masks, num_classes, input_shape, dict(), class_colors, random_crop = random_crop)
+myValGen = customGenerator(batch_size, val_images, val_masks, num_classes, input_shape, dict(), class_colors, random_crop = random_crop)
 
 #train_ds = tf.data.Dataset.from_generator(myTrainGen.generator, (np.float32, np.float32))
 #val_ds = tf.data.Dataset.from_generator(myValGen.generator, (np.float32, np.float32))
 
-train_ds = myTrainGen.prepare_for_training()
-val_ds = myValGen.prepare_for_training()
+#train_ds = myTrainGen.prepare_for_training()
+#val_ds = myValGen.prepare_for_training()
 
 steps_per_epoch = myTrainGen.num_samples // batch_size
 
@@ -81,7 +86,9 @@ model.compile(optimizer = Adam(lr = 1e-4), loss = CategoricalCrossentropy(from_l
 
 
 log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, profile_batch=3, update_freq='batch')
+tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, profile_batch=3) # update_freq='batch')
+
+
 
 #lms_callback= LMS()
 
@@ -90,8 +97,9 @@ tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, profile_b
 #lms_callback.batch_size = 1
 #lms_callback.run()
 
+tmp_data = next(myValGen.generator())
+save_imgs = OutputObserver(tmp_data, log_dir, class_colors)
 
-tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir='logs/fit/', profile_batch=3) #update_freq='batch' || 'epoch'
 
 
 model_checkpoint = tf.keras.callbacks.ModelCheckpoint(
@@ -100,15 +108,33 @@ model_checkpoint = tf.keras.callbacks.ModelCheckpoint(
     verbose=1,
     save_best_only=True
 )
-print("ds_type", type(train_ds))
+#print("ds_type", type(train_ds))
+
+
+import matplotlib.pyplot as plt
+
+def display(display_list):
+  plt.figure(figsize=(15, 15))
+
+  title = ['Input Image', 'True Mask', 'Predicted Mask']
+
+  for i in range(len(display_list)):
+    plt.subplot(1, len(display_list), i+1)
+    plt.title(title[i])
+    plt.imshow(tf.keras.preprocessing.image.array_to_img(display_list[i]))
+    plt.axis('off')
+  plt.show()
+
+
+#display(next(myTrainGen.generator()))
 
 
 
-model.fit(train_ds,
+model.fit(x=myTrainGen.generator(),
           steps_per_epoch = steps_per_epoch,
-          validation_data = val_ds,
+          validation_data = myValGen.generator(),
           validation_steps = validation_images // batch_size,
           epochs = epochs,
-          callbacks = [tensorboard_callback, model_checkpoint])
+          callbacks = [tensorboard_callback, model_checkpoint, save_imgs])
 
 # callbacks = [model_checkpoint, tbCallBack, lrate, history, save_imgs]

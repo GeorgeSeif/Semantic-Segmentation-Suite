@@ -8,7 +8,9 @@ import matplotlib.pyplot as plt
 from cv2 import cv2
 
 
-from mask_utils import geojson_to_pixel_arr, create_building_mask, plot_building_mask, create_building_mask
+from mask_utils import create_building_mask
+
+from datetime import datetime
 
 
 ds_path = Path('SpaceNet/')
@@ -69,6 +71,8 @@ for name, output_dir in outputs.items():
 	os.makedirs(output_dir, exist_ok=True)
 
 
+start = datetime.utcnow()
+
 for split_name in ['train', 'val', 'test']:
     print('Copying to {} output dir'.format(split_name))
     for image_path, label_path in splits[split_name]:
@@ -89,7 +93,7 @@ for split_name in ['train', 'val', 'test']:
         #plt.imshow(input_image)
 
         #vectorSrc = label_path
-        mask_path = Path(outputs['{}_label'.format(split_name)]) / (label_path.stem.split('geojson_buildings_')[1]  + '_mask.tif')
+        mask_path = Path(outputs['{}_label'.format(split_name)]) / (label_path.stem.split('geojson_buildings_')[1]  + '_mask.bmp')
         
 
         #print(mask_path)
@@ -98,10 +102,15 @@ for split_name in ['train', 'val', 'test']:
 
         #pixel_coords, latlon_coords = geojson_to_pixel_arr(str(image_path), str(label_path), pixel_ints=True,verbose=False)
 
-        create_building_mask(str(image_path), str(label_path), npDistFileName=str(mask_path), burn_values=255)
+        create_building_mask(str(image_path), str(label_path), npDistFileName=str(mask_path), perimeter_width=1)
 
         shutil.copy(image_path, Path(outputs['{}_image'.format(split_name)]) / image_path.name.split('PS-RGB_')[1] )
 
         
 
 
+print("ETL completed in {} seconds".format(datetime.utcnow()-start))
+
+
+#no perimeter 3:28
+#permieter 4:11 / 4:36 / 4:12/ 4:18
