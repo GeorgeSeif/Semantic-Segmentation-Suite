@@ -13,7 +13,7 @@ from mask_utils import create_building_mask
 from datetime import datetime
 
 
-ds_path = Path("/media/jetson/Samsung500GB/SpaceNet/")
+ds_path = Path("SpaceNet/")
 raw_path = ds_path / 'raw_data'
 
 

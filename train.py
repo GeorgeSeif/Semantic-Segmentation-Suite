@@ -18,13 +18,13 @@ import datetime
 
 import tensorflow as tf
 
-from tensorflow import keras
+from tensorflow import keras as K
 import tensorboard
 from OutputObserver import OutputObserver
 
 import os
 
-os.system("capsh --print")
+#os.system("capsh --print")
 
 #tf.python.profiler.experimental.server.start(6009)
 
@@ -39,15 +39,15 @@ os.system("capsh --print")
 #tf.debugging.set_log_device_placement(True)
 
 
-#gpus=tf.config.experimental.list_physical_devices('GPU')
-#for gpu in gpus:
-#    tf.config.experimental.set_memory_growth(gpu,True)
+gpus=tf.config.experimental.list_physical_devices('GPU')
+for gpu in gpus:
+    tf.config.experimental.set_memory_growth(gpu,True)
 
 #tf.config.threading.set_inter_op_parallelism_threads(512)
 #tf.config.threading.set_intra_op_parallelism_threads(512)
 
 #dataset_basepath=Path(r"\Users\jschaffer\Semantic-Segmentation-Suite\Semantic-Segmentation-Suite\SpaceNet\bak")
-dataset_basepath=Path("/media/jetson/Samsung500GB/SpaceNet/")
+dataset_basepath=Path("SpaceNet/")
 train_images = dataset_basepath / 'train'
 train_masks = dataset_basepath / 'train_labels'
 val_images = dataset_basepath / 'val'
@@ -64,7 +64,7 @@ print("class_colors",class_colors)
 
 
 input_shape=(650,650,3)
-random_crop = (448,448,3) #dense prediction tasks recommend multiples of 32 +1
+random_crop = (224,224,3) #dense prediction tasks recommend multiples of 32 +1
 #random_crop = (638, 638, 3)
 batch_size = 1
 epochs = 100
@@ -90,13 +90,25 @@ input_shape = random_crop if random_crop else input_shape # adjust network input
 model = build_refinenet(input_shape, num_classes)
 
 
-model.compile(optimizer = Adam(lr = 1e-4), loss = CategoricalCrossentropy(from_logits=True), metrics = ['accuracy'])
+def weighted_categorical_crossentropy(weights):
+    def wcce(y_true, y_pred):
+        Kweights = tf.constant(weights)
+        if not tf.is_tensor(y_pred): y_pred = tf.constant(y_pred)
+        y_true = tf.cast(y_true, y_pred.dtype)
+        return K.losses.categorical_crossentropy(y_true, y_pred, from_logits=True) * K.backend.sum(y_true *Kweights, axis=-1)
+    return wcce
+
+
+weights=[1.0,1.5,0.5]
+#model.compile(optimizer = Adam(lr = 1e-4), loss = CategoricalCrossentropy(from_logits=True), metrics = ['accuracy'])
+model.compile(optimizer = Adam(lr = 1e-4), loss=weighted_categorical_crossentropy([1.0,1.5,0.5]), metrics = ['accuracy'])
+
 
 #, tf.keras.metrics.MeanIoU(num_classes=2)]
 
 
 log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, profile_batch=3) # update_freq='batch')
+tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir)
 
 
 
@@ -145,6 +157,7 @@ model.fit(x=myTrainGen.generator(),
           validation_data = myValGen.generator(),
           validation_steps = validation_images // batch_size,
           epochs = epochs,
+          #class_weight= {0 : 1.0, 1 : 1.5, 2 : 0.5}, #building is base, perimeter is elevated
           callbacks = [tensorboard_callback, model_checkpoint, save_imgs])
 
 # callbacks = [model_checkpoint, tbCallBack, lrate, history, save_imgs]

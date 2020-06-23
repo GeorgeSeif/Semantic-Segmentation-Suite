@@ -68,7 +68,8 @@ def ConvUpscaleBlock(inputs, n_filters=256,  kernel_size=[3, 3], scale=2):
 
 def BilinearUpsampling(inputs, scale, method):
     if method=="nn":
-        return tf.image.resize(inputs, size=[tf.shape(input=inputs)[1]*scale,  tf.shape(input=inputs)[2]*scale], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR) #NEAREST_NEIGHBOR
+        return tf.image.resize(inputs, size=[tf.shape(input=inputs)[1]*scale,  tf.shape(input=inputs)[2]*scale], 
+method=tf.image.ResizeMethod.BILINEAR) #NEAREST_NEIGHBOR
     elif method=="conv":
         net = ConvUpscaleBlock(inputs, 128, kernel_size=[3,3], scale=2)
         net = ConvBlock(net, 128)
@@ -274,7 +275,8 @@ def RefineBlock(high_inputs=None, low_inputs=None, block=0):
         return output
 
 
-def build_refinenet(input_shape, num_classes, is_training=True, frontend_trainable=False, tf_frontend=True, out_logits=True, upscaling_method='conv'):
+def build_refinenet(input_shape, num_classes, is_training=True, frontend_trainable=False, tf_frontend=True, 
+out_logits=True, upscaling_method='nn'):
     """
     Builds the RefineNet model.
 
@@ -294,13 +296,13 @@ def build_refinenet(input_shape, num_classes, is_training=True, frontend_trainab
     # set the frontend and retrieve high
     frontend = None
 
-    '''
+    
     from classification_models.tfkeras import Classifiers
 
     #input_tens = tf.zeros([448,448,3])
 
     ResNet34, preprocess_input = Classifiers.get('resnet34')
-    frontend = ResNet34(input_shape=(448,448,3), weights='imagenet', include_top=False)
+    frontend = ResNet34(input_shape=input_shape, weights='imagenet', include_top=False)
 
 
 
@@ -340,7 +342,7 @@ def build_refinenet(input_shape, num_classes, is_training=True, frontend_trainab
             high[5-cb] = (block_out)
 
         print(high)
-    '''
+    
     else:  # Use implementation at resnet_101.py from https://github.com/Attila94/refinenet-keras/blob/master/model/resnet_101.py
         resnet_weights = 'models/resnet101_weights_tf.h5'
 
@@ -376,8 +378,8 @@ def build_refinenet(input_shape, num_classes, is_training=True, frontend_trainab
     net = RefineBlock(high_inputs=high[3],low_inputs=low[2], block=1) # High input = ResNet 1/4, Low input = Previous 1/4
 
 
-    net = ResidualConvUnit(net, name='rf_rcu_o1_')
-    net = ResidualConvUnit(net, name='rf_rcu_o2_')
+    #net = ResidualConvUnit(net, name='rf_rcu_o1_')
+    #net = ResidualConvUnit(net, name='rf_rcu_o2_')
 
     #net = UpSampling2D(size=4, interpolation='bilinear', name='rf_up_o')(net)
     net = BilinearUpsampling(net, 4, method=upscaling_method)
