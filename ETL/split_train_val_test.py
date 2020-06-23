@@ -5,7 +5,7 @@ import random
 from pathlib import Path
 import shutil
 import matplotlib.pyplot as plt
-from cv2 import cv2
+import cv2
 
 
 from mask_utils import create_building_mask
@@ -13,7 +13,7 @@ from mask_utils import create_building_mask
 from datetime import datetime
 
 
-ds_path = Path('SpaceNet/')
+ds_path = Path("/media/jetson/Samsung500GB/SpaceNet/")
 raw_path = ds_path / 'raw_data'
 
 
@@ -93,7 +93,7 @@ for split_name in ['train', 'val', 'test']:
         #plt.imshow(input_image)
 
         #vectorSrc = label_path
-        mask_path = Path(outputs['{}_label'.format(split_name)]) / (label_path.stem.split('geojson_buildings_')[1]  + '_mask.bmp')
+        mask_path = Path(outputs['{}_label'.format(split_name)]) / (label_path.stem.split('geojson_buildings_')[1]  + '_mask.tif')
         
 
         #print(mask_path)

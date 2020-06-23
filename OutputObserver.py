@@ -23,7 +23,7 @@ class OutputObserver(Callback):
         batch_size      batch size used for prediction, default 2
         tmp_interval    save interval for tmp image in batches, default 100
     """
-    def __init__(self, data, output_path, mask_colors, batch_size = 1, tmp_interval = 1):
+    def __init__(self, data, output_path, mask_colors, batch_size = 1, tmp_interval = 100):
         self.epoch = 0
         self.input = data[0] #source image
         self.target = data[1] #segmented image
@@ -125,12 +125,12 @@ class OutputObserver(Callback):
             fig = self.get_figure([self.input[0], target_labelled, img])
 
             with self.file_writer.as_default():
-                tf.summary.image("Training data", self.plot_to_image(fig), step=batch)
+                tf.summary.image("Training data", self.plot_to_image(fig), step=(100000*self.epoch+batch)) #step=batch
 
             
     
-    #def on_epoch_end(self, epoch, logs={}):
-    #    self.epoch += 1
+    def on_epoch_end(self, epoch, logs={}):
+        self.epoch += 1
     #    y_pred = self.model.predict(self.data, batch_size=self.batch_size)
     #    np.save(os.path.join(self.output_path,'epoch_{}_img.npy'.format(epoch)),y_pred)
     #    for i in range(y_pred.shape[0]):

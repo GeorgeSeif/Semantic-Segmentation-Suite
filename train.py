@@ -1,7 +1,7 @@
 from helpers import get_label_info
 from customGenerator import customGenerator
 
-from datasetLoader import datasetLoader
+#from datasetLoader import datasetLoader
 from pathlib import Path
 from models.RefineNetLite import build_refinenet
 
@@ -21,6 +21,10 @@ import tensorflow as tf
 from tensorflow import keras
 import tensorboard
 from OutputObserver import OutputObserver
+
+import os
+
+os.system("capsh --print")
 
 #tf.python.profiler.experimental.server.start(6009)
 
@@ -43,7 +47,7 @@ from OutputObserver import OutputObserver
 #tf.config.threading.set_intra_op_parallelism_threads(512)
 
 #dataset_basepath=Path(r"\Users\jschaffer\Semantic-Segmentation-Suite\Semantic-Segmentation-Suite\SpaceNet\bak")
-dataset_basepath=Path("/media/jetson/Samsung500GB/Semantic-Segmentation-Suite/SpaceNet/")
+dataset_basepath=Path("/media/jetson/Samsung500GB/SpaceNet/")
 train_images = dataset_basepath / 'train'
 train_masks = dataset_basepath / 'train_labels'
 val_images = dataset_basepath / 'val'
@@ -52,13 +56,19 @@ class_dict = dataset_basepath / 'class_dict.csv'
 
 class_labels, class_colors, num_classes = get_label_info(dataset_basepath / "class_dict.csv")
 
+print("num classes,", num_classes)
+
+print("labels", class_labels)
+
+print("class_colors",class_colors)
+
 
 input_shape=(650,650,3)
 random_crop = (448,448,3) #dense prediction tasks recommend multiples of 32 +1
 #random_crop = (638, 638, 3)
 batch_size = 1
-epochs = 5
-validation_images = 4
+epochs = 100
+validation_images = 10
 
 #myTrainGen = datasetLoader(batch_size, train_images, train_masks, num_classes, input_shape, dict(), class_colors, random_crop = random_crop)
 #myValGen = datasetLoader(batch_size, val_images, val_masks, num_classes, input_shape, dict(), class_colors, random_crop = random_crop)
