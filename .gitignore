@@ -17,6 +17,9 @@ tfrecords.py
 SpaceNet/
 .vscode/
 logs/
+test_imgs/
+saved_models/
+*.csv
 *.h5
 *.model
 images/

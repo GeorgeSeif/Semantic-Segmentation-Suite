@@ -13,7 +13,7 @@ from mask_utils import create_building_mask
 from datetime import datetime
 
 
-ds_path = Path("SpaceNet/")
+ds_path = Path("/media/jetson/Samsung500GB/SpaceNet/")
 raw_path = ds_path / 'raw_data'
 
 
@@ -102,7 +102,7 @@ for split_name in ['train', 'val', 'test']:
 
         #pixel_coords, latlon_coords = geojson_to_pixel_arr(str(image_path), str(label_path), pixel_ints=True,verbose=False)
 
-        create_building_mask(str(image_path), str(label_path), npDistFileName=str(mask_path), perimeter_width=1)
+        create_building_mask(str(image_path), str(label_path), npDistFileName=str(mask_path), perimeter_width=0)
 
         shutil.copy(image_path, Path(outputs['{}_image'.format(split_name)]) / image_path.name.split('PS-RGB_')[1] )
 

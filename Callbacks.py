@@ -37,32 +37,6 @@ class OutputObserver(Callback):
         # Creates a file writer for the log directory.
         self.file_writer = tf.summary.create_file_writer(output_path)
 
-
-        '''
-        if isinstance(data,(list,)):
-            data_len = data[0].shape[0]
-            data_out = data[0]
-        else:
-            data_len = data.shape[0]
-            data_out = data
-        
-        self.batch_size = np.minimum(batch_size,data_len)
-        self.tmp_interval = tmp_interval
-
-        # Save input files
-        data_out[:,:,:,0] += 103.939
-        data_out[:,:,:,1] += 116.779
-        data_out[:,:,:,2] += 123.68
-        data_out = data_out.astype('uint8')
-        if data_out.shape[-1] == 2:
-            data_out = np.concatenate((data_out, np.zeros((data_out.shape[:3]+(1,)))), axis=-1)
-        elif data_out.shape[-1] == 1:
-            data_out = np.concatenate((data_out, np.zeros((data_out.shape[:3]+(2,)))), axis=-1)
-        for i in range(data_out.shape[0]):
-            cv2.imwrite(os.path.join(self.output_path,'input_{}.png'.format(i)),data_out[i,:,:,:])
-        '''
-
-
     def labelVisualize(self, y_pred):
         """
         Convert prediction to color-coded image.
@@ -108,7 +82,7 @@ class OutputObserver(Callback):
 
         return figure
 
-    def on_batch_end(self, batch, logs={}):
+    def on_batch_end(self, batch, epoch, logs={}):
         if batch % self.tmp_interval == 0:
             y_pred = self.model.predict(self.input, batch_size=self.batch_size)
             #np.save(os.path.join(self.output_path,'tmp.npy'),y_pred)
@@ -129,10 +103,11 @@ class OutputObserver(Callback):
 
             
     
-    def on_epoch_end(self, epoch, logs={}):
-        self.epoch += 1
+    #def on_epoch_end(self, epoch, logs={}):
+    #    self.epoch += 1
     #    y_pred = self.model.predict(self.data, batch_size=self.batch_size)
     #    np.save(os.path.join(self.output_path,'epoch_{}_img.npy'.format(epoch)),y_pred)
     #    for i in range(y_pred.shape[0]):
     #        img = self.labelVisualize(y_pred[i,:,:,:])
     #        cv2.imwrite(os.path.join(self.output_path,'epoch_{}_img_{}.png'.format(epoch,i)),img[:,:,::-1])
+

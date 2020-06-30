@@ -15,36 +15,6 @@ kern_init = keras.initializers.he_normal()
 kern_reg = keras.regularizers.l2(1e-5)
 
 
-class ScaledAdd(Layer):
-  '''
-  Upscales the lower of two tensors and then adds them elementwise.
-  '''
-
-  def __init__(self):
-    super(ScaledAdd, self).__init__()
-
-  def build(self, input_shape):
-    # low_size = keras.backend.int_shape(conv_low)[1:3]
-    # high_size = keras.backend.int_shape(conv_high)[1:3]
-
-    high_shape = input_shape[0]
-    low_shape = input_shape[1]
-
-    if high_shape is not None and low_shape is not None:
-      high_dim = high_shape[1:3]
-      low_dim = low_shape[1:3]
-      self.size = (high_dim[0]/low_dim[0], high_dim[1]/low_dim[1])
-
-  def call(self, high, low):
-
-    low_dim = keras.backend.int_shape(low)[1:3]
-    high_dim = keras.backend.int_shape(high)[1:3]
-    size = (high_dim[0]/low_dim[0], high_dim[1]/low_dim[1])
-    low_up = UpSampling2D(size=size, interpolation='bilinear')(low)
-    out = Add()([high, low_up])
-    return out
-
-
 def ResidualConvUnit(inputs, n_filters=256, kernel_size=3, name=''):
     """
     A local residual unit designed to fine-tune the pretrained ResNet weights
@@ -85,7 +55,8 @@ def ResidualConvUnit(inputs, n_filters=256, kernel_size=3, name=''):
 
 
 def BilinearUpsampling(inputs, scale):
-    return tf.image.resize(inputs, size=[tf.shape(input=inputs)[1]*scale,  tf.shape(input=inputs)[2]*scale], method=tf.image.ResizeMethod.BILINEAR)
+    return tf.compat.v1.image.resize_bilinear(inputs, size=[tf.shape(input=inputs)[1]*scale,  tf.shape(input=inputs)[2]*scale])
+    #return tf.image.resize(inputs, size=[tf.shape(input=inputs)[1]*scale,  tf.shape(input=inputs)[2]*scale], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR) #NEAREST_NEIGHBOR
 
 
 def ChainedResidualPooling(inputs, n_filters=256, name=''):
@@ -204,13 +175,14 @@ def MultiResolutionFusion(high_inputs=None, low_inputs=None, n_filters=256, name
         #conv_low_up = UpSampling2D(size=2, interpolation='bilinear', name=name+'up')(conv_low)
         #return Add(name=name+'sum')([conv_low, conv_high])
 
-        low_dim = keras.backend.int_shape(conv_low)[1:3]
-        high_dim = keras.backend.int_shape(conv_high)[1:3]
-        print("low_dim", low_dim)
-        print("high_dim", high_dim)
-        mysize = (high_dim[0]//low_dim[0], high_dim[1]//low_dim[1])
-        print("SIZE", mysize)
-        low_up = UpSampling2D(size=mysize, interpolation='bilinear')(conv_low)
+        #low_dim = keras.backend.int_shape(conv_low)[1:3]
+        #high_dim = keras.backend.int_shape(conv_high)[1:3]
+        #print("low_dim", low_dim)
+        #print("high_dim", high_dim)
+        #mysize = (high_dim[0]//low_dim[0], high_dim[1]//low_dim[1])
+        #print("SIZE", mysize)
+        #low_up = UpSampling2D(size=mysize, interpolation='bilinear')(conv_low)
+        low_up = BilinearUpsampling(conv_low, 2)
         out = Add()([conv_high, low_up])
 
         # return Add(name=name+'sum')([conv_low_up, conv_high])
@@ -298,7 +270,7 @@ def build_refinenet(input_shape, num_classes, is_training=True, frontend_trainab
     # set the frontend and retrieve high
     frontend = None
 
-
+    '''
     from classification_models.tfkeras import Classifiers
 
     ResNet18, preprocess_input = Classifiers.get('resnet18')
@@ -339,6 +311,7 @@ def build_refinenet(input_shape, num_classes, is_training=True, frontend_trainab
             high[5-cb] = (block_out)
 
         print(high)
+    '''
     else:  # Use implementation at resnet_101.py from https://github.com/Attila94/refinenet-keras/blob/master/model/resnet_101.py
         resnet_weights = 'models/resnet101_weights_tf.h5'
 
@@ -376,7 +349,8 @@ def build_refinenet(input_shape, num_classes, is_training=True, frontend_trainab
     net = ResidualConvUnit(net, name='rf_rcu_o1_')
     net = ResidualConvUnit(net, name='rf_rcu_o2_')
 
-    net = UpSampling2D(size=4, interpolation='bilinear', name='rf_up_o')(net)
+    #net = UpSampling2D(size=4, interpolation='bilinear', name='rf_up_o')(net)
+    net = BilinearUpsampling(net, 4)
 
 #    net = Conv2D(num_classes, 1, activation = 'softmax', name='rf_pred')(net)
     net = Conv2D(num_classes, 1, activation = None, name='rf_logits')(net)

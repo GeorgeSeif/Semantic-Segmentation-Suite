@@ -31,7 +31,7 @@ def get_label_info(csv_path):
             class_names.append(row[0])
             label_values.append([int(row[1]), int(row[2]), int(row[3])])
         # print(class_dict)
-    return class_names, label_values
+    return class_names, label_values, len(class_names)
 
 
 def one_hot_it(label, label_values):

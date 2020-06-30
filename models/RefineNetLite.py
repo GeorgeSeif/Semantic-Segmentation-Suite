@@ -67,15 +67,8 @@ def ConvUpscaleBlock(inputs, n_filters=256,  kernel_size=[3, 3], scale=2):
 
 
 def BilinearUpsampling(inputs, scale, method):
-    if method=="nn":
-        return tf.image.resize(inputs, size=[tf.shape(input=inputs)[1]*scale,  tf.shape(input=inputs)[2]*scale], 
-method=tf.image.ResizeMethod.BILINEAR) #NEAREST_NEIGHBOR
-    elif method=="conv":
-        net = ConvUpscaleBlock(inputs, 128, kernel_size=[3,3], scale=2)
-        net = ConvBlock(net, 128)
-        net = ConvUpscaleBlock(net, 64, kernel_size=[3,3], scale=2)
-        net = ConvBlock(net, 64)
-        return net
+    return tf.compat.v1.image.resize_bilinear(inputs, size=[tf.shape(input=inputs)[1]*scale,  tf.shape(input=inputs)[2]*scale])
+    #return tf.image.resize(inputs, size=[tf.shape(input=inputs)[1]*scale,  tf.shape(input=inputs)[2]*scale], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR) #NEAREST_NEIGHBOR
 
 
     #else:
@@ -101,39 +94,6 @@ def ChainedResidualPooling(inputs, n_filters=256, name=''):
     Returns:
       Double-pooled feature maps
     """
-    '''
-    # using the 4 layer pooling claimed in paper as better for segmentation tasks
-    net_relu = ReLU(name=name+'relu')(inputs)
-
-    net = Conv2D(n_filters, 3, padding='same', name=name+'conv1',
-                 kernel_initializer=kern_init, kernel_regularizer=kern_reg)(net_relu)
-    net = BatchNormalization()(net)
-    net = MaxPool2D([5, 5], strides=1,  name=name+'pool1', padding='SAME')(net)
-    net_out_1 = net
-
-    net = Conv2D(n_filters, 3, padding='same', name=name+'conv2',
-                 kernel_initializer=kern_init, kernel_regularizer=kern_reg)(net)
-    net = BatchNormalization()(net)
-    net = MaxPool2D([5, 5], strides=1,  name=name+'pool2', padding='SAME')(net)
-    net_out_2 = net
-
-    net = Conv2D(n_filters, 3, padding='same', name=name+'conv3',
-                 kernel_initializer=kern_init, kernel_regularizer=kern_reg)(net)
-    net = BatchNormalization()(net)
-    net = MaxPool2D([5, 5], strides=1,  name=name+'pool3', padding='SAME')(net)
-    net_out_3 = net
-
-    net = Conv2D(n_filters, 3, padding='same', name=name+'conv4',
-                 kernel_initializer=kern_init, kernel_regularizer=kern_reg)(net)
-    net = BatchNormalization()(net)
-    net = MaxPool2D([5, 5], strides=1,  name=name+'pool4', padding='SAME')(net)
-    net_out_4 = net
-
-    net_sum_2 = Add(
-        name=name+'sum')([net_relu, net_out_1, net_out_2, net_out_3, net_out_4])
-
-    return net_sum_2
-    '''
 
     net_relu = ReLU(name=name+'relu')(inputs)
 
@@ -199,11 +159,11 @@ def MultiResolutionFusion(high_inputs=None, low_inputs=None, n_filters=256, name
         #conv_low_up = UpSampling2D(size=2, interpolation='bilinear', name=name+'up')(conv_low)
         #return Add(name=name+'sum')([conv_low, conv_high])
 
-        low_dim = keras.backend.int_shape(conv_low)[1:3]
-        high_dim = keras.backend.int_shape(conv_high)[1:3]
+        #low_dim = keras.backend.int_shape(conv_low)[1:3]
+        #high_dim = keras.backend.int_shape(conv_high)[1:3]
         #print("low_dim", low_dim)
         #print("high_dim", high_dim)
-        mysize = (high_dim[0]//low_dim[0], high_dim[1]//low_dim[1])
+        #mysize = (high_dim[0]//low_dim[0], high_dim[1]//low_dim[1])
         #print("SIZE", mysize)
         #low_up = UpSampling2D(size=mysize, interpolation='bilinear')(conv_low)
         low_up = BilinearUpsampling(conv_low, 2, "nn")
@@ -275,8 +235,7 @@ def RefineBlock(high_inputs=None, low_inputs=None, block=0):
         return output
 
 
-def build_refinenet(input_shape, num_classes, is_training=True, frontend_trainable=False, tf_frontend=True, 
-out_logits=True, upscaling_method='nn'):
+def build_refinenet(input_shape, num_classes, is_training=True, frontend_trainable=False, tf_frontend=True, out_logits=True, upscaling_method='nn'):
     """
     Builds the RefineNet model.
 
@@ -296,7 +255,7 @@ out_logits=True, upscaling_method='nn'):
     # set the frontend and retrieve high
     frontend = None
 
-    
+    '''
     from classification_models.tfkeras import Classifiers
 
     #input_tens = tf.zeros([448,448,3])
@@ -342,7 +301,7 @@ out_logits=True, upscaling_method='nn'):
             high[5-cb] = (block_out)
 
         print(high)
-    
+    '''
     else:  # Use implementation at resnet_101.py from https://github.com/Attila94/refinenet-keras/blob/master/model/resnet_101.py
         resnet_weights = 'models/resnet101_weights_tf.h5'
 
@@ -389,8 +348,7 @@ out_logits=True, upscaling_method='nn'):
 
 #    net = Conv2D(num_classes, 1, activation = 'softmax', name='rf_pred')(net)
     net = Conv2D(num_classes, 1, activation = None, name='rf_logits')(net)
-
-
+    
     model = Model(frontend.input, net)
 
     

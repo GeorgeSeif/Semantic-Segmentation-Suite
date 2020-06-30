@@ -83,8 +83,8 @@ class customGenerator:
         self.samples = itertools.cycle(zip(self.image_filenames, self.mask_filenames))
 
 
-        for i in range(5):
-            print("SAMPLES", next(self.samples))
+        #for i in range(5):
+        #    print("SAMPLES", next(self.samples))
     
     def generator(self):
         while True:
@@ -96,22 +96,43 @@ class customGenerator:
                 img_path = os.path.join(self.image_path,img_file)
                 mask_path = os.path.join(self.mask_path,mask_file)
                 
-                # Read and resize image and mask
-                #img = cv2.imread(img_path, cv2.IMREAD_COLOR) # BGR
-                #img = cv2.resize(img,self.target_size[::-1])
-                #mask = cv2.imread(mask_path, cv2.IMREAD_COLOR)[:,:,::-1] # BGR to RGB
-                #mask = np.array(Image.fromarray(mask).resize(self.target_size[::-1], Image.NEAREST))
-                
-                img = cv2.cvtColor(cv2.imread(img_path,-1), cv2.COLOR_BGR2RGB)
-                #img = np.float32(input_image) / 255.0
-                img = tf.keras.applications.mobilenet.preprocess_input(img)
-                mask = cv2.cvtColor(cv2.imread(mask_path,-1), cv2.COLOR_BGR2RGB)
-                #img = np.float32(input_image) / 255.0
+                # read image and mask 
+                # must convert to RGB as opencv reads w/ BGR ordering
+                img = cv2.cvtColor(cv2.imread(img_path, cv2.IMREAD_ANYDEPTH | cv2.IMREAD_COLOR), cv2.COLOR_BGR2RGB)  #uint16 
+                mask = cv2.cvtColor(cv2.imread(mask_path,-1), cv2.COLOR_BGR2RGB) #uint8
+
+                #convert uint16 image to uint 8
+                if img.dtype == np.uint16:
+                    img = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 
 
-                
-                #mask = cv2.cvtColor(cv2.imread(mask_path,-1), cv2.COLOR_BGR2RGB)
+                #stack = np.concatenate((img,mask),axis=2)
+                # random flipping
+                #if random.random() > 0.5:
+                #    stack = np.flip(stack, 0)
+                #if random.random() > 0.5:
+                #    stack = np.flip(stack, 1)
+
+                #img = stack[:,:,:3]
+                #mask = stack[:,:,3:6]
+
+
+
+                # preprocess image (convert to BGR and zero center) and mask (one hot)
+                img_out[i,:,:,:] = tf.keras.applications.resnet50.preprocess_input(img)
+                mask_out[i,:,:,:] = np.float32(one_hot_it(mask, self.mask_colors))
     
+                # it may seem pedantic to convert to RGB only for keras preprocessing
+                # to convert back to BGR, and it likely is. However, since the frontend
+                # of the model is defined by tensorflow's keras implementation, I would
+                # rather rely on the stability of their preprocessing, which is designed
+                # to work with their model weights, than rely on my implementation of
+                # the spec which may be subject to change.
+
+
+
+                #cv2.imshow('mask', mask_out[i,:,:,:] )
+                #cv2.waitKey(0)
 
                 '''
                 if len(self.aug_dict) > 0:
@@ -122,8 +143,8 @@ class customGenerator:
                     mask = im[:,:,3:6]
                 '''
                 
-                img_out[i,:,:,:] = img.astype(np.float32) / 255.0
-                mask_out[i,:,:,:] = np.float32(one_hot_it(mask, self.mask_colors))
+                #img_out[i,:,:,:] = img.astype(np.float32) / 255.0
+                
             
             # Perform random cropping
             if self.random_crop:
@@ -139,8 +160,27 @@ class customGenerator:
                 
                 img_out = img_out[:,y1:y2,x1:x2,:]
                 mask_out = mask_out[:,y1:y2,x1:x2,:]
+
+
+
+
+
+
+            #print("IN GENERATOR!!")
                        
-            # Subtract image mean
+
+            #zero centering is taken care of by keras preprocessing.
+            
+            # Subtract image mean for normalized float32 RGB
+            #these means are from imagenet training data
+            #img_out[:,:,:,0] -= 0.486
+            #img_out[:,:,:,1] -= 0.456
+            #img_out[:,:,:,2] -= 0.406
+            
+            #cv2.imshow('im', img_out[0,:,:,:] )
+            #cv2.waitKey(0)
+            
+            #uint8 means for BGR
             #img_out[:,:,:,0] -= 103.939
             #img_out[:,:,:,1] -= 116.779
             #img_out[:,:,:,2] -= 123.68
