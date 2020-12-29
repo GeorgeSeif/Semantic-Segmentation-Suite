@@ -435,7 +435,7 @@ def training_scope(is_training=True,
      with tf.contrib.slim.arg_scope(mobilenet.training_scope()):
        logits, endpoints = mobilenet_v2.mobilenet(input_tensor)
 
-     # the network created will be trainble with dropout/batch norm
+     # the network created will be trainable with dropout/batch norm
      # initialized appropriately.
   Args:
     is_training: if set to False this will ensure that all customizations are
